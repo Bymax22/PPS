@@ -28,6 +28,15 @@
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0713FB;
+  
+  /* Mobile-specific variables */
+  --mobile-font-size: 14px;
+  --tablet-font-size: 15px;
+  --desktop-font-size: 16px;
+  --safe-area-inset-top: 0px;
+  --safe-area-inset-bottom: 0px;
+  --safe-area-inset-left: 0px;
+  --safe-area-inset-right: 0px;
 }
 
 .dark {
@@ -56,6 +65,7 @@
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -64,6 +74,9 @@ body {
   overflow-x: hidden;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -74,6 +87,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
+  font-size: var(--mobile-font-size);
 }
 
 /* Mobile-First Responsive Design */
@@ -94,12 +108,20 @@ body {
     max-width: 640px;
     padding: 0 1.5rem;
   }
+  
+  body {
+    font-size: var(--tablet-font-size);
+  }
 }
 
 @media (min-width: 768px) {
   .container-mobile {
     max-width: 768px;
     padding: 0 2rem;
+  }
+  
+  body {
+    font-size: var(--desktop-font-size);
   }
 }
 
@@ -146,35 +168,36 @@ body {
   color: white;
 }
 
-/* Typography Enhancements for Mobile */
+/* MOBILE-SPECIFIC TYPOGRAPHY */
+/* Mobile-first heading sizes */
 h1 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: 1.375rem;
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.025em;
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   line-height: 1.3;
   font-weight: 600;
 }
 
 h4 {
-  font-size: 1.125rem;
+  font-size: 1rem;
   line-height: 1.4;
   font-weight: 500;
 }
 
 h5 {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.5;
   font-weight: 500;
 }
@@ -186,11 +209,35 @@ h6 {
 }
 
 p {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.6;
 }
 
-@media (min-width: 768px) {
+/* Tablet sizes */
+@media (min-width: 640px) {
+  h1 {
+    font-size: 1.75rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+  }
+  
+  h4 {
+    font-size: 1.125rem;
+  }
+  
+  p {
+    font-size: 1rem;
+  }
+}
+
+/* Desktop sizes */
+@media (min-width: 1024px) {
   h1 {
     font-size: 2.5rem;
   }
@@ -208,7 +255,7 @@ p {
   }
 }
 
-/* Button Styles Optimized for Mobile */
+/* Mobile-optimized Button Styles */
 .btn-primary {
   background: var(--primary-blue);
   color: white;
@@ -277,12 +324,12 @@ p {
   transform: translateY(-1px);
 }
 
-/* Card Styles for Mobile */
+/* Mobile-optimized Card Styles */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  padding: 1.25rem;
+  padding: 1rem;
   transition: all 0.2s ease;
   width: 100%;
 }
@@ -308,6 +355,7 @@ p {
   transition: all 0.2s ease;
   background: white;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-input:focus {
@@ -409,6 +457,11 @@ p {
   html, body {
     scroll-behavior: auto;
   }
+  
+  .mobile-safe-animate {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Touch Device Optimizations */
@@ -420,7 +473,7 @@ p {
   }
   
   .form-input {
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
   }
   
   /* Larger touch targets for mobile */
@@ -432,57 +485,134 @@ p {
   }
 }
 
-/* Mobile-specific optimizations */
+/* MOBILE-SPECIFIC OVERRIDES (Max-width 767px) */
 @media (max-width: 767px) {
-  /* Reduce padding on small screens */
-  .container-mobile {
-    padding: 0 1rem;
+  /* Base mobile adjustments */
+  body.is-mobile {
+    font-size: 14px;
   }
   
-  /* Stack elements vertically */
+  /* Stack all flex containers vertically */
   .mobile-stack {
-    flex-direction: column;
+    flex-direction: column !important;
   }
   
-  /* Full width elements on mobile */
+  /* Full width on mobile */
   .mobile-full {
-    width: 100%;
-    max-width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Reduce text sizes on mobile */
+  .mobile-text h1 {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  .mobile-text h2 {
+    font-size: 1.375rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  .mobile-text h3 {
+    font-size: 1.125rem !important;
+    line-height: 1.4 !important;
+  }
+  
+  .mobile-text p {
+    font-size: 0.9375rem !important;
+    line-height: 1.6 !important;
   }
   
   /* Reduce spacing on mobile */
-  .mobile-tight {
-    gap: 0.75rem;
-    padding: 1rem;
+  .mobile-tight > * {
+    margin-bottom: 1rem !important;
   }
   
-  /* Smaller text on mobile */
-  .mobile-text-sm {
-    font-size: 0.875rem;
+  .mobile-tight .space-y-6 {
+    gap: 1rem !important;
   }
   
-  /* Hide complex elements on mobile */
+  /* Reduce container padding */
+  .container-mobile {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Reduce image sizes */
+  .mobile-img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Touch-friendly buttons */
+  .touch-button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 12px 20px !important;
+  }
+  
+  /* Hide non-essential elements on mobile */
   .mobile-hide {
-    display: none;
+    display: none !important;
   }
   
   /* Show mobile-only elements */
   .mobile-show {
-    display: block;
+    display: block !important;
+  }
+  
+  /* Reduce section padding */
+  section {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+  
+  /* Force single column layouts */
+  .grid-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  /* Prevent text overflow */
+  .overflow-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
+/* Tablet adjustments (641px to 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-text h1 {
+    font-size: 2rem !important;
+  }
+  
+  .tablet-text h2 {
+    font-size: 1.75rem !important;
+  }
+  
+  .tablet-text h3 {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Desktop-only elements */
 @media (min-width: 768px) {
   .mobile-hide {
-    display: block;
+    display: block !important;
   }
   
   .mobile-show {
-    display: none;
+    display: none !important;
   }
 }
 
-/* Grid optimizations for mobile */
+/* Grid optimizations for all screens */
 .grid-mobile {
   display: grid;
   gap: 1rem;
@@ -503,7 +633,7 @@ p {
   }
 }
 
-/* Custom component styles for Progress Preparatory School */
+/* Custom component styles */
 .portal-header {
   background: var(--primary-dark);
   color: white;
@@ -532,6 +662,85 @@ p {
   font-size: 0.875rem;
 }
 
+/* Safe area insets for modern mobile devices */
+@supports(padding: max(0px)) {
+  .safe-top {
+    padding-top: max(1rem, env(safe-area-inset-top, 1rem)) !important;
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem)) !important;
+  }
+  
+  .safe-left {
+    padding-left: max(1rem, env(safe-area-inset-left, 1rem)) !important;
+  }
+  
+  .safe-right {
+    padding-right: max(1rem, env(safe-area-inset-right, 1rem)) !important;
+  }
+}
+
+/* Prevent horizontal overflow */
+.overflow-wrap {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Image optimizations */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-padding-top: 5rem;
+}
+
+/* Improved button styles for better mobile UX */
+button {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbar on mobile but keep functionality */
+@media (max-width: 768px) {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Form element improvements */
+select,
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0.75rem;
+}
+
+/* Custom scroll behavior */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 /* Mobile menu animations */
 .mobile-menu-enter {
   transform: translateX(100%);
@@ -551,69 +760,48 @@ p {
   transition: transform 0.3s ease-in-out;
 }
 
-/* Safe area insets for modern mobile devices */
-@supports(padding: max(0px)) {
-  .safe-top {
-    padding-top: max(1rem, env(safe-area-inset-top));
+/* Emergency mobile fixes for common issues */
+@media (max-width: 640px) {
+  /* Fix for oversized text */
+  [class*="text-4xl"],
+  [class*="text-5xl"],
+  [class*="text-6xl"] {
+    font-size: 1.75rem !important;
+    line-height: 1.2 !important;
   }
   
-  .safe-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  /* Fix for oversized buttons */
+  button[class*="px-8"],
+  button[class*="px-12"],
+  a[class*="px-8"],
+  a[class*="px-12"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
   
-  .safe-left {
-    padding-left: max(1rem, env(safe-area-inset-left));
+  /* Fix for oversized containers */
+  [class*="max-w-4xl"],
+  [class*="max-w-5xl"],
+  [class*="max-w-6xl"],
+  [class*="max-w-7xl"] {
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
   
-  .safe-right {
-    padding-right: max(1rem, env(safe-area-inset-right));
+  /* Fix for flex gaps on mobile */
+  [class*="gap-8"],
+  [class*="gap-12"],
+  [class*="gap-16"] {
+    gap: 1rem !important;
   }
-}
-
-/* Prevent horizontal overflow */
-.overflow-wrap {
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-}
-
-/* Image optimizations */
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Smooth scrolling for anchor links */
-html {
-  scroll-padding-top: 5rem; /* Account for fixed header */
-}
-
-/* Improved button styles for better mobile UX */
-button {
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-}
-
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Form element improvements */
-select,
-textarea,
-input[type="text"],
-input[type="email"],
-input[type="tel"],
-input[type="number"] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  border-radius: 0.75rem;
-}
-
-/* Custom scroll behavior for better mobile performance */
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth;
+  
+  /* Fix for padding/margin issues */
+  [class*="p-8"],
+  [class*="p-12"],
+  [class*="m-8"],
+  [class*="m-12"] {
+    padding: 1rem !important;
+    margin: 1rem !important;
   }
 }
