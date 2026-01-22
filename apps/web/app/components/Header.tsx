@@ -4,52 +4,50 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FaChevronDown, FaBars, FaTimes } from 'react-icons/fa'
+import { FaChevronDown, FaBars, FaTimes, FaSearch, FaBell, FaUser, FaHome } from 'react-icons/fa'
 
 const navigation = [
   {
     name: 'Programs',
     href: '/programs',
+    icon: '📚',
     dropdown: [
-      { name: 'Primary School (G1-7)', href: '/programs/primary', description: 'Ages 6-12' },
-      { name: 'Junior Secondary (G8-9)', href: '/programs/junior', description: 'Ages 13-14' },
-      { name: 'Senior Secondary (G10-12)', href: '/programs/senior', description: 'Ages 15-18' },
-      { name: 'Curriculum Overview', href: '/programs/curriculum', description: 'Complete syllabus' }
+      { name: 'Primary (G1-7)', href: '/programs/primary', icon: '👶' },
+      { name: 'Junior (G8-9)', href: '/programs/junior', icon: '🧒' },
+      { name: 'Senior (G10-12)', href: '/programs/senior', icon: '👨‍🎓' },
+      { name: 'Curriculum', href: '/programs/curriculum', icon: '📋' }
     ]
   },
   {
     name: 'Platform',
     href: '/platform',
+    icon: '💻',
     dropdown: [
-      { name: 'Student Portal', href: '/platform/student', description: 'Learning dashboard' },
-      { name: 'Parent Portal', href: '/platform/parent', description: 'Progress monitoring' },
-      { name: 'Teacher Portal', href: '/platform/teacher', description: 'Class management' },
-      { name: 'Admin Portal', href: '/platform/admin', description: 'School administration' }
+      { name: 'Student', href: '/platform/student', icon: '🎒' },
+      { name: 'Parent', href: '/platform/parent', icon: '👨‍👩‍👧‍👦' },
+      { name: 'Teacher', href: '/platform/teacher', icon: '👩‍🏫' },
+      { name: 'Admin', href: '/platform/admin', icon: '⚙️' }
     ]
   },
   {
     name: 'Admissions',
     href: '/admissions',
+    icon: '📝',
     dropdown: [
-      { name: 'Application Process', href: '/admissions/process', description: 'Step-by-step guide' },
-      { name: 'Requirements', href: '/admissions/requirements', description: 'Entry criteria' },
-      { name: 'Fee Structure', href: '/admissions/fees', description: 'Tuition & payments' },
-      { name: 'Scholarships', href: '/admissions/scholarships', description: 'Financial aid' }
-    ]
-  },
-  {
-    name: 'About',
-    href: '/about',
-    dropdown: [
-      { name: 'Our Story', href: '/about/story', description: 'History & mission' },
-      { name: 'Faculty', href: '/about/faculty', description: 'Meet our teachers' },
-      { name: 'Accreditations', href: '/about/accreditations', description: 'Certifications' },
-      { name: 'Careers', href: '/about/careers', description: 'Join our team' }
+      { name: 'Apply Now', href: '/admissions/apply', icon: '✍️' },
+      { name: 'Fees', href: '/admissions/fees', icon: '💰' },
+      { name: 'Scholarships', href: '/admissions/scholarships', icon: '🏆' }
     ]
   },
   {
     name: 'Results',
-    href: '/results'
+    href: '/results',
+    icon: '📊'
+  },
+  {
+    name: 'About',
+    href: '/about',
+    icon: '🏫'
   }
 ]
 
@@ -58,20 +56,26 @@ export default function Header() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
+      setIsScrolled(window.scrollY > 10)
     }
 
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
+      const mobile = window.innerWidth < 1024
+      setIsMobile(mobile)
+      if (!mobile) {
+        setIsMenuOpen(false)
+        setShowSearch(false)
+      }
     }
 
     window.addEventListener('scroll', handleScroll)
     window.addEventListener('resize', checkMobile)
-    checkMobile() // Initial check
+    checkMobile()
 
     return () => {
       window.removeEventListener('scroll', handleScroll)
@@ -83,6 +87,7 @@ export default function Header() {
   useEffect(() => {
     setIsMenuOpen(false)
     setActiveDropdown(null)
+    setShowSearch(false)
   }, [pathname])
 
   // Prevent body scroll when mobile menu is open
@@ -97,249 +102,277 @@ export default function Header() {
     }
   }, [isMenuOpen])
 
+  // Mobile Quick Actions
+  const quickActions = [
+    { name: 'Home', icon: <FaHome />, href: '/', color: 'text-blue-600' },
+    { name: 'Login', icon: <FaUser />, href: '/login', color: 'text-green-600' },
+    { name: 'Search', icon: <FaSearch />, action: () => setShowSearch(!showSearch), color: 'text-purple-600' },
+    { name: 'Notifications', icon: <FaBell />, href: '/notifications', color: 'text-orange-600' },
+  ]
+
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 safe-top ${
-      isScrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
-        : 'bg-white/90 backdrop-blur-sm'
-    }`}>
-      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo - Mobile Optimized */}
-          <Link 
-            href="/" 
-            className="flex items-center space-x-3 group min-h-[44px]"
-            onMouseEnter={() => setActiveDropdown(null)}
-          >
-            <div className="flex items-center space-x-3">
-              <div className="relative w-8 h-8 sm:w-10 sm:h-10">
-                <Image
-                  src="/logo.png"
-                  alt="Progress Preparatory"
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 640px) 32px, 40px"
-                  priority
-                />
-              </div>
-              {/* Logo Text - Responsive */}
-              <div className="flex flex-col">
-                <div className="font-bold text-base sm:text-lg lg:text-xl text-gray-900 leading-tight">
-                  Progress Preparatory
+    <>
+      {/* MOBILE-ONLY HEADER (Shows only on mobile) */}
+      <div className="lg:hidden">
+        {/* Main Mobile Header */}
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 safe-top ${
+          isScrolled 
+            ? 'bg-white shadow-lg border-b border-gray-200' 
+            : 'bg-white'
+        }`}>
+          <div className="px-4">
+            <div className="flex items-center justify-between h-14">
+              {/* Mobile Logo - Compact */}
+              <Link 
+                href="/" 
+                className="flex items-center space-x-2 min-h-[44px]"
+              >
+                <div className="relative w-8 h-8">
+                  <Image
+                    src="/logo.png"
+                    alt="Progress Preparatory"
+                    fill
+                    className="object-contain"
+                    sizes="40px"
+                    priority
+                  />
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 leading-tight hidden sm:block">
-                  The Hallmark of Excellence
+                <div className="flex flex-col">
+                  <div className="font-bold text-sm text-gray-900 leading-tight">
+                    Progress Prep
+                  </div>
+                  <div className="text-xs text-[#0713FB] font-medium leading-tight">
+                    Online School
+                  </div>
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 leading-tight sm:hidden">
-                  Excellence in Education
-                </div>
+              </Link>
+
+              {/* Mobile Action Buttons */}
+              <div className="flex items-center space-x-2">
+                {/* Search Button */}
+                <button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className="p-2.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="Search"
+                >
+                  <FaSearch className="text-sm" />
+                </button>
+
+                {/* Menu Button */}
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="p-2.5 rounded-full bg-[#0713FB] text-white hover:bg-[#060EDB] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                >
+                  {isMenuOpen ? <FaTimes className="text-sm" /> : <FaBars className="text-sm" />}
+                </button>
               </div>
             </div>
-          </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1">
-            {navigation.map((item) => (
-              <div
-                key={item.name}
-                className="relative"
-                onMouseEnter={() => setActiveDropdown(item.name)}
-                onMouseLeave={() => setActiveDropdown(null)}
-              >
+            {/* Mobile Search Bar */}
+            {showSearch && (
+              <div className="px-0 py-3 border-t border-gray-200 animate-in slide-in-from-top-5">
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+                  <input
+                    type="search"
+                    placeholder="Search for programs, teachers, or resources..."
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0713FB] focus:border-transparent"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
+          <div className="flex items-center justify-around px-2 py-2">
+            {quickActions.map((item) => (
+              item.href ? (
                 <Link
+                  key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-1 px-4 py-2 rounded-lg font-medium transition-all duration-300 text-sm min-h-[44px] ${
-                    pathname === item.href
-                      ? 'text-[#0713FB] bg-blue-50'
-                      : 'text-gray-700 hover:text-[#0713FB] hover:bg-gray-50'
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
+                    pathname === item.href 
+                      ? 'text-[#0713FB] bg-blue-50' 
+                      : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
                   }`}
                 >
-                  <span>{item.name}</span>
-                  {item.dropdown && (
-                    <FaChevronDown className={`text-xs transition-transform duration-300 ${
-                      activeDropdown === item.name ? 'rotate-180' : ''
-                    }`} />
-                  )}
-                </Link>
-
-                {/* Dropdown Menu */}
-                {item.dropdown && activeDropdown === item.name && (
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 animate-in fade-in-0 zoom-in-95">
-                    {item.dropdown.map((dropdownItem) => (
-                      <Link
-                        key={dropdownItem.name}
-                        href={dropdownItem.href}
-                        className="flex items-start space-x-3 px-4 py-3 hover:bg-gray-50 transition-all duration-300 group min-h-[44px]"
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
-                          pathname === dropdownItem.href ? 'bg-[#0713FB]' : 'bg-gray-300 group-hover:bg-[#0713FB]'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <div className={`font-medium text-sm group-hover:text-[#0713FB] truncate ${
-                            pathname === dropdownItem.href ? 'text-[#0713FB]' : 'text-gray-900'
-                          }`}>
-                            {dropdownItem.name}
-                          </div>
-                          <div className="text-xs text-gray-500 truncate">{dropdownItem.description}</div>
-                        </div>
-                      </Link>
-                    ))}
+                  <div className={`text-lg ${item.color}`}>
+                    {item.icon}
                   </div>
-                )}
-              </div>
+                  <span className="text-xs font-medium mt-0.5">{item.name}</span>
+                </Link>
+              ) : (
+                <button
+                  key={item.name}
+                  onClick={item.action}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
+                    showSearch && item.name === 'Search'
+                      ? 'text-[#0713FB] bg-blue-50' 
+                      : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`text-lg ${item.color}`}>
+                    {item.icon}
+                  </div>
+                  <span className="text-xs font-medium mt-0.5">{item.name}</span>
+                </button>
+              )
             ))}
-          </nav>
-
-          {/* Desktop CTA Buttons */}
-          <div className="hidden lg:flex items-center space-x-3">
-            <Link
-              href="/login"
-              className="px-4 py-2 text-gray-700 font-medium hover:text-[#0713FB] transition-colors duration-300 text-sm min-h-[44px] flex items-center"
-            >
-              Login
-            </Link>
-            <Link
-              href="/enroll"
-              className="bg-[#0713FB] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#060EDB] transition-all duration-300 text-sm min-h-[44px] flex items-center"
-            >
-              Enroll Now
-            </Link>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden p-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center touch-button"
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {isMenuOpen ? <FaTimes className="text-lg" /> : <FaBars className="text-lg" />}
-          </button>
-        </div>
+        </nav>
 
         {/* Mobile Menu Overlay */}
         {isMenuOpen && (
           <>
             {/* Backdrop */}
             <div 
-              className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40 animate-in fade-in-0"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-in fade-in-0"
               onClick={() => setIsMenuOpen(false)}
             />
             
             {/* Mobile Menu Panel */}
-            <div className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-white z-50 animate-in slide-in-from-top-5 overflow-y-auto hide-scrollbar">
-              <div className="px-4 py-4 safe-bottom">
-                <nav className="space-y-1">
+            <div className="fixed top-14 left-0 right-0 bottom-16 bg-white z-50 animate-in slide-in-from-top-5 overflow-y-auto hide-scrollbar">
+              <div className="px-4 py-3">
+                {/* User Profile Section */}
+                <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#0713FB] to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    PP
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-gray-900 text-sm">Welcome to Progress Prep!</div>
+                    <div className="text-xs text-gray-600 mt-0.5">Zambia's Premier Online School</div>
+                  </div>
+                  <Link
+                    href="/login"
+                    className="px-3 py-1.5 bg-[#0713FB] text-white text-xs font-semibold rounded-lg hover:bg-[#060EDB] transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                </div>
+
+                {/* Main Navigation */}
+                <div className="space-y-1 mb-6">
                   {navigation.map((item) => (
-                    <div key={item.name} className="border-b border-gray-100 last:border-b-0">
-                      <div className="flex flex-col">
+                    <div key={item.name} className="group">
+                      <div className="flex items-center justify-between">
                         <Link
                           href={item.href}
-                          className="flex items-center justify-between py-4 px-3 text-base font-medium text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px] touch-button"
+                          className="flex items-center space-x-3 py-3 px-2 text-gray-900 hover:text-[#0713FB] transition-colors flex-1 min-h-[44px]"
                           onClick={() => !item.dropdown && setIsMenuOpen(false)}
                         >
-                          <span className="text-sm font-semibold">{item.name}</span>
-                          {item.dropdown && (
-                            <FaChevronDown 
-                              className={`text-xs transition-transform duration-300 ${
-                                activeDropdown === item.name ? 'rotate-180' : ''
-                              }`}
-                            />
-                          )}
+                          <span className="text-lg">{item.icon}</span>
+                          <span className="font-medium text-sm flex-1">{item.name}</span>
                         </Link>
                         
-                        {/* Mobile Dropdown */}
                         {item.dropdown && (
                           <button
                             onClick={() => setActiveDropdown(activeDropdown === item.name ? null : item.name)}
-                            className="lg:hidden absolute right-4 top-4 p-2 text-gray-500"
-                            aria-label={`Toggle ${item.name} dropdown`}
-                          />
-                        )}
-                        
-                        {item.dropdown && activeDropdown === item.name && (
-                          <div className="ml-3 space-y-1 border-l-2 border-gray-200 pl-3 py-2">
-                            {item.dropdown.map((dropdownItem) => (
-                              <Link
-                                key={dropdownItem.name}
-                                href={dropdownItem.href}
-                                className="block py-3 px-3 text-gray-700 hover:text-[#0713FB] hover:bg-gray-50 rounded-lg transition-colors touch-button"
-                                onClick={() => setIsMenuOpen(false)}
-                              >
-                                <div className="font-medium text-sm">{dropdownItem.name}</div>
-                                <div className="text-xs text-gray-500 mt-0.5">{dropdownItem.description}</div>
-                              </Link>
-                            ))}
-                          </div>
+                            className="p-2 text-gray-400 hover:text-[#0713FB] transition-colors"
+                            aria-label={`Toggle ${item.name}`}
+                          >
+                            <FaChevronDown 
+                              className={`text-xs transition-transform duration-200 ${
+                                activeDropdown === item.name ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
                         )}
                       </div>
+                      
+                      {/* Mobile Dropdown */}
+                      {item.dropdown && activeDropdown === item.name && (
+                        <div className="ml-8 space-y-1 border-l-2 border-gray-200 pl-4 py-2">
+                          {item.dropdown.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.name}
+                              href={dropdownItem.href}
+                              className="flex items-center space-x-3 py-2.5 px-2 text-gray-700 hover:text-[#0713FB] transition-colors group min-h-[44px]"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <span className="text-base">{dropdownItem.icon}</span>
+                              <span className="text-sm flex-1">{dropdownItem.name}</span>
+                              <div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-[#0713FB] transition-colors" />
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
-                </nav>
-
-                {/* Mobile CTA Buttons */}
-                <div className="pt-6 mt-4 border-t border-gray-200 space-y-3">
-                  <Link
-                    href="/login"
-                    className="block w-full text-center py-3.5 text-[#0713FB] font-medium border-2 border-[#0713FB] rounded-lg hover:bg-[#0713FB] hover:text-white transition-all duration-300 active:scale-[0.98] touch-button"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Login to Portal
-                  </Link>
-                  <Link
-                    href="/enroll"
-                    className="block w-full text-center py-3.5 bg-[#0713FB] text-white font-semibold rounded-lg hover:bg-[#060EDB] transition-all duration-300 active:scale-[0.98] touch-button"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Start Enrollment
-                  </Link>
                 </div>
 
-                {/* Contact Info - Mobile */}
-                <div className="pt-6 mt-6 border-t border-gray-200">
-                  <div className="grid grid-cols-1 gap-4 text-sm">
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm mb-1">Call Us</div>
-                      <a 
-                        href="tel:+260211123456" 
-                        className="text-[#0713FB] hover:underline touch-button inline-flex items-center py-1"
+                {/* Quick Links */}
+                <div className="mb-6">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">Quick Links</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { name: 'Calendar', icon: '📅', href: '/calendar' },
+                      { name: 'Assignments', icon: '📝', href: '/assignments' },
+                      { name: 'Grades', icon: '📈', href: '/grades' },
+                      { name: 'Library', icon: '📚', href: '/library' },
+                    ].map((link) => (
+                      <Link
+                        key={link.name}
+                        href={link.href}
+                        className="flex items-center space-x-2 p-3 bg-gray-50 hover:bg-blue-50 rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
                       >
-                        +260 211 123 456
-                      </a>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm mb-1">Email</div>
-                      <a 
-                        href="mailto:info@progressprep.edu.zm" 
-                        className="text-[#0713FB] hover:underline touch-button inline-flex items-center py-1"
-                      >
-                        info@progressprep.edu.zm
-                      </a>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm mb-1">Office Hours</div>
-                      <div className="text-gray-600 text-sm">
-                        Mon-Fri: 8AM - 5PM
-                      </div>
-                    </div>
+                        <span className="text-lg">{link.icon}</span>
+                        <span className="text-sm font-medium text-gray-900">{link.name}</span>
+                      </Link>
+                    ))}
                   </div>
                 </div>
 
-                {/* Social Links - Mobile Only */}
-                <div className="pt-6 mt-6 border-t border-gray-200">
-                  <div className="text-center">
-                    <div className="font-semibold text-gray-900 text-sm mb-3">Follow Us</div>
-                    <div className="flex justify-center space-x-4">
-                      {['Facebook', 'Twitter', 'Instagram', 'LinkedIn'].map((social) => (
-                        <a
-                          key={social}
-                          href="#"
-                          className="w-10 h-10 flex items-center justify-center bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors touch-button"
-                          aria-label={`Follow on ${social}`}
-                        >
-                          {social.charAt(0)}
-                        </a>
-                      ))}
-                    </div>
+                {/* Important CTAs */}
+                <div className="space-y-2 mb-6">
+                  <Link
+                    href="/enroll"
+                    className="block w-full text-center py-3 bg-gradient-to-r from-[#0713FB] to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all active:scale-[0.98] text-sm"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    🚀 Start Free Trial
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className="block w-full text-center py-3 border-2 border-[#0713FB] text-[#0713FB] font-semibold rounded-lg hover:bg-blue-50 transition-all active:scale-[0.98] text-sm"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    📞 Contact Admissions
+                  </Link>
+                </div>
+
+                {/* Contact Info */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="space-y-3 text-sm">
+                    <a 
+                      href="tel:+260211123456" 
+                      className="flex items-center space-x-3 text-gray-700 hover:text-[#0713FB] transition-colors py-1"
+                    >
+                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-green-600">📞</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-xs">Call Admissions</div>
+                        <div className="text-[#0713FB] font-medium">+260 211 123 456</div>
+                      </div>
+                    </a>
+                    <a 
+                      href="mailto:info@progressprep.edu.zm" 
+                      className="flex items-center space-x-3 text-gray-700 hover:text-[#0713FB] transition-colors py-1"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600">✉️</span>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-xs">Email Us</div>
+                        <div className="text-[#0713FB] font-medium text-xs">info@progressprep.edu.zm</div>
+                      </div>
+                    </a>
                   </div>
                 </div>
               </div>
@@ -347,6 +380,121 @@ export default function Header() {
           </>
         )}
       </div>
-    </header>
+
+      {/* DESKTOP HEADER - Your existing header code (unchanged) */}
+      <div className="hidden lg:block">
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
+            : 'bg-white/90 backdrop-blur-sm'
+        }`}>
+          <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <Link 
+                href="/" 
+                className="flex items-center space-x-3 group"
+                onMouseEnter={() => setActiveDropdown(null)}
+              >
+                <div className="flex items-center space-x-3">
+                  <Image
+                    src="/logo.png"
+                    alt="Progress Preparatory"
+                    width={40}
+                    height={40}
+                    className="h-10 w-auto"
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement
+                      img.style.display = 'none'
+                    }}
+                    priority
+                  />
+                  <div className="flex flex-col">
+                    <div className="font-bold text-xl text-gray-900">
+                      Progress Preparatory School
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      The Hallmark of Excellence
+                    </div>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Desktop Navigation */}
+              <nav className="flex items-center space-x-1">
+                {navigation.map((item) => (
+                  <div
+                    key={item.name}
+                    className="relative"
+                    onMouseEnter={() => setActiveDropdown(item.name)}
+                    onMouseLeave={() => setActiveDropdown(null)}
+                  >
+                    <Link
+                      href={item.href}
+                      className={`flex items-center space-x-1 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                        pathname === item.href
+                          ? 'text-[#0713FB] bg-blue-50'
+                          : 'text-gray-700 hover:text-[#0713FB] hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-sm">{item.name}</span>
+                      {item.dropdown && (
+                        <FaChevronDown className={`text-xs transition-transform duration-300 ${
+                          activeDropdown === item.name ? 'rotate-180' : ''
+                        }`} />
+                      )}
+                    </Link>
+
+                    {/* Dropdown Menu */}
+                    {item.dropdown && activeDropdown === item.name && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 animate-in fade-in-0 zoom-in-95">
+                        {item.dropdown.map((dropdownItem) => (
+                          <Link
+                            key={dropdownItem.name}
+                            href={dropdownItem.href}
+                            className="flex items-start space-x-3 px-4 py-3 hover:bg-gray-50 transition-all duration-300 group"
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${
+                              pathname === dropdownItem.href ? 'bg-[#0713FB]' : 'bg-gray-300 group-hover:bg-[#0713FB]'
+                            }`}></div>
+                            <div>
+                              <div className={`font-medium text-sm group-hover:text-[#0713FB] ${
+                                pathname === dropdownItem.href ? 'text-[#0713FB]' : 'text-gray-900'
+                              }`}>
+                                {dropdownItem.name}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Desktop CTA Buttons */}
+              <div className="flex items-center space-x-3">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-gray-700 font-medium hover:text-[#0713FB] transition-colors duration-300 text-sm"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/enroll"
+                  className="bg-[#0713FB] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#060EDB] transition-all duration-300 text-sm"
+                >
+                  Enroll Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      {/* Spacer for mobile bottom nav */}
+      <div className="lg:hidden h-14"></div>
+      <div className="lg:hidden h-16"></div>
+    </>
   )
 }
