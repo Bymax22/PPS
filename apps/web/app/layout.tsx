@@ -111,12 +111,12 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className={`font-sans antialiased bg-white text-[#161A38] min-h-screen flex flex-col overflow-x-hidden text-sm md:text-base mobile-stack`}>
+      <body className={`font-sans antialiased bg-white text-[#161A38] min-h-screen flex flex-col overflow-x-hidden text-sm md:text-base`}>
         <SessionProviderClient>
           {/* Skip to main content link for accessibility */}
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#0713FB] text-white px-4 py-2 rounded-lg z-50 text-sm touch-button"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#0713FB] text-white px-4 py-2 rounded-lg z-50 text-sm"
           >
             Skip to main content
           </a>
@@ -129,7 +129,7 @@ export default function RootLayout({
             className="flex-1 flex flex-col w-full safe-top safe-bottom pt-16 md:pt-20 pb-4 md:pb-8"
             tabIndex={-1}
           >
-            <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl mobile-full">
+            <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl">
               {children}
             </div>
           </main>
@@ -143,7 +143,7 @@ export default function RootLayout({
         </div>
 
         {/* Toast container */}
-        <div id="toast-container" className="fixed top-16 md:top-20 left-1/2 transform -translate-x-1/2 z-50 space-y-2 w-full max-w-md px-4 safe-top hide-scrollbar"></div>
+        <div id="toast-container" className="fixed top-16 md:top-20 left-1/2 transform -translate-x-1/2 z-50 space-y-2 w-full max-w-md px-4 safe-top"></div>
 
         {/* Service Worker Registration with Mobile Optimizations */}
         <script
@@ -190,21 +190,21 @@ export default function RootLayout({
                     }
                   });
                   
-                  // Make all buttons touch-friendly
+                  // Make all buttons touch-friendly but keep padding
                   const buttons = document.querySelectorAll('button, .btn-primary, .btn-secondary, a[role="button"]');
                   buttons.forEach(btn => {
                     if (btn.offsetHeight < 44) {
                       btn.style.minHeight = '44px';
-                      btn.style.paddingTop = '12px';
-                      btn.style.paddingBottom = '12px';
                     }
                   });
                   
-                  // Ensure images don't overflow
+                  // Ensure images don't overflow but maintain aspect ratio
                   const images = document.querySelectorAll('img');
                   images.forEach(img => {
-                    img.style.maxWidth = '100%';
-                    img.style.height = 'auto';
+                    if (img.offsetWidth > window.innerWidth) {
+                      img.style.maxWidth = '100%';
+                      img.style.height = 'auto';
+                    }
                   });
                   
                   // Add mobile class to body for CSS targeting
