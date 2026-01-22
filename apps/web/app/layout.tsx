@@ -129,7 +129,7 @@ export default function RootLayout({
             className="flex-1 flex flex-col w-full safe-top safe-bottom pt-16 md:pt-20 pb-4 md:pb-8"
             tabIndex={-1}
           >
-            <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto max-w-7xl mobile-full">
+            <div className="w-full mx-auto max-w-7xl mobile-full">
               {children}
             </div>
           </main>
