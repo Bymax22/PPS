@@ -457,6 +457,11 @@ p {
   html, body {
     scroll-behavior: auto;
   }
+  
+  .mobile-safe-animate {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Touch Device Optimizations */
@@ -487,7 +492,22 @@ p {
     font-size: 14px;
   }
   
-  /* Reduce text sizes on mobile ONLY - NO padding reduction */
+  /* Stack all flex containers vertically */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  /* Full width on mobile */
+  .mobile-full {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Reduce text sizes on mobile */
   .mobile-text h1 {
     font-size: 1.5rem !important;
     line-height: 1.2 !important;
@@ -508,15 +528,32 @@ p {
     line-height: 1.6 !important;
   }
   
-  /* Force single column layouts on mobile */
-  .mobile-stack {
-    flex-direction: column !important;
+  /* Reduce spacing on mobile */
+  .mobile-tight > * {
+    margin-bottom: 1rem !important;
   }
   
-  /* Full width containers without padding reduction */
-  .mobile-full {
-    width: 100% !important;
+  .mobile-tight .space-y-6 {
+    gap: 1rem !important;
+  }
+  
+  /* Reduce container padding */
+  .container-mobile {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Reduce image sizes */
+  .mobile-img {
     max-width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Touch-friendly buttons */
+  .touch-button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 12px 20px !important;
   }
   
   /* Hide non-essential elements on mobile */
@@ -529,20 +566,19 @@ p {
     display: block !important;
   }
   
-  /* Ensure images fit within viewport */
-  img.mobile-img {
-    max-width: 100% !important;
-    height: auto !important;
+  /* Reduce section padding */
+  section {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
   }
   
-  /* Touch-friendly buttons (height only, width auto) */
-  button.touch-button,
-  a.touch-button {
-    min-height: 44px !important;
-    padding: 12px 24px !important;
+  /* Force single column layouts */
+  .grid-mobile {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
   }
   
-  /* Prevent text overflow with ellipsis */
+  /* Prevent text overflow */
   .overflow-ellipsis {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -724,106 +760,48 @@ input[type="number"] {
   transition: transform 0.3s ease-in-out;
 }
 
-/* EMERGENCY MOBILE FIXES - ONLY AFFECTS TEXT & LAYOUT, NOT PADDING */
+/* Emergency mobile fixes for common issues */
 @media (max-width: 640px) {
-  /* Fix for oversized text - most important fix */
+  /* Fix for oversized text */
   [class*="text-4xl"],
   [class*="text-5xl"],
-  [class*="text-6xl"],
-  h1.text-3xl,
-  h1.text-4xl,
-  h1.text-5xl,
-  h1.text-6xl {
-    font-size: 1.5rem !important;
+  [class*="text-6xl"] {
+    font-size: 1.75rem !important;
     line-height: 1.2 !important;
   }
   
-  [class*="text-3xl"],
-  h2.text-2xl,
-  h2.text-3xl {
-    font-size: 1.375rem !important;
-    line-height: 1.3 !important;
+  /* Fix for oversized buttons */
+  button[class*="px-8"],
+  button[class*="px-12"],
+  a[class*="px-8"],
+  a[class*="px-12"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
   
-  [class*="text-2xl"],
-  h3.text-xl,
-  h3.text-2xl {
-    font-size: 1.125rem !important;
-    line-height: 1.4 !important;
-  }
-  
-  /* Fix for oversized buttons - only adjust text size, not padding */
-  button[class*="text-"],
-  a[class*="text-"] {
-    font-size: 0.9375rem !important;
-  }
-  
-  /* Fix for oversized containers - only adjust max-width, not padding */
+  /* Fix for oversized containers */
   [class*="max-w-4xl"],
   [class*="max-w-5xl"],
   [class*="max-w-6xl"],
   [class*="max-w-7xl"] {
     max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
   
-  /* Fix for flex gaps on mobile - reduce spacing between items */
+  /* Fix for flex gaps on mobile */
   [class*="gap-8"],
   [class*="gap-12"],
   [class*="gap-16"] {
     gap: 1rem !important;
   }
   
-  /* Fix for margin issues on mobile - reduce vertical margins */
-  [class*="my-8"],
-  [class*="my-12"],
-  [class*="my-16"],
-  [class*="mt-8"],
-  [class*="mt-12"],
-  [class*="mt-16"],
-  [class*="mb-8"],
-  [class*="mb-12"],
-  [class*="mb-16"] {
-    margin-top: 1rem !important;
-    margin-bottom: 1rem !important;
-  }
-  
-  /* Stack grid items vertically on mobile */
-  .grid.grid-cols-2,
-  .grid.grid-cols-3,
-  .grid.grid-cols-4 {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* Force flex containers to stack vertically */
-  .flex.flex-row,
-  .flex.row {
-    flex-direction: column !important;
-  }
-  
-  /* Make sure nothing overflows horizontally */
-  * {
-    max-width: 100vw !important;
-  }
-  
-  /* Ensure body doesn't overflow */
-  body {
-    position: relative;
-    width: 100%;
-  }
-}
-
-/* Additional mobile optimizations for very small screens */
-@media (max-width: 375px) {
-  /* Slightly reduce text on very small screens */
-  .mobile-text h1 {
-    font-size: 1.375rem !important;
-  }
-  
-  .mobile-text h2 {
-    font-size: 1.25rem !important;
-  }
-  
-  .mobile-text h3 {
-    font-size: 1.0625rem !important;
+  /* Fix for padding/margin issues */
+  [class*="p-8"],
+  [class*="p-12"],
+  [class*="m-8"],
+  [class*="m-12"] {
+    padding: 1rem !important;
+    margin: 1rem !important;
   }
 }
