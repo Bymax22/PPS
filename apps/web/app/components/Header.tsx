@@ -127,21 +127,21 @@ export default function Header() {
                 href="/" 
                 className="flex items-center space-x-2 min-h-[44px]"
               >
-                <div className="relative w-12 h-12">
+                <div className="relative w-14 h-14">
                   <Image
                     src="/logo.png"
                     alt="Progress Preparatory"
                     fill
                     className="object-contain"
-                    sizes="48px"
+                    sizes="56px"
                     priority
                   />
                 </div>
                 <div className="flex flex-col">
-                  <div className="font-bold text-base text-gray-900 leading-tight">
+                  <div className="font-black text-lg text-gray-900 leading-tight">
                     Progress
                   </div>
-                  <div className="text-sm text-[#0713FB] font-medium leading-tight">
+                  <div className="text-xs text-[#0713FB] font-medium leading-tight">
                     Prep School
                   </div>
                 </div>
