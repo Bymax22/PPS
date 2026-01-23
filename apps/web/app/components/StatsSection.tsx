@@ -23,7 +23,7 @@ export default function StatsSection() {
   ]
 
   return (
-    <section className="py-20 bg-[#161A38] text-white">
+    <section className="w-full py-20 bg-[#161A38] text-white">
       <div className="container-mobile">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">

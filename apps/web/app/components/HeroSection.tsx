@@ -68,7 +68,7 @@ export default function HeroSection() {
   const IconComponent = slides[currentSlide].icon
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-gray-900">
+    <section className="w-full relative min-h-screen overflow-hidden bg-gray-900">
       {/* Background Images with Smooth Transition */}
       <div className="absolute inset-0">
         {slides.map((slide, index) => (

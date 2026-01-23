@@ -120,7 +120,7 @@ export default function TestimonialsSection() {
   }
 
   return (
-    <section className="relative py-16 bg-gray-900 overflow-hidden">
+    <section className="w-full relative py-16 bg-gray-900 overflow-hidden">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center"

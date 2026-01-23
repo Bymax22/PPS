@@ -56,7 +56,7 @@ export default function CTASection() {
   const currentStep = enrollmentSteps[activeStep]
 
   return (
-    <section className="relative py-16">
+    <section className="w-full relative py-16">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0">
         <div 

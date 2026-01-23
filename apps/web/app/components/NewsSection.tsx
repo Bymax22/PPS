@@ -68,7 +68,7 @@ const events = [
 
 export default function NewsSection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="w-full py-20 bg-white">
       <div className="container-mobile">
         <div className="text-center mb-16">
           <span className="inline-block px-4 py-2 bg-[#0713FB] bg-opacity-10 text-[#0713FB] rounded-full text-sm font-semibold mb-4">

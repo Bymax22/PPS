@@ -218,7 +218,7 @@ export default function PlatformShowcase() {
   const isFirstSlide = activeWidgetSlide === 0
 
   return (
-    <section className="py-16 bg-white">
+    <section className="w-full py-16 bg-white">
       <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

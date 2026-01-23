@@ -126,7 +126,7 @@ export default function RootLayout({
           {/* Main content with proper spacing for header and footer */}
           <main 
             id="main-content" 
-            className="flex-1 flex flex-col w-full safe-top safe-bottom pt-16 md:pt-20 pb-4 md:pb-8"
+            className="flex-1 flex flex-col w-full safe-top safe-bottom pt-0 md:pt-20 pb-4 md:pb-8"
             tabIndex={-1}
           >
             <div className="w-full mx-auto lg:max-w-7xl mobile-full">

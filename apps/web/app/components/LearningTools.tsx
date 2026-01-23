@@ -106,7 +106,7 @@ export default function LearningTools() {
   const ActiveIcon = activeTool.icon
 
   return (
-    <section className="py-16 bg-gradient-to-b from-white to-gray-50">
+    <section className="w-full py-16 bg-gradient-to-b from-white to-gray-50">
       <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

@@ -122,7 +122,7 @@ export default function HeroBanner() {
   const currentSlideData = bannerSlides[currentSlide]
 
   return (
-    <section className="relative min-h-[700px] lg:min-h-[800px] bg-gray-900">
+    <section className="w-full relative min-h-[700px] lg:min-h-[800px] bg-gray-900">
       {/* Full-width Banner Slides */}
       <div className="absolute inset-0 overflow-hidden">
         {bannerSlides.map((slide, index) => (

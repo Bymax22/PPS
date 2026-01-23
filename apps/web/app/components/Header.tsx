@@ -463,7 +463,6 @@ export default function Header() {
       </div>
 
       {/* Spacer for mobile bottom nav */}
-      <div className="lg:hidden h-14"></div>
       <div className="lg:hidden h-16"></div>
     </>
   )

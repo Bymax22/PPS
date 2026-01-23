@@ -185,7 +185,7 @@ export default function PortalFeatures() {
   const [activeCategory, setActiveCategory] = useState(features[0])
 
   return (
-    <section className="relative py-16 bg-gray-900">
+    <section className="w-full relative py-16 bg-gray-900">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0">
         <div 

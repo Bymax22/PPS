@@ -50,7 +50,7 @@ const services = [
 
 export default function ServicesHighlight() {
   return (
-    <section className="py-12 bg-white">
+    <section className="w-full py-12 bg-white">
       <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         {/* Compact Header */}
         <div className="text-center mb-10">
