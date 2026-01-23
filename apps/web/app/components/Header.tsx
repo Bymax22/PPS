@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FaChevronDown, FaBars, FaTimes, FaSearch, FaBell, FaUser, FaHome } from 'react-icons/fa'
+import { FaChevronDown, FaBars, FaTimes, FaSearch, FaBell, FaUser, FaHome, FaChalkboardTeacher, FaGraduationCap } from 'react-icons/fa'
 
 const navigation = [
   {
@@ -105,9 +105,10 @@ export default function Header() {
   // Mobile Quick Actions
   const quickActions = [
     { name: 'Home', icon: <FaHome />, href: '/', color: 'text-blue-600' },
-    { name: 'Portal', icon: <FaUser />, href: '/student', color: 'text-green-600' },
-    { name: 'Login', icon: <FaUser />, href: '/login', color: 'text-purple-600' },
-    { name: 'Notifications', icon: <FaBell />, href: '/notifications', color: 'text-orange-600' },
+    { name: 'Student', icon: <FaGraduationCap />, href: '/student', color: 'text-green-600' },
+    { name: 'Parent', icon: <FaUser />, href: '/parent', color: 'text-purple-600' },
+    { name: 'Teacher', icon: <FaChalkboardTeacher />, href: '/teacher', color: 'text-orange-600' },
+    { name: 'Notification', icon: <FaBell />, href: '/notifications', color: 'text-red-600' },
   ]
 
   return (
@@ -174,7 +175,7 @@ export default function Header() {
         </header>
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/90 backdrop-blur-md border-t border-white/10 shadow-[0_-2px_20px_rgba(0,0,0,0.3)] safe-bottom">
           <div className="flex items-center justify-around px-2 py-2">
             {quickActions.map((item) => (
               <Link
@@ -182,8 +183,8 @@ export default function Header() {
                 href={item.href}
                 className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
                   pathname === item.href 
-                    ? 'text-[#0713FB] bg-blue-50' 
-                    : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
+                    ? 'text-[#0713FB] bg-white/20 backdrop-blur-sm' 
+                    : 'text-gray-300 hover:text-[#0EF117] hover:bg-white/10'
                 }`}
               >
                 <div className={`text-lg ${item.color}`}>
