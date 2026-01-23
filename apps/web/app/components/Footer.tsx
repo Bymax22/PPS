@@ -271,7 +271,7 @@ export default function Footer() {
       </div>
 
       {/* Floating CTA */}
-      <div className="fixed bottom-4 right-4 z-40">
+      <div className="fixed bottom-24 right-4 z-50 md:bottom-4">
         <div className="flex flex-col space-y-2">
           {/* WhatsApp */}
           <a

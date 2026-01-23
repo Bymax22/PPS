@@ -288,7 +288,7 @@ export default function HeroSection() {
       </div>
 
       {/* Mobile Navigation Dots */}
-      <div className="fixed bottom-4 right-4 z-30 flex flex-col space-y-2 md:hidden">
+      <div className="fixed bottom-24 right-4 z-30 flex flex-col space-y-2 md:hidden">
         {slides.map((_, index) => (
           <button
             key={index}
