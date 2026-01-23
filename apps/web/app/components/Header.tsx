@@ -105,8 +105,8 @@ export default function Header() {
   // Mobile Quick Actions
   const quickActions = [
     { name: 'Home', icon: <FaHome />, href: '/', color: 'text-blue-600' },
-    { name: 'Login', icon: <FaUser />, href: '/login', color: 'text-green-600' },
-    { name: 'Search', icon: <FaSearch />, action: () => setShowSearch(!showSearch), color: 'text-purple-600' },
+    { name: 'Portal', icon: <FaUser />, href: '/student', color: 'text-green-600' },
+    { name: 'Login', icon: <FaUser />, href: '/login', color: 'text-purple-600' },
     { name: 'Notifications', icon: <FaBell />, href: '/notifications', color: 'text-orange-600' },
   ]
 
@@ -142,21 +142,21 @@ export default function Header() {
                     Progress
                   </div>
                   <div className="text-sm text-[#0713FB] font-medium leading-tight">
-                    Preparatory School
+                    Prep School
                   </div>
                 </div>
               </Link>
 
               {/* Mobile Action Buttons */}
               <div className="flex items-center space-x-2">
-                {/* Search Button */}
-                <button
-                  onClick={() => setShowSearch(!showSearch)}
+                {/* Portal Button */}
+                <Link
+                  href="/student"
                   className="p-2.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  aria-label="Search"
+                  aria-label="Portal"
                 >
-                  <FaSearch className="text-sm" />
-                </button>
+                  <FaUser className="text-sm" />
+                </Link>
 
                 {/* Menu Button */}
                 <button
@@ -169,20 +169,7 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Mobile Search Bar */}
-            {showSearch && (
-              <div className="px-0 py-3 border-t border-gray-200 animate-in slide-in-from-top-5">
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-                  <input
-                    type="search"
-                    placeholder="Search for programs, teachers, or resources..."
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0713FB] focus:border-transparent"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
+            {/* Mobile Search Bar - Removed */}
           </div>
         </header>
 
@@ -190,37 +177,20 @@ export default function Header() {
         <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
           <div className="flex items-center justify-around px-2 py-2">
             {quickActions.map((item) => (
-              item.href ? (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
-                    pathname === item.href 
-                      ? 'text-[#0713FB] bg-blue-50' 
-                      : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`text-lg ${item.color}`}>
-                    {item.icon}
-                  </div>
-                  <span className="text-xs font-medium mt-0.5">{item.name}</span>
-                </Link>
-              ) : (
-                <button
-                  key={item.name}
-                  onClick={item.action}
-                  className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
-                    showSearch && item.name === 'Search'
-                      ? 'text-[#0713FB] bg-blue-50' 
-                      : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`text-lg ${item.color}`}>
-                    {item.icon}
-                  </div>
-                  <span className="text-xs font-medium mt-0.5">{item.name}</span>
-                </button>
-              )
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[60px] min-h-[60px] transition-all ${
+                  pathname === item.href 
+                    ? 'text-[#0713FB] bg-blue-50' 
+                    : 'text-gray-600 hover:text-[#0713FB] hover:bg-gray-50'
+                }`}
+              >
+                <div className={`text-lg ${item.color}`}>
+                  {item.icon}
+                </div>
+                <span className="text-xs font-medium mt-0.5">{item.name}</span>
+              </Link>
             ))}
           </div>
         </nav>
