@@ -117,7 +117,7 @@ export default function HeroSection() {
         </svg>
       </button>
 
-      <div className="relative z-10 px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="relative z-10 px-0 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[70vh] lg:min-h-[80vh]">
           {/* Content with Slide Animation */}
           <div className="text-white space-y-6">
