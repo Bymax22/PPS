@@ -1,66 +1,70 @@
-import './globals.css'
-import { Inter, Poppins } from 'next/font/google'
-import type { Metadata, Viewport } from 'next'
-import Header from './components/Header'
-import Footer from './components/Footer'
-import SessionProviderClient from './SessionProviderClient'
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import Preloader from "@/components/Preloader"; // or PreloaderFull for more elaborate version
+import CampusLayout from "@/campus/layout";
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
+});
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-  preload: true,
-})
-
-const poppins = Poppins({
-  weight: ['400', '500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-poppins',
-  preload: true,
-})
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
-    default: 'Progress Preparatory School | Quality Online Education in Zambia',
-    template: '%s | Progress Preparatory School'
+    default: "Progress Preparatory School | Excellence in Education",
+    template: "%s | Progress Preparatory School",
   },
-  description: 'Zambia\'s premier online learning platform offering comprehensive education from Grade 1 to 12. Live virtual classes, expert teachers, and proven academic results.',
+  description: "Progress Preparatory School - A distinguished pre and primary school in Lusaka, Zambia offering quality education from Baby Class to Grade 7 with Cambridge and Local curricula.",
   keywords: [
-    'Progress Preparatory School',
-    'online school Zambia',
-    'virtual learning Zambia',
-    'Grade 1-12 online',
-    'Zambia education',
-    'online classes Zambia',
-    'virtual school',
-    'distance learning Zambia'
+    "Progress Preparatory School",
+    "Zambian School",
+    "Lusaka",
+    "Zambia",
+    "Private School",
+    "Cambridge Curriculum",
+    "Local Curriculum",
+    "Primary Education",
+    "Baby Class",
+    "Grade 7",
   ],
-  authors: [{ name: 'Progress Preparatory School' }],
-  creator: 'Progress Preparatory School',
-  publisher: 'Progress Preparatory School',
-  metadataBase: new URL('https://progresspreparatory.edu.zm'),
+  authors: [{ name: "Progress Preparatory School" }],
+  creator: "Progress Preparatory School",
+  publisher: "Progress Preparatory School",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://progresspreparatoryschool.com"),
   openGraph: {
-    type: 'website',
-    locale: 'en_ZM',
-    url: 'https://progresspreparatory.edu.zm',
-    siteName: 'Progress Preparatory School',
-    title: 'Progress Preparatory School | The Hallmark of Education',
-    description: 'Zambia\'s premier online learning platform offering comprehensive education from Grade 1 to 12.',
+    type: "website",
+    locale: "en_ZM",
+    url: "https://progresspreparatoryschool.com",
+    siteName: "Progress Preparatory School",
+    title: "Progress Preparatory School | Excellence in Education",
+    description: "A distinguished pre and primary school in Lusaka offering quality education from Baby Class to Grade 7.",
     images: [
       {
-        url: '/og-image.jpg',
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'Progress Preparatory School',
+        alt: "Progress Preparatory School - Excellence in Education",
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Progress Preparatory School | The Hallmark of Excellence',
-    description: 'Zambia\'s premier online learning platform offering comprehensive education from Grade 1 to 12.',
-    images: ['/og-image.jpg'],
+    card: "summary_large_image",
+    title: "Progress Preparatory School | Excellence in Education",
+    description: "A distinguished pre and primary school in Lusaka offering quality education from Baby Class to Grade 7.",
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -68,162 +72,52 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
-}
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/manifest.json",
+};
 
 export const viewport: Viewport = {
-  width: 'device-width',
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#003087" },
+    { media: "(prefers-color-scheme: dark)", color: "#001f5b" },
+  ],
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#0713FB',
-  viewportFit: 'cover',
-}
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable} mobile-text`}>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        
-        {/* Preload critical fonts */}
-        <link
-          rel="preload"
-          href="/fonts/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`font-sans antialiased bg-white text-[#161A38] min-h-screen flex flex-col overflow-x-hidden text-sm md:text-base mobile-stack`}>
-        <SessionProviderClient>
-          {/* Skip to main content link for accessibility */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-[#0713FB] text-white px-4 py-2 rounded-lg z-50 text-sm touch-button"
-          >
-            Skip to main content
-          </a>
-
-          <Header />
-          
-          {/* Main content with proper spacing for header and footer */}
-          <main 
-            id="main-content" 
-            className="flex-1 flex flex-col w-full safe-top safe-bottom pt-0 md:pt-0 pb-4 md:pb-8"
-            tabIndex={-1}
-          >
-            {children}
-          </main>
-          
-          <Footer />
-        </SessionProviderClient>
-
-        {/* Loading indicator */}
-        <div id="global-loading" className="fixed top-4 right-4 z-50 hidden">
-          <div className="spinner w-6 h-6 border-2 border-[#0713FB]"></div>
-        </div>
-
-        {/* Toast container */}
-        <div id="toast-container" className="fixed top-16 md:top-20 left-1/2 transform -translate-x-1/2 z-50 space-y-2 w-full max-w-md px-4 safe-top hide-scrollbar"></div>
-
-        {/* Service Worker Registration with Mobile Optimizations */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('SW registered: ', registration);
-                  }).catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
-                  });
-                });
-              }
-              
-              // Enhanced mobile experience
-              document.addEventListener('touchstart', function() {}, {passive: true});
-              
-              // Prevent zoom on double-tap
-              let lastTouchEnd = 0;
-              document.addEventListener('touchend', function (event) {
-                const now = (new Date()).getTime();
-                if (now - lastTouchEnd <= 300) {
-                  event.preventDefault();
-                }
-                lastTouchEnd = now;
-              }, false);
-              
-              // Mobile font size adjustment
-              function adjustForMobile() {
-                if (window.innerWidth < 768) {
-                  // Set base font size for mobile
-                  document.documentElement.style.fontSize = '14px';
-                  
-                  // Adjust heading sizes on mobile
-                  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                  headings.forEach(heading => {
-                    if (!heading.classList.contains('mobile-adjusted')) {
-                      const currentSize = parseInt(window.getComputedStyle(heading).fontSize);
-                      if (currentSize > 28) {
-                        heading.style.fontSize = Math.min(currentSize, 32) * 0.85 + 'px';
-                        heading.classList.add('mobile-adjusted');
-                      }
-                    }
-                  });
-                  
-                  // Make all buttons touch-friendly
-                  const buttons = document.querySelectorAll('button, .btn-primary, .btn-secondary, a[role="button"]');
-                  buttons.forEach(btn => {
-                    if (btn.offsetHeight < 44) {
-                      btn.style.minHeight = '44px';
-                      btn.style.paddingTop = '12px';
-                      btn.style.paddingBottom = '12px';
-                    }
-                  });
-                  
-                  // Ensure images don't overflow
-                  const images = document.querySelectorAll('img');
-                  images.forEach(img => {
-                    img.style.maxWidth = '100%';
-                    img.style.height = 'auto';
-                  });
-                  
-                  // Add mobile class to body for CSS targeting
-                  document.body.classList.add('is-mobile');
-                } else {
-                  document.documentElement.style.fontSize = '';
-                  document.body.classList.remove('is-mobile');
-                }
-              }
-              
-              // Run on load and resize
-              window.addEventListener('load', adjustForMobile);
-              window.addEventListener('resize', adjustForMobile);
-              window.addEventListener('orientationchange', adjustForMobile);
-              
-              // Initial adjustment
-              setTimeout(adjustForMobile, 100);
-            `,
-          }}
-        />
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+      >
+        <CampusLayout>
+          <Preloader /> {/* Add this line */}
+          {children}
+        </CampusLayout>
+        <Toaster />
       </body>
     </html>
-  )
+  );
 }
