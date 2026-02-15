@@ -45,7 +45,7 @@ export default function CampusHero() {
   }, [currentSlide])
 
   return (
-    <section className="relative min-h-screen sm:h-screen w-full overflow-hidden pt-28 sm:pt-20">
+    <section className="relative h-screen sm:h-screen w-full overflow-hidden pt-28 sm:pt-20">
 
       {/* --- Background Slides with Parallax --- */}
       <AnimatePresence mode="wait">
@@ -74,7 +74,7 @@ export default function CampusHero() {
       <AnimatePresence mode="wait">
         <motion.div
           key={`side-left-${currentSlide}`}
-          className="absolute left-0 top-1/3 w-2 h-32 bg-[var(--campus-gold)] rounded-tr-xl rounded-br-xl opacity-70 z-10"
+          className="hidden lg:block absolute left-0 top-1/3 w-2 h-32 bg-[var(--campus-gold)] rounded-tr-xl rounded-br-xl opacity-70 z-10"
           initial={{ x: -60, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -60, opacity: 0 }}
@@ -82,7 +82,7 @@ export default function CampusHero() {
         />
         <motion.div
           key={`side-right-${currentSlide}`}
-          className="absolute right-0 top-1/2 w-2 h-40 bg-[var(--campus-gold)] rounded-tl-xl rounded-bl-xl opacity-70 z-10"
+          className="hidden lg:block absolute right-0 top-1/2 w-2 h-40 bg-[var(--campus-gold)] rounded-tl-xl rounded-bl-xl opacity-70 z-10"
           initial={{ x: 60, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 60, opacity: 0 }}
@@ -146,7 +146,7 @@ export default function CampusHero() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href={slides[currentSlide].cta.href}
-                className="inline-flex items-center justify-center bg-gradient-to-r from-[#FFB915] to-[#FFD85C] text-black font-bold px-10 py-4 rounded-xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-1"
+                className="inline-flex items-center justify-center bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold px-10 py-4 rounded-xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-1"
               >
                 {slides[currentSlide].cta.text}
                 <ChevronRight className="ml-2 h-5 w-5" />
