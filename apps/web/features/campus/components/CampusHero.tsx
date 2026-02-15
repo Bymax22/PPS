@@ -163,7 +163,7 @@ export default function CampusHero() {
         </AnimatePresence>
 
         {/* --- Navigation Dots --- */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+        <div className="absolute bottom-4 sm:bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-20">
           {slides.map((_, index) => (
             <button
               key={index}

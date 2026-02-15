@@ -237,10 +237,10 @@ export default function CampusHeader() {
                 className="w-12 h-12 group-hover:scale-105 transition-transform"
               />
               <div>
-                <div className="text-2xl font-serif font-bold text-[#003087] group-hover:text-[var(--campus-gold)] transition-colors">
+                <div className="text-lg lg:text-2xl font-serif font-bold text-[#003087] group-hover:text-[var(--campus-gold)] transition-colors">
                   Progress
                 </div>
-                <div className="text-[10px] uppercase tracking-widest text-gray-500">
+                <div className="text-[9px] lg:text-[10px] uppercase tracking-widest text-gray-500">
                   Preparatory School
                 </div>
               </div>
