@@ -24,7 +24,7 @@ export default function CampusFooter() {
   return (
     <footer className="bg-[#00205B] text-white relative">
       {/* Simple top border */}
-      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#FFB915] via-[#FFB915] to-[#FFB915]" />
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#0EF117] via-[#0EF117] to-[#0EF117]" />
 
       <div className="container mx-auto px-6 py-16 relative z-10">
         
@@ -76,7 +76,7 @@ export default function CampusFooter() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded bg-white/5 hover:bg-[#FFB915] flex items-center justify-center text-gray-400 hover:text-[#00205B] transition-colors"
+                  className="w-8 h-8 rounded bg-white/5 hover:bg-[#0EF117] flex items-center justify-center text-gray-400 hover:text-[#00205B] transition-colors"
                 >
                   <social.icon size={14} />
                 </a>
@@ -86,7 +86,7 @@ export default function CampusFooter() {
 
           {/* Column 2: Quick Links */}
           <div className="lg:col-span-2">
-            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
+            <h4 className="text-sm font-semibold mb-4 text-[#0EF117]">
               Quick Links
             </h4>
             <ul className="space-y-2.5">
@@ -106,7 +106,7 @@ export default function CampusFooter() {
                     href={link.href} 
                     className="text-sm text-gray-400 hover:text-white flex items-center"
                   >
-                    <ChevronRight size={12} className="text-[#FFB915] mr-1" />
+                    <ChevronRight size={12} className="text-[#0EF117] mr-1" />
                     {link.name}
                   </Link>
                 </li>
@@ -116,7 +116,7 @@ export default function CampusFooter() {
 
           {/* Column 3: Admissions */}
           <div className="lg:col-span-2">
-            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
+            <h4 className="text-sm font-semibold mb-4 text-[#0EF117]">
               Admissions
             </h4>
             <ul className="space-y-2.5">
@@ -134,7 +134,7 @@ export default function CampusFooter() {
                     href={link.href} 
                     className="text-sm text-gray-400 hover:text-white flex items-center"
                   >
-                    <ChevronRight size={12} className="text-[#FFB915] mr-1" />
+                    <ChevronRight size={12} className="text-[#0EF117] mr-1" />
                     {link.name}
                   </Link>
                 </li>
@@ -143,20 +143,20 @@ export default function CampusFooter() {
 
             {/* Early Bird */}
             <div className="mt-4 p-3 bg-white/5 rounded border border-white/10">
-              <p className="text-xs text-[#FFB915] font-medium mb-0.5">Early Bird Deadline</p>
+              <p className="text-xs text-[#0EF117] font-medium mb-0.5">Early Bird Deadline</p>
               <p className="text-sm text-white">January 31, 2026</p>
             </div>
           </div>
 
           {/* Column 4: Contact */}
           <div className="lg:col-span-3">
-            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
+            <h4 className="text-sm font-semibold mb-4 text-[#0EF117]">
               Contact & Location
             </h4>
             
             <div className="space-y-3 text-sm text-gray-400 mb-6">
               <div className="flex gap-2">
-                <MapPin size={16} className="text-[#FFB915] shrink-0 mt-0.5" />
+                <MapPin size={16} className="text-[#0EF117] shrink-0 mt-0.5" />
                 <span>
                   Plot 332/8137 Hellen Kaunda Road,<br />
                   off Alick Nkata Road, Lusaka, Zambia
@@ -164,7 +164,7 @@ export default function CampusFooter() {
               </div>
               
               <div className="flex gap-2">
-                <Phone size={16} className="text-[#FFB915] shrink-0" />
+                <Phone size={16} className="text-[#0EF117] shrink-0" />
                 <div>
                   <div>0771 050 500</div>
                   <div className="text-xs text-gray-500">Main Line</div>
@@ -172,7 +172,7 @@ export default function CampusFooter() {
               </div>
 
               <div className="flex gap-2">
-                <MessageSquare size={16} className="text-[#FFB915] shrink-0" />
+                <MessageSquare size={16} className="text-[#0EF117] shrink-0" />
                 <div>
                   <div>0775 455 565</div>
                   <div className="text-xs text-gray-500">WhatsApp Only</div>
@@ -180,7 +180,7 @@ export default function CampusFooter() {
               </div>
               
               <div className="flex gap-2">
-                <Mail size={16} className="text-[#FFB915] shrink-0" />
+                <Mail size={16} className="text-[#0EF117] shrink-0" />
                 <span className="break-all">progresspreparatoryschool@gmail.com</span>
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function CampusFooter() {
             {/* Hours */}
             <div className="mb-6 p-3 bg-white/5 rounded border border-white/10">
               <div className="flex items-center gap-2 mb-2">
-                <Clock size={14} className="text-[#FFB915]" />
+                <Clock size={14} className="text-[#0EF117]" />
                 <span className="text-sm font-medium text-white">Office Hours</span>
               </div>
               <div className="grid grid-cols-2 gap-1 text-xs">
@@ -206,9 +206,9 @@ export default function CampusFooter() {
                 <input 
                   type="email" 
                   placeholder="Your email" 
-                  className="bg-white/5 text-sm px-3 py-2 outline-none flex-1 rounded-l border border-gray-700 focus:border-[#FFB915] transition-colors placeholder:text-gray-600"
+                  className="bg-white/5 text-sm px-3 py-2 outline-none flex-1 rounded-l border border-gray-700 focus:border-[#0EF117] transition-colors placeholder:text-gray-600"
                 />
-                <button className="px-3 py-2 bg-[#FFB915] hover:bg-yellow-400 rounded-r transition-colors">
+                <button className="px-3 py-2 bg-[#0EF117] hover:bg-[#0ACE00] rounded-r transition-colors text-gray-900 font-semibold">
                   <ArrowRight size={16} className="text-[#00205B]" />
                 </button>
               </div>
@@ -220,19 +220,19 @@ export default function CampusFooter() {
         <div className="border-t border-gray-800 pt-6 mt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
             <div className="text-gray-500">
-              © {currentYear} Progress Preparatory School. All rights reserved. Developed by <a href="https://wa.me/260964165614" target="_blank" rel="noopener noreferrer" className="text-[#FFB915] hover:text-yellow-400">Bymax Zambia</a>.
+              © {currentYear} Progress Preparatory School. All rights reserved. Developed by <a href="https://wa.me/260964165614" target="_blank" rel="noopener noreferrer" className="text-[#0EF117] hover:text-[#0ACE00]">Bymax Zambia</a>.
             </div>
             
             <div className="flex items-center gap-4">
-              <Link href="/privacy" className="text-gray-500 hover:text-[#FFB915] transition-colors">
+              <Link href="/privacy" className="text-gray-500 hover:text-[#0EF117] transition-colors">
                 Privacy Policy
               </Link>
               <span className="text-gray-700">|</span>
-              <Link href="/terms" className="text-gray-500 hover:text-[#FFB915] transition-colors">
+              <Link href="/terms" className="text-gray-500 hover:text-[#0EF117] transition-colors">
                 Terms of Use
               </Link>
               <span className="text-gray-700">|</span>
-              <Link href="/cookies" className="text-gray-500 hover:text-[#FFB915] transition-colors">
+              <Link href="/cookies" className="text-gray-500 hover:text-[#0EF117] transition-colors">
                 Cookie Policy
               </Link>
             </div>

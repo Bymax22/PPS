@@ -91,7 +91,7 @@ export default function CampusHero() {
       </AnimatePresence>
 
       {/* --- Content Container --- */}
-      <div className="relative z-20 min-h-screen sm:min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center text-center text-white px-6">
+      <div className="relative z-20 h-full flex flex-col justify-center items-center text-center text-white px-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -146,7 +146,7 @@ export default function CampusHero() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href={slides[currentSlide].cta.href}
-                className="inline-flex items-center justify-center bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold px-10 py-4 rounded-xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-1"
+                className="inline-flex items-center justify-center bg-[#0EF117] hover:bg-[#0ACE00] text-gray-900 font-bold px-10 py-4 rounded-xl shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-1"
               >
                 {slides[currentSlide].cta.text}
                 <ChevronRight className="ml-2 h-5 w-5" />
