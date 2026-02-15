@@ -22,118 +22,80 @@ export default function CampusFooter() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-[#00205B] text-white relative overflow-hidden">
-      {/* Animated Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,215,0,0.3) 1px, transparent 0)',
-          backgroundSize: '40px 40px'
-        }} />
-      </div>
+    <footer className="bg-[#00205B] text-white relative">
+      {/* Simple top border */}
+      <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-[#FFB915] via-[#FFB915] to-[#FFB915]" />
 
-      {/* Top Accent Border with Animation */}
-      <motion.div 
-        className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#003087] via-[var(--campus-gold)] to-[#003087]"
-        animate={{ 
-          backgroundPosition: ['0% 0%', '200% 0%'],
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        style={{ backgroundSize: '200% 100%' }}
-      />
-
-      {/* Decorative Gold Dot Pattern */}
-      <div className="absolute top-20 right-20 opacity-10">
-        <div className="grid grid-cols-3 gap-3">
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="w-1 h-1 bg-[var(--campus-gold)] rounded-full" />
-          ))}
-        </div>
-      </div>
-
-      <div className="container mx-auto px-6 py-20 relative z-10">
+      <div className="container mx-auto px-6 py-16 relative z-10">
         
-        {/* Top Section - Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 mb-16">
+        {/* Top Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 mb-12">
           
-          {/* Column 1: Brand & Socials (spans 3 columns) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="lg:col-span-3"
-          >
-            <div className="flex items-center gap-3 mb-6">
+          {/* Column 1: Brand */}
+          <div className="lg:col-span-3">
+            <div className="flex items-center gap-3 mb-4">
               <Image
                 src="/logo.png"
                 alt="Progress Preparatory School"
-                width={56}
-                height={56}
-                className="w-14 h-14 rounded-2xl shadow-lg shadow-[#003087]/20"
+                width={48}
+                height={48}
+                className="w-12 h-12 rounded-lg"
               />
-              <div className="flex flex-col">
-                <span className="font-serif text-2xl font-bold text-white leading-none">Progress</span>
-                <span className="text-xs uppercase tracking-[0.2em] text-gray-400 font-medium mt-1">
+              <div>
+                <span className="font-serif text-xl font-bold text-white block leading-tight">Progress</span>
+                <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
                   Preparatory School
                 </span>
               </div>
             </div>
 
-            <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Providing a values-driven, internationally minded education in Lusaka. Nurturing young minds from Baby Class to Grade 7.
             </p>
 
-            {/* Accreditation Badges */}
-            <div className="flex flex-wrap gap-3 mb-8">
-              <span className="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-300 border border-white/10">
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              <span className="px-2.5 py-1 bg-white/5 rounded text-xs text-gray-300">
                 Cambridge International
               </span>
-              <span className="px-3 py-1 bg-white/5 rounded-full text-xs text-gray-300 border border-white/10">
+              <span className="px-2.5 py-1 bg-white/5 rounded text-xs text-gray-300">
                 Fully Accredited
               </span>
             </div>
 
-            {/* Social Icons */}
-            <div className="flex items-center gap-3">
+            {/* Social */}
+            <div className="flex items-center gap-2">
               {[
-                { icon: Facebook, href: 'https://facebook.com/progresspreparatory' },
-                { icon: Twitter, href: 'https://twitter.com/progressschool' },
-                { icon: Instagram, href: 'https://instagram.com/progresspreparatory' },
-                { icon: Linkedin, href: 'https://linkedin.com/company/progress-preparatory' }
+                { icon: Facebook, href: '#' },
+                { icon: Twitter, href: '#' },
+                { icon: Instagram, href: '#' },
+                { icon: Linkedin, href: '#' }
               ].map((social, index) => (
-                <motion.a 
+                <a 
                   key={index}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  whileHover={{ y: -3, scale: 1.1 }}
-                  className="w-10 h-10 rounded-full bg-white/5 border border-gray-700 flex items-center justify-center 
-                             text-gray-400 hover:bg-[var(--campus-gold)] hover:border-[var(--campus-gold)] hover:text-black 
-                             transition-all duration-300"
+                  className="w-8 h-8 rounded bg-white/5 hover:bg-[#FFB915] flex items-center justify-center text-gray-400 hover:text-[#00205B] transition-colors"
                 >
-                  <social.icon size={18} />
-                </motion.a>
+                  <social.icon size={14} />
+                </a>
               ))}
             </div>
-          </motion.div>
+          </div>
 
-          {/* Column 2: Quick Links (spans 2 columns) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-2"
-          >
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-[var(--campus-gold)]">
+          {/* Column 2: Quick Links */}
+          <div className="lg:col-span-2">
+            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
               Quick Links
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {[
                 { name: 'About Us', href: '/about' },
                 { name: 'Our Programs', href: '/programs' },
                 { name: 'Enroll Now', href: '/apply' },
-                  { name: 'Create Account', href: '/portal' },
-                  { name: 'Events Calendar', href: '/events' },
+                { name: 'Create Account', href: '/portal' },
+                { name: 'Events Calendar', href: '/events' },
                 { name: 'Latest News', href: '/news' },
                 { name: 'Safeguarding', href: '/safeguarding' },
                 { name: 'Accreditations', href: '/accreditations' },
@@ -142,108 +104,94 @@ export default function CampusFooter() {
                 <li key={link.name}>
                   <Link 
                     href={link.href} 
-                    className="text-gray-400 hover:text-white hover:pl-2 transition-all duration-200 text-sm flex items-center group"
+                    className="text-sm text-gray-400 hover:text-white flex items-center"
                   >
-                    <ChevronRight className="w-3 h-3 text-[var(--campus-gold)] opacity-0 group-hover:opacity-100 mr-0 group-hover:mr-2 transition-all" />
+                    <ChevronRight size={12} className="text-[#FFB915] mr-1" />
                     {link.name}
                   </Link>
                 </li>
               ))}
             </ul>
-          </motion.div>
+          </div>
 
-          {/* Column 3: Admissions (spans 2 columns) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-[var(--campus-gold)]">
+          {/* Column 3: Admissions */}
+          <div className="lg:col-span-2">
+            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
               Admissions
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {[
                 { name: 'How to Apply', href: '/admissions' },
                 { name: 'Tuition & Fees', href: '/tuition' },
-                                
                 { name: 'Baby Class - Grade 7', href: '/learning' },
                 { name: 'On-Campus Learning', href: '/on-campus' },
                 { name: 'Online Learning', href: '/online-sessions' },
                 { name: 'Home Tuition', href: '/home-tuition' },
                 { name: 'Scholarships', href: '/admissions/scholarships' },
-
               ].map((link) => (
                 <li key={link.name}>
                   <Link 
                     href={link.href} 
-                    className="text-gray-400 hover:text-white hover:pl-2 transition-all duration-200 text-sm flex items-center group"
+                    className="text-sm text-gray-400 hover:text-white flex items-center"
                   >
-                    <ChevronRight className="w-3 h-3 text-[var(--campus-gold)] opacity-0 group-hover:opacity-100 mr-0 group-hover:mr-2 transition-all" />
+                    <ChevronRight size={12} className="text-[#FFB915] mr-1" />
                     {link.name}
                   </Link>
                 </li>
               ))}
             </ul>
 
-            {/* Early Bird Badge */}
-            <div className="mt-6 p-3 bg-[var(--campus-gold)]/10 rounded-lg border border-[var(--campus-gold)]/20">
-              <p className="text-xs text-[var(--campus-gold)] font-semibold mb-1">Early Bird Deadline</p>
-              <p className="text-sm text-white">March 31, 2024</p>
+            {/* Early Bird */}
+            <div className="mt-4 p-3 bg-white/5 rounded border border-white/10">
+              <p className="text-xs text-[#FFB915] font-medium mb-0.5">Early Bird Deadline</p>
+              <p className="text-sm text-white">January 31, 2026</p>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Column 4: Contact & Info (spans 3 columns) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-3"
-          >
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-[var(--campus-gold)]">
+          {/* Column 4: Contact */}
+          <div className="lg:col-span-3">
+            <h4 className="text-sm font-semibold mb-4 text-[#FFB915]">
               Contact & Location
             </h4>
             
-            <div className="space-y-4 text-sm text-gray-400 mb-6">
-              <div className="flex items-start gap-3 group hover:text-white transition-colors">
-                <MapPin size={18} className="text-[var(--campus-gold)] mt-0.5 shrink-0" />
+            <div className="space-y-3 text-sm text-gray-400 mb-6">
+              <div className="flex gap-2">
+                <MapPin size={16} className="text-[#FFB915] shrink-0 mt-0.5" />
                 <span>
                   Plot 332/8137 Hellen Kaunda Road,<br />
                   off Alick Nkata Road, Lusaka, Zambia
                 </span>
               </div>
               
-              <div className="flex items-center gap-3 group hover:text-white transition-colors">
-                <Phone size={18} className="text-[var(--campus-gold)] shrink-0" />
-                <div className="flex flex-col">
-                  <span>0771 050 500</span>
-                  <span className="text-xs text-gray-500">Main Line</span>
+              <div className="flex gap-2">
+                <Phone size={16} className="text-[#FFB915] shrink-0" />
+                <div>
+                  <div>0771 050 500</div>
+                  <div className="text-xs text-gray-500">Main Line</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 group hover:text-white transition-colors">
-                <MessageSquare size={18} className="text-[var(--campus-gold)] shrink-0" />
-                <div className="flex flex-col">
-                  <span>0775 455 565</span>
-                  <span className="text-xs text-gray-500">WhatsApp Only</span>
+              <div className="flex gap-2">
+                <MessageSquare size={16} className="text-[#FFB915] shrink-0" />
+                <div>
+                  <div>0775 455 565</div>
+                  <div className="text-xs text-gray-500">WhatsApp Only</div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 group hover:text-white transition-colors">
-                <Mail size={18} className="text-[var(--campus-gold)] shrink-0" />
-                <span>progresspreparatoryschool@gmail.com</span>
+              <div className="flex gap-2">
+                <Mail size={16} className="text-[#FFB915] shrink-0" />
+                <span className="break-all">progresspreparatoryschool@gmail.com</span>
               </div>
             </div>
 
-            {/* Office Hours */}
-            <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+            {/* Hours */}
+            <div className="mb-6 p-3 bg-white/5 rounded border border-white/10">
               <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-[var(--campus-gold)]" />
-                <span className="text-sm font-semibold text-white">Office Hours</span>
+                <Clock size={14} className="text-[#FFB915]" />
+                <span className="text-sm font-medium text-white">Office Hours</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-1 text-xs">
                 <span className="text-gray-400">Mon - Thu:</span>
                 <span className="text-white">7:30 AM - 4:30 PM</span>
                 <span className="text-gray-400">Friday:</span>
@@ -251,67 +199,54 @@ export default function CampusFooter() {
               </div>
             </div>
 
-            {/* Newsletter Signup */}
+            {/* Newsletter */}
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Stay Updated</p>
-              <div className="flex items-center">
+              <p className="text-xs text-gray-500 mb-2">Stay Updated</p>
+              <div className="flex">
                 <input 
                   type="email" 
-                  placeholder="Your email address" 
-                  className="bg-white/5 text-sm px-4 py-3 outline-none flex-1 rounded-l-lg border border-gray-700 focus:border-[var(--campus-gold)] transition-colors placeholder-gray-600"
+                  placeholder="Your email" 
+                  className="bg-white/5 text-sm px-3 py-2 outline-none flex-1 rounded-l border border-gray-700 focus:border-[#FFB915] transition-colors placeholder:text-gray-600"
                 />
-                <button className="px-4 py-3 bg-[var(--campus-gold)] hover:bg-yellow-400 rounded-r-lg transition-colors group">
-                  <ArrowRight className="text-black w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <button className="px-3 py-2 bg-[#FFB915] hover:bg-yellow-400 rounded-r transition-colors">
+                  <ArrowRight size={16} className="text-[#00205B]" />
                 </button>
               </div>
-              <p className="text-xs text-gray-600 mt-2">
-                Subscribe to receive updates and news
-              </p>
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Bottom Bar with Decorative Elements */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-          className="border-t border-gray-800 pt-8 mt-8"
-        >
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-500">
-                © {currentYear} Progress Preparatory School. All rights reserved. Developed by <a href="https://wa.me/260964165614" target="_blank" rel="noopener noreferrer" className="font-bold text-green-400 hover:text-green-300 transition-colors">Bymax Zambia</a>.
-              </span>
-              <span className="text-gray-700">|</span>
-              <span className="text-xs text-gray-600">
-                Baby Class to Grade 7
-              </span>
+        {/* Bottom Bar */}
+        <div className="border-t border-gray-800 pt-6 mt-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
+            <div className="text-gray-500">
+              © {currentYear} Progress Preparatory School. All rights reserved. Developed by <a href="https://wa.me/260964165614" target="_blank" rel="noopener noreferrer" className="text-[#FFB915] hover:text-yellow-400">Bymax Zambia</a>.
             </div>
             
-            <div className="flex items-center gap-6">
-              <Link href="/privacy" className="text-xs text-gray-500 hover:text-[var(--campus-gold)] transition-colors">
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="text-gray-500 hover:text-[#FFB915] transition-colors">
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="text-xs text-gray-500 hover:text-[var(--campus-gold)] transition-colors">
+              <span className="text-gray-700">|</span>
+              <Link href="/terms" className="text-gray-500 hover:text-[#FFB915] transition-colors">
                 Terms of Use
               </Link>
-              <Link href="/cookies" className="text-xs text-gray-500 hover:text-[var(--campus-gold)] transition-colors">
+              <span className="text-gray-700">|</span>
+              <Link href="/cookies" className="text-gray-500 hover:text-[#FFB915] transition-colors">
                 Cookie Policy
               </Link>
             </div>
           </div>
 
-          {/* Accreditation Strip */}
-          <div className="mt-6 flex flex-wrap justify-center items-center gap-4 text-xs text-gray-600">
+          {/* Accreditation */}
+          <div className="mt-4 flex flex-wrap justify-center items-center gap-3 text-xs text-gray-600">
             <span>Member of the Independent Schools Association of Zambia</span>
             <span className="w-1 h-1 bg-gray-700 rounded-full" />
             <span>Cambridge Associate School</span>
             <span className="w-1 h-1 bg-gray-700 rounded-full" />
             <span>Ministry of Education Approved</span>
           </div>
-        </motion.div>
+        </div>
       </div>
     </footer>
   )

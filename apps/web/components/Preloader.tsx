@@ -2,162 +2,144 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { BookOpen } from 'lucide-react'
 
 const messages = [
-  "Preparing global citizens...",
-  "Nurturing young minds...",
-  "Building future leaders...",
-  "Excellence in education..."
+  "Welcome",
+  "Loading",
+  "Something Amazing",
+  "Ready"
 ]
 
-export default function BookPreloaderSoft() {
+export default function ElegantPreloader() {
   const [isLoading, setIsLoading] = useState(true)
-  const [messageIndex, setMessageIndex] = useState(0)
-  const [isBookOpen, setIsBookOpen] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    const openTimer = setTimeout(() => setIsBookOpen(true), 400)
-    const messageTimer = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length)
-    }, 1500)
-    const loaderTimer = setTimeout(() => setIsLoading(false), 4000)
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          return 100
+        }
+        return prev + 1
+      })
+    }, 30)
+
+    const timer = setTimeout(() => setIsLoading(false), 3000)
 
     return () => {
-      clearTimeout(openTimer)
-      clearInterval(messageTimer)
-      clearTimeout(loaderTimer)
+      clearInterval(interval)
+      clearTimeout(timer)
     }
   }, [])
+
+  const currentMessageIndex = Math.min(
+    Math.floor(progress / 25),
+    messages.length - 1
+  )
 
   return (
     <AnimatePresence>
       {isLoading && (
-        <>
-          {/* Localized blur effect - like a vignette */}
-          <div className="fixed inset-0 z-[100] pointer-events-none">
-            <div className="absolute inset-0 bg-transparent" />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px]">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent backdrop-blur-xl rounded-full"
-                style={{
-                  boxShadow: '0 0 100px rgba(0,0,0,0.1)',
-                  filter: 'blur(15px)'
-                }}
-              />
-            </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-white"
+        >
+          {/* Minimal background pattern */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#003087]/5 rounded-full blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#FFB915]/5 rounded-full blur-3xl" />
           </div>
 
-          {/* Centered Content */}
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101]">
+          {/* Main content */}
+          <div className="relative flex flex-col items-center space-y-8">
+            {/* Logo/Icon */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative flex flex-col items-center"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 260,
+                damping: 20
+              }}
+              className="relative"
             >
-              {/* Animated Book */}
+              <div className="w-20 h-20 bg-gradient-to-br from-[#003087] to-[#001a4d] rounded-2xl shadow-xl flex items-center justify-center">
+                <span className="text-3xl font-light text-white">📚</span>
+              </div>
+              
+              {/* Subtle pulse ring */}
               <motion.div
                 animate={{
-                  rotateY: isBookOpen ? 180 : 0,
-                  scale: isBookOpen ? [1, 1.1, 1] : 1
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0, 0.3]
                 }}
                 transition={{
-                  duration: 1.5,
-                  ease: "easeInOut",
-                  times: [0, 0.5, 1]
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
                 }}
-                className="relative w-24 h-24 mb-6"
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                {/* Front Cover */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-[#003087] to-[#001f5b] rounded-2xl shadow-2xl flex items-center justify-center"
-                  style={{ backfaceVisibility: 'hidden' }}
-                >
-                  <BookOpen className="w-8 h-8 text-[var(--campus-gold)]" />
-                </motion.div>
+                className="absolute inset-0 bg-[#003087]/20 rounded-2xl -z-10"
+              />
+            </motion.div>
 
-                {/* Inside Pages */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl shadow-2xl flex items-center justify-center"
-                  style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateY(180deg)'
-                  }}
+            {/* Message */}
+            <div className="h-8">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={currentMessageIndex}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-lg text-gray-600 font-light tracking-wide"
                 >
-                  <div className="relative">
-                    <BookOpen className="w-8 h-8 text-[#003087]" />
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.5, 1, 0.5]
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      className="absolute -inset-2 bg-[var(--campus-gold)]/20 blur-xl rounded-full"
-                    />
-                  </div>
-                </motion.div>
-              </motion.div>
+                  {messages[currentMessageIndex]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
 
-              {/* Message Container */}
-              <div className="relative">
-                {/* Soft glow behind text */}
+            {/* Progress bar */}
+            <div className="w-48 h-1 bg-gray-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.1 }}
+                className="h-full bg-gradient-to-r from-[#003087] to-[#FFB915] rounded-full"
+              />
+            </div>
+
+            {/* Percentage */}
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              className="text-sm text-gray-400 font-mono"
+            >
+              {progress}%
+            </motion.span>
+
+            {/* Decorative dots */}
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => (
                 <motion.div
+                  key={i}
                   animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.3, 0.5, 0.3]
+                    y: [0, -4, 0],
                   }}
                   transition={{
-                    duration: 3,
+                    duration: 1,
                     repeat: Infinity,
+                    delay: i * 0.2,
                     ease: "easeInOut"
                   }}
-                  className="absolute inset-0 bg-[var(--campus-gold)]/10 blur-2xl rounded-full"
+                  className="w-1 h-1 bg-[#003087]/30 rounded-full"
                 />
-
-                {/* Message */}
-                <div className="relative">
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={messageIndex}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -15 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
-                      className="text-lg font-medium text-[#003087] text-center whitespace-nowrap px-6"
-                      style={{ textShadow: '0 2px 4px rgba(255,215,0,0.2)' }}
-                    >
-                      {messages[messageIndex]}
-                    </motion.p>
-                  </AnimatePresence>
-                </div>
-
-                {/* Minimal Dots */}
-                <div className="flex justify-center gap-2 mt-4">
-                  {messages.map((_, index) => (
-                    <motion.div
-                      key={index}
-                      animate={{
-                        width: index === messageIndex ? 20 : 6,
-                        backgroundColor: index === messageIndex ? '#FFB915' : '#CBD5E0'
-                      }}
-                      className="h-1.5 rounded-full"
-                      transition={{ duration: 0.3 }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+              ))}
+            </div>
           </div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   )
