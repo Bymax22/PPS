@@ -22,7 +22,7 @@ export default function CampusFooter() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-[#0A0E1F] text-white relative overflow-hidden">
+    <footer className="bg-[#00205B] text-white relative overflow-hidden">
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{

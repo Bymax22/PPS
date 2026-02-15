@@ -228,16 +228,16 @@ export default function CampusHeader() {
           <div className="container mx-auto px-6 flex justify-between items-center h-20">
 
             {/* LOGO */}
-            <Link href="/" className="flex items-center gap-3 shrink-0 group">
+            <Link href="/" className="flex items-center gap-1 shrink-0 group">
               <Image
                 src="/logo.png"
                 alt="Progress Preparatory School"
-                width={48}
-                height={48}
-                className="w-12 h-12 group-hover:scale-105 transition-transform"
+                width={56}
+                height={56}
+                className="w-14 h-14 group-hover:scale-105 transition-transform"
               />
               <div>
-                <div className="text-lg lg:text-2xl font-serif font-bold text-[#003087] group-hover:text-[var(--campus-gold)] transition-colors">
+                <div className="text-xl lg:text-2xl font-serif font-bold text-[#003087] group-hover:text-[var(--campus-gold)] transition-colors">
                   Progress
                 </div>
                 <div className="text-[9px] lg:text-[10px] uppercase tracking-widest text-gray-500">

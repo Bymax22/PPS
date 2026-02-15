@@ -45,7 +45,7 @@ export default function CampusHero() {
   }, [currentSlide])
 
   return (
-    <section className="relative min-h-[120vh] sm:h-screen w-full overflow-hidden pt-28 sm:pt-20">
+    <section className="relative min-h-screen sm:h-screen w-full overflow-hidden pt-28 sm:pt-20">
 
       {/* --- Background Slides with Parallax --- */}
       <AnimatePresence mode="wait">
@@ -91,7 +91,7 @@ export default function CampusHero() {
       </AnimatePresence>
 
       {/* --- Content Container --- */}
-      <div className="relative z-20 min-h-[calc(100vh-7rem)] sm:min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center text-center text-white px-6">
+      <div className="relative z-20 min-h-screen sm:min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center text-center text-white px-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -99,7 +99,7 @@ export default function CampusHero() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="max-w-4xl"
+            className="max-w-4xl space-y-3"
           >
 
             {/* Micro-Animated Tagline Strip */}
@@ -163,7 +163,7 @@ export default function CampusHero() {
         </AnimatePresence>
 
         {/* --- Navigation Dots --- */}
-        <div className="absolute bottom-4 sm:bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-3 z-20">
           {slides.map((_, index) => (
             <button
               key={index}
