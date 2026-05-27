@@ -1,5 +1,5 @@
-const datasourceUrl =
-  process.env.DATABASE_URL ||
-  'postgresql://user:password@localhost:5432/pps'
+import { defineConfig } from '@prisma/config'
 
-export default datasourceUrl
+export default defineConfig({
+  schema: './schema.prisma',
+})
