@@ -21,9 +21,6 @@
     "apps/*",
     "packages/*"
   ],
-  "prisma": {
-    "schema": "apps/web/prisma/schema.prisma"
-  },
   "resolutions": {
     "@types/react": "19.1.16"
   }
