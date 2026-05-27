@@ -9,7 +9,8 @@
         ".next/**",      
         "dist/**",       
         "!.next/cache/**"
-      ]
+      ],
+      "env": ["DATABASE_URL", "NEXTAUTH_SECRET", "NEXT_PUBLIC_APP_URL"]
     },
     "lint": {
       "dependsOn": ["^lint"]
