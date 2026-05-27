@@ -1,10 +1,13 @@
+import PortalLayout from '@/components/PortalLayout'
 import { Suspense } from 'react'
 import { StudentRegisterForm } from './student-register-form'
 
 export default function StudentRegisterPage() {
   return (
-    <Suspense>
-      <StudentRegisterForm />
-    </Suspense>
+    <PortalLayout role="student">
+      <Suspense>
+        <StudentRegisterForm />
+      </Suspense>
+    </PortalLayout>
   )
 }

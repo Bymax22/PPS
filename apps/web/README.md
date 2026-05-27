@@ -1,3 +1,28 @@
+# apps/web — Quick start
+
+1. Copy `.env.example` to `.env` and fill values (DATABASE_URL, NEXTAUTH_SECRET, STRIPE keys, CLOUDINARY_URL).
+
+2. Install and generate Prisma client:
+
+```bash
+cd apps/web
+npm install
+npx prisma generate --schema=prisma/schema.prisma
+```
+
+3. Run migrations (dev):
+
+```bash
+npx prisma migrate dev --name init --schema=prisma/schema.prisma
+```
+
+4. Start dev server:
+
+```bash
+npm run dev
+```
+
+API stubs are available under `app/api/*`. Portal pages (student/parent/teacher/admin) are present as UI stubs.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
 
 ## Getting Started
