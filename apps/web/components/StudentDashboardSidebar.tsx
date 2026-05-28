@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
-import { ArrowRight, Calendar, LogOut, ShieldCheck, User } from 'lucide-react'
+import { ArrowRight, BarChart2, Calendar, LogOut, ShieldCheck, User } from 'lucide-react'
 
 interface StudentDashboardSidebarProps {
   studentName: string
