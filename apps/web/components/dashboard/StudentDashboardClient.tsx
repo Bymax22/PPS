@@ -43,159 +43,167 @@ export default function StudentDashboardClient({
     }
   }
 
+  const hasActive = subscriptions?.some((s: any) => s.status === 'active') ?? false;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button 
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold" style={{ color: '#003087' }}>
-                  Student Dashboard
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Welcome back, {user.firstName} {user.lastName}
-                </p>
-              </div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="bg-[#003087] text-white pb-10">
+        <div className="container mx-auto px-6 pt-10 pb-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.28em] text-sky-200">Student portal</p>
+              <h1 className="text-4xl font-bold mt-3">Welcome back, {user.firstName}</h1>
+              <p className="mt-3 text-sm text-slate-200 max-w-2xl">
+                Your learning dashboard gives you quick access to upcoming classes, assignments, progress, and helpful links.
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <Link href="/student/notifications" className="relative p-2 hover:bg-gray-100 rounded-lg">
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.filter((n: any) => !n.read).length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#0EF117' }}></span>
-                )}
-              </Link>
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                  style={{ backgroundColor: '#003087' }}
-                >
+            <div className="flex items-center gap-6">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="rounded-3xl bg-white/10 p-5 shadow-sm border border-white/10">
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-200">Active classes</p>
+                  <p className="mt-3 text-3xl font-semibold">{stats.activeClasses}</p>
+                </div>
+                <div className="rounded-3xl bg-white/10 p-5 shadow-sm border border-white/10">
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-200">Avg progress</p>
+                  <p className="mt-3 text-3xl font-semibold">{stats.averageProgress}%</p>
+                </div>
+                <div className="rounded-3xl bg-white/10 p-5 shadow-sm border border-white/10">
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-200">Passed exams</p>
+                  <p className="mt-3 text-3xl font-semibold">{stats.passedExams}</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white/10 p-3 flex items-center gap-4 border border-white/10">
+                <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold text-lg">
                   {user.firstName[0]}{user.lastName[0]}
                 </div>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                  <p className="text-xs text-gray-500">Grade {user.studentProfile.grade}</p>
+                <div className="text-sm text-slate-100">
+                  <p className="font-semibold">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs">Parent: {user.studentProfile.parent ? `${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}` : '—'}</p>
+                  <p className="text-xs">Class: Grade {user.studentProfile.grade}</p>
+                  <p className="mt-2">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${hasActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                      {hasActive ? 'Subscription active' : 'No subscription'}
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="px-6 py-8">
-        <div className="mb-8">
-          <StudentStats 
-            activeClasses={stats.activeClasses}
-            completedLessons={stats.completedLessons}
-            passedExams={stats.passedExams}
-            totalExams={stats.totalExams}
-            averageProgress={stats.averageProgress}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <SectionCard title="Upcoming Schedule" icon={Calendar}>
-              <UpcomingSchedule lessons={upcomingLessons} />
-            </SectionCard>
-
-            <SectionCard title="Recent Progress" icon={TrendingUp}>
-              <RecentProgress progressRecords={recentProgress} />
-            </SectionCard>
-
-            <SectionCard title="Performance Overview" icon={Target}>
-              <PerformanceChart examAttempts={examAttempts} />
-            </SectionCard>
-
-            <SectionCard title="My Classes" icon={Users}>
-              <ActiveClasses enrollments={enrollments} />
-            </SectionCard>
-
-            <SectionCard title="Recent Exams" icon={Award}>
-              <RecentExams examAttempts={examAttempts} />
-            </SectionCard>
-
-            <SectionCard title="Learning Resources" icon={FileText}>
-              <ResourcesWidget resources={recentResources} />
-            </SectionCard>
-          </div>
-
-          <div className="space-y-6">
-            <SectionCard title="Quick Actions" icon={PlayCircle}>
-              <div className="space-y-3">
-                <QuickActionButton 
-                  href="/student/classes"
-                  label="View All Classes"
-                  icon={BookOpen}
-                  color="#003087"
-                />
-                <QuickActionButton 
-                  href="/student/exams"
-                  label="Take an Exam"
-                  icon={Award}
-                  color="#0EF117"
-                />
-                <QuickActionButton 
-                  href="/student/resources"
-                  label="Browse Resources"
-                  icon={Download}
-                  color="#003087"
-                />
-                <QuickActionButton 
-                  href="/student/messages"
-                  label="Send Message"
-                  icon={MessageCircle}
-                  color="#0EF117"
-                />
-              </div>
-            </SectionCard>
-
-            <SubscriptionStatus subscriptions={subscriptions} />
-
-            <SectionCard title="Notifications" icon={Bell}>
-              <NotificationsPanel 
-                notifications={notifications}
-                onMarkAsRead={handleMarkNotificationAsRead}
-                onMarkAllAsRead={handleMarkAllNotificationsAsRead}
-              />
-            </SectionCard>
-
-            {user.studentProfile.parent && (
-              <SectionCard title="Parent Connection" icon={Users}>
-                <div className="space-y-3">
-                  <InfoRow label="Name" value={`${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}`} />
-                  <InfoRow label="Email" value={user.studentProfile.parent.email} />
-                  {user.studentProfile.parent.phone && (
-                    <InfoRow label="Phone" value={user.studentProfile.parent.phone} />
-                  )}
-                  <button 
-                    className="w-full mt-3 py-2 px-4 rounded-lg text-white font-medium transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: '#003087' }}
-                  >
-                    Contact Parent
-                  </button>
-                </div>
-              </SectionCard>
-            )}
-
-            {payments.length > 0 && (
-              <SectionCard title="Recent Payments" icon={CreditCard}>
-                <div className="space-y-3">
-                  {payments.map((payment: any) => (
-                    <PaymentCard key={payment.id} payment={payment} />
-                  ))}
-                </div>
-              </SectionCard>
-            )}
           </div>
         </div>
       </div>
+
+      <main className="container mx-auto px-6 -mt-10 grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
+        <aside className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-[#003087] flex items-center justify-center text-white text-xl font-semibold">
+                {user.firstName[0]}{user.lastName[0]}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{user.firstName} {user.lastName}</p>
+                <p className="text-xs text-slate-500">Grade {user.studentProfile.grade}</p>
+              </div>
+            </div>
+            <div className="mt-6 space-y-3 text-sm text-slate-600">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Next class</p>
+                <p className="mt-2 font-medium text-slate-900">{upcomingLessons[0]?.title ?? 'No scheduled lessons'}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Notifications</p>
+                <p className="mt-2 font-medium text-slate-900">{notifications.filter((n: any) => !n.read).length} unread</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900 mb-4">Quick links</h2>
+            <div className="space-y-3">
+              <QuickActionButton href="/student/classes" label="My Classes" icon={BookOpen} color="#003087" />
+              <QuickActionButton href="/student/exams" label="Exam Center" icon={Award} color="#0EF117" />
+              <QuickActionButton href="/student/resources" label="Resource Hub" icon={Download} color="#003087" />
+              <QuickActionButton href="/student/messages" label="Messages" icon={MessageCircle} color="#0EF117" />
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900 mb-4">Student snapshot</h2>
+            <StudentStats 
+              activeClasses={stats.activeClasses}
+              completedLessons={stats.completedLessons}
+              passedExams={stats.passedExams}
+              totalExams={stats.totalExams}
+              averageProgress={stats.averageProgress}
+            />
+          </div>
+        </aside>
+
+        <section className="space-y-6">
+          <SectionCard title="Upcoming Schedule" icon={Calendar}>
+            <UpcomingSchedule lessons={upcomingLessons} />
+          </SectionCard>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SectionCard title="Recent Progress" icon={TrendingUp}>
+              <RecentProgress progressRecords={recentProgress} />
+            </SectionCard>
+            <SectionCard title="Performance Overview" icon={Target}>
+              <PerformanceChart examAttempts={examAttempts} />
+            </SectionCard>
+          </div>
+
+          <SectionCard title="My Classes" icon={Users}>
+            <ActiveClasses enrollments={enrollments} />
+          </SectionCard>
+
+          <SectionCard title="Recent Exams" icon={Award}>
+            <RecentExams examAttempts={examAttempts} />
+          </SectionCard>
+        </section>
+
+        <aside className="space-y-6">
+          <SectionCard title="Notifications" icon={Bell}>
+            <NotificationsPanel 
+              notifications={notifications}
+              onMarkAsRead={handleMarkNotificationAsRead}
+              onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+            />
+          </SectionCard>
+
+          <SectionCard title="Learning Resources" icon={FileText}>
+            <ResourcesWidget resources={recentResources} />
+          </SectionCard>
+
+          {user.studentProfile.parent && (
+            <SectionCard title="Parent Connection" icon={Users}>
+              <div className="space-y-3">
+                <InfoRow label="Name" value={`${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}`} />
+                <InfoRow label="Email" value={user.studentProfile.parent.email} />
+                {user.studentProfile.parent.phone && (
+                  <InfoRow label="Phone" value={user.studentProfile.parent.phone} />
+                )}
+                <button 
+                  className="w-full mt-3 py-2 px-4 rounded-lg text-white font-medium transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: '#003087' }}
+                >
+                  Contact Parent
+                </button>
+              </div>
+            </SectionCard>
+          )}
+
+          {payments.length > 0 && (
+            <SectionCard title="Recent Payments" icon={CreditCard}>
+              <div className="space-y-3">
+                {payments.map((payment: any) => (
+                  <PaymentCard key={payment.id} payment={payment} />
+                ))}
+              </div>
+            </SectionCard>
+          )}
+        </aside>
+      </main>
     </div>
   )
 }
