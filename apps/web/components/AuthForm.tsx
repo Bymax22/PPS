@@ -44,17 +44,19 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         throw new Error(data.error || 'Registration failed')
       }
 
+      const target = getDestination(role)
       const signInResult = await signIn('credentials', {
         redirect: false,
         email: form.email,
-        password: form.password
+        password: form.password,
+        callbackUrl: target
       })
 
       if (signInResult?.error) {
-        throw new Error('Unable to sign in after registration')
+        throw new Error(signInResult.error || 'Unable to sign in after registration')
       }
 
-      router.push(getDestination(role))
+      router.push(signInResult?.url || target)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed')
@@ -69,17 +71,19 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
     setLoading(true)
 
     try {
+      const target = getDestination(role)
       const signInResult = await signIn('credentials', {
         redirect: false,
         email: form.email,
-        password: form.password
+        password: form.password,
+        callbackUrl: target
       })
 
       if (signInResult?.error) {
-        throw new Error('Invalid email or password')
+        throw new Error(signInResult.error || 'Invalid email or password')
       }
 
-      router.push(getDestination(role))
+      router.push(signInResult?.url || target)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Login failed')

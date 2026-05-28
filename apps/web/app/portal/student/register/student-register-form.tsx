@@ -60,14 +60,15 @@ export function StudentRegisterForm() {
       const signInResult = await signIn('credentials', {
         redirect: false,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        callbackUrl: '/student'
       })
 
       if (signInResult?.error) {
-        throw new Error('Unable to sign in after registration.')
+        throw new Error(signInResult.error || 'Unable to sign in after registration.')
       }
 
-      router.push('/student')
+      router.push(signInResult?.url || '/student')
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed. Please try again.')
