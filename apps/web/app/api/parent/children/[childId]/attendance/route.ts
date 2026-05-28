@@ -6,15 +6,14 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { childId: string } }
+  { params }: { params: Promise<{ childId: string }> }
 ) {
   try {
+    const { childId } = await params
     const session = await getServerSession(await getAuthOptions())
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const childId = params.childId
 
     // Get student user ID
     const student = await prisma.student.findUnique({

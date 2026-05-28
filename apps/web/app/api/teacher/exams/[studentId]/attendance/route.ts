@@ -6,9 +6,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
+    const { studentId } = await params
     const session = await getServerSession(await getAuthOptions())
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -19,7 +20,7 @@ export async function POST(
 
     const attendance = await prisma.attendance.create({
       data: {
-        userId: params.studentId,
+        userId: studentId,
         date: new Date(date),
         status,
         remarks,
@@ -35,9 +36,10 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
+    const { studentId } = await params
     const session = await getServerSession(await getAuthOptions())
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -49,7 +51,7 @@ export async function GET(
 
     const attendance = await prisma.attendance.findMany({
       where: {
-        userId: params.studentId,
+        userId: studentId,
         ...(startDate && { date: { gte: new Date(startDate) } }),
         ...(endDate && { date: { lte: new Date(endDate) } })
       },
