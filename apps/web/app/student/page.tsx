@@ -1,60 +1,47 @@
+// app/(dashboard)/student/page.tsx (updated with notification actions)
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth'
-import { BarChart2, Calendar, ChevronRight, FileText, GraduationCap, MessageCircle, ShieldCheck, User } from 'lucide-react'
-import PortalLayout from '@/components/PortalLayout'
-import StudentDashboardSidebar from '@/components/StudentDashboardSidebar'
+import { 
+  BookOpen, 
+  Calendar, 
+  Trophy, 
+  Clock, 
+  FileText, 
+  MessageCircle, 
+  CreditCard,
+  ChevronRight,
+  PlayCircle,
+  CheckCircle,
+  AlertCircle,
+  Download,
+  TrendingUp,
+  Users,
+  Award,
+  Target,
+  Bell,
+  Menu
+} from 'lucide-react'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import StudentStats from '@/components/dashboard/StudentStats'
+import UpcomingSchedule from '@/components/dashboard/UpcomingSchedule'
+import RecentProgress from '@/components/dashboard/RecentProgress'
+import ActiveClasses from '@/components/dashboard/ActiveClasses'
+import RecentExams from '@/components/dashboard/RecentExams'
+import ResourcesWidget from '@/components/dashboard/ResourcesWidget'
+import NotificationsPanel from '@/components/dashboard/NotificationsPanel'
+import SubscriptionStatus from '@/components/dashboard/SubscriptionStatus'
+import PerformanceChart from '@/components/dashboard/PerformanceChart'
 
-const portalCards = [
-  { label: 'Student', subtitle: 'Your classes, lessons and progress', href: '/portal/student/login', icon: GraduationCap, accent: 'bg-slate-900 text-white' },
-  { label: 'Parent', subtitle: 'Child progress, payments and updates', href: '/portal/parent/login', icon: User, accent: 'bg-slate-800 text-white' },
-  { label: 'Teacher', subtitle: 'Class roster, grading and notes', href: '/portal/teacher/login', icon: FileText, accent: 'bg-slate-700 text-white' },
-  { label: 'Admin', subtitle: 'System health and subscriptions', href: '/admin', icon: ShieldCheck, accent: 'bg-slate-600 text-white' }
-]
-
-function formatDate(date?: Date) {
-  if (!date) return 'TBA'
-  return date.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
-}
-
-export default async function StudentPage() {
+// This is a server component wrapper
+export default async function StudentDashboardPage() {
   const session = await getServerSession(await getAuthOptions())
 
   if (!session?.user?.email) {
-    return (
-      <PortalLayout role="student">
-        <div className="space-y-8">
-          <section className="rounded-[2rem] bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-            <div className="max-w-3xl">
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Student portal</p>
-              <h1 className="mt-4 text-4xl font-semibold text-slate-900">Choose your account to continue</h1>
-              <p className="mt-4 text-base leading-7 text-slate-600">Access your student dashboard, progress and upcoming lessons. If you are using another account, switch quickly to stay connected with the full school portal.</p>
-            </div>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              {portalCards.map((portal) => {
-                const Icon = portal.icon
-                return (
-                  <Link key={portal.label} href={portal.href} className="group flex flex-col justify-between rounded-3xl bg-white p-6 shadow-[0_16px_30px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-1">
-                    <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${portal.accent}`}> 
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="mt-6">
-                      <p className="text-lg font-semibold text-slate-900">{portal.label}</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{portal.subtitle}</p>
-                    </div>
-                    <span className="mt-6 inline-flex items-center text-sm font-semibold text-slate-700 group-hover:text-slate-900">
-                      Continue <ChevronRight className="ml-2 h-4 w-4" />
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        </div>
-      </PortalLayout>
-    )
+    return <UnauthenticatedView />
   }
 
   const user = await prisma.user.findUnique({
@@ -63,271 +50,443 @@ export default async function StudentPage() {
       studentProfile: {
         include: {
           parent: {
-            select: { firstName: true, lastName: true, email: true }
+            select: { firstName: true, lastName: true, email: true, phone: true }
           }
         }
       },
       enrollments: {
         include: {
           class: {
-            include: { program: true }
-          }
-        }
-      },
-      progressRecords: {
-        orderBy: { updatedAt: 'desc' },
-        take: 5,
-        include: {
-          lesson: {
-            include: {
-              class: true
+            include: { 
+              program: true,
+              teachers: {
+                include: {
+                  teacher: {
+                    include: {
+                      user: true
+                    }
+                  }
+                }
+              }
             }
           }
         }
       },
-      notifications: {
+      subscriptions: {
+        where: { isActive: true },
+        include: {
+          plan: {
+            include: { program: true }
+          },
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
+        }
+      },
+      examAttempts: {
+        include: {
+          exam: {
+            include: { class: true }
+          }
+        },
         orderBy: { createdAt: 'desc' },
-        take: 4
+        take: 5
       },
       payments: {
         orderBy: { createdAt: 'desc' },
-        take: 1
+        take: 3
+      },
+      notifications: {
+        orderBy: { createdAt: 'desc' },
+        take: 10
       }
     }
   })
 
-  if (!user) {
-    return (
-      <PortalLayout role="student">
-        <div className="rounded-[2rem] bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-          <h1 className="text-3xl font-semibold text-slate-900">Student dashboard</h1>
-          <p className="mt-4 text-slate-600">We could not find a student profile for your account. Please sign in again or register through the student portal.</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/portal/student/login" className="inline-flex items-center justify-center rounded-3xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(15,23,42,0.12)]">Sign in</Link>
-            <Link href="/portal/student/register" className="inline-flex items-center justify-center rounded-3xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_12px_24px_rgba(15,23,42,0.08)]">Register</Link>
-          </div>
-        </div>
-      </PortalLayout>
-    )
+  if (!user?.studentProfile) {
+    return <NoProfileView />
   }
 
+  // Fetch upcoming lessons
   const upcomingLessons = user.enrollments.length
     ? await prisma.lesson.findMany({
         where: {
-          classId: { in: user.enrollments.map((entry) => entry.classId) },
+          classId: { in: user.enrollments.map(e => e.classId) },
           scheduledAt: { gte: new Date() },
           status: 'SCHEDULED'
         },
         orderBy: { scheduledAt: 'asc' },
-        take: 3,
+        take: 5,
         include: { class: true }
       })
     : []
 
-  const averageProgress = user.progressRecords.length
-    ? Math.round(user.progressRecords.reduce((sum, item) => sum + item.percentageWatched, 0) / user.progressRecords.length)
-    : 0
+  // Fetch recent progress
+  const recentProgress = await prisma.progress.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: 'desc' },
+    take: 5,
+    include: {
+      lesson: {
+        include: { class: true }
+      }
+    }
+  })
 
-  const nextLessonTitle = upcomingLessons[0]?.title ?? 'No upcoming lessons'
-  const parentName = user.studentProfile?.parent ? `${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}` : 'No linked parent'
+  // Fetch available resources
+  const recentResources = await prisma.resource.findMany({
+    where: {
+      classId: { in: user.enrollments.map(e => e.classId) },
+      isPublished: true
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 4
+  })
+
+  // Calculate overall stats
+  const completedLessons = recentProgress.filter(p => p.percentageWatched === 100).length
+  const averageProgress = recentProgress.length 
+    ? Math.round(recentProgress.reduce((sum, p) => sum + p.percentageWatched, 0) / recentProgress.length)
+    : 0
+  const passedExams = user.examAttempts.filter(e => e.isPassed === true).length
+  const totalExams = user.examAttempts.length
+
+  // Format notifications for the panel
+  const formattedNotifications = user.notifications.map(notification => ({
+    ...notification,
+    createdAt: new Date(notification.createdAt)
+  }))
 
   return (
-    <PortalLayout role="student">
-      <div className="space-y-8">
-        <section className="rounded-[2rem] bg-gradient-to-br from-[#003087] via-[#0f4691] to-[#047857] p-10 text-white shadow-[0_24px_60px_rgba(0,49,135,0.18)]">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.28em] text-sky-200/80">Student dashboard</p>
-              <h1 className="mt-4 text-4xl font-semibold">Hello, {user.firstName}.</h1>
-              <p className="mt-4 text-base leading-7 text-slate-100/90">Your learning hub for class schedules, progress tracking, parent updates, and live learning tools.</p>
-            </div>
-            <div className="flex items-center gap-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 text-3xl font-semibold text-white shadow-lg shadow-[#003087]/20">
-                {user.firstName?.[0] ?? 'S'}{user.lastName?.[0] ?? 'D'}
-              </div>
+    <StudentDashboardClient 
+      user={user}
+      upcomingLessons={upcomingLessons}
+      recentProgress={recentProgress}
+      recentResources={recentResources}
+      enrollments={user.enrollments}
+      examAttempts={user.examAttempts}
+      subscriptions={user.subscriptions}
+      payments={user.payments}
+      notifications={formattedNotifications}
+      stats={{
+        activeClasses: user.enrollments.length,
+        completedLessons,
+        passedExams,
+        totalExams,
+        averageProgress
+      }}
+    />
+  )
+}
+
+// Client component for interactivity
+function StudentDashboardClient({ 
+  user, 
+  upcomingLessons, 
+  recentProgress, 
+  recentResources,
+  enrollments,
+  examAttempts,
+  subscriptions,
+  payments,
+  notifications,
+  stats
+}: any) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const handleMarkNotificationAsRead = async (id: string) => {
+    // Implement API call to mark notification as read
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+      // Refresh or update local state
+    } catch (error) {
+      console.error('Failed to mark notification as read', error)
+    }
+  }
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    // Implement API call to mark all notifications as read
+    try {
+      await fetch('/api/notifications/mark-all-read', { method: 'POST' })
+      // Refresh or update local state
+    } catch (error) {
+      console.error('Failed to mark all notifications as read', error)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Navigation Bar */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button 
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
               <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-sky-100/80">Active learner</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{user.enrollments.length} classes</p>
-                <p className="text-sm text-sky-100/80">Next lesson: {nextLessonTitle}</p>
+                <h1 className="text-2xl font-bold" style={{ color: '#003087' }}>
+                  Student Dashboard
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Welcome back, {user.firstName} {user.lastName}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Link href="/student/notifications" className="relative p-2 hover:bg-gray-100 rounded-lg">
+                <Bell className="w-5 h-5 text-gray-600" />
+                {notifications.filter((n: any) => !n.read).length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#0EF117' }}></span>
+                )}
+              </Link>
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                  style={{ backgroundColor: '#003087' }}
+                >
+                  {user.firstName[0]}{user.lastName[0]}
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs text-gray-500">Grade {user.studentProfile.grade}</p>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+      </header>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
-              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Average progress</p>
-              <p className="mt-4 text-3xl font-semibold text-white">{averageProgress}%</p>
-              <p className="mt-2 text-sm text-sky-100/80">Across recent lessons</p>
-            </div>
-            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
-              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Live sessions</p>
-              <p className="mt-4 text-3xl font-semibold text-white">{upcomingLessons.length}</p>
-              <p className="mt-2 text-sm text-sky-100/80">Upcoming scheduled lessons</p>
-            </div>
-            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
-              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Parent connection</p>
-              <p className="mt-4 text-3xl font-semibold text-white">{parentName === 'No linked parent' ? 'Pending' : 'Connected'}</p>
-              <p className="mt-2 text-sm text-sky-100/80">Your parent account sync</p>
-            </div>
+      <div className="px-6 py-8">
+        {/* Stats Overview */}
+        <div className="mb-8">
+          <StudentStats 
+            activeClasses={stats.activeClasses}
+            completedLessons={stats.completedLessons}
+            passedExams={stats.passedExams}
+            totalExams={stats.totalExams}
+            averageProgress={stats.averageProgress}
+          />
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - 2/3 width on large screens */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Upcoming Schedule */}
+            <SectionCard title="Upcoming Schedule" icon={Calendar}>
+              <UpcomingSchedule lessons={upcomingLessons} />
+            </SectionCard>
+
+            {/* Recent Progress */}
+            <SectionCard title="Recent Progress" icon={TrendingUp}>
+              <RecentProgress progressRecords={recentProgress} />
+            </SectionCard>
+
+            {/* Performance Chart */}
+            <SectionCard title="Performance Overview" icon={Target}>
+              <PerformanceChart examAttempts={examAttempts} />
+            </SectionCard>
+
+            {/* Active Classes */}
+            <SectionCard title="My Classes" icon={Users}>
+              <ActiveClasses enrollments={enrollments} />
+            </SectionCard>
+
+            {/* Recent Exams */}
+            <SectionCard title="Recent Exams" icon={Award}>
+              <RecentExams examAttempts={examAttempts} />
+            </SectionCard>
+
+            {/* Resources */}
+            <SectionCard title="Learning Resources" icon={FileText}>
+              <ResourcesWidget resources={recentResources} />
+            </SectionCard>
           </div>
-        </section>
 
-        <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+          {/* Right Column - 1/3 width on large screens */}
           <div className="space-y-6">
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="schedule">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Next lessons</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Upcoming schedule</h2>
-                </div>
-                <Calendar className="h-6 w-6 text-[#003087]" />
+            {/* Quick Actions */}
+            <SectionCard title="Quick Actions" icon={PlayCircle}>
+              <div className="space-y-3">
+                <QuickActionButton 
+                  href="/student/classes"
+                  label="View All Classes"
+                  icon={BookOpen}
+                  color="#003087"
+                />
+                <QuickActionButton 
+                  href="/student/exams"
+                  label="Take an Exam"
+                  icon={Award}
+                  color="#0EF117"
+                />
+                <QuickActionButton 
+                  href="/student/resources"
+                  label="Browse Resources"
+                  icon={Download}
+                  color="#003087"
+                />
+                <QuickActionButton 
+                  href="/student/messages"
+                  label="Send Message"
+                  icon={MessageCircle}
+                  color="#0EF117"
+                />
               </div>
-              <div className="mt-8 space-y-4">
-                {upcomingLessons.length > 0 ? (
-                  upcomingLessons.map((lesson) => (
-                    <div key={lesson.id} className="rounded-3xl bg-slate-50 p-5">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-900">{lesson.title}</p>
-                          <p className="mt-2 text-sm text-slate-600">{lesson.class?.name ?? 'Class'} • {formatDate(new Date(lesson.scheduledAt ?? new Date()))}</p>
-                        </div>
-                        <span className="inline-flex rounded-full bg-[#047857] px-3 py-1 text-xs font-semibold text-white">Join session</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">No scheduled lessons found. Your dashboard will show upcoming classes once they're assigned to your enrolled programs.</div>
-                )}
-              </div>
-            </section>
+            </SectionCard>
 
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="progress">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Progress</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Continue learning</h2>
-                </div>
-                <BarChart2 className="h-6 w-6 text-[#003087]" />
-              </div>
+            {/* Subscription Status */}
+            <SubscriptionStatus subscriptions={subscriptions} />
 
-              <div className="mt-8 space-y-4">
-                {user.progressRecords.length ? (
-                  user.progressRecords.map((record) => (
-                    <div key={record.id} className="rounded-3xl bg-slate-50 p-5">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-medium text-slate-900">{record.lesson.title}</p>
-                          <p className="mt-1 text-sm text-slate-600">{record.lesson.class?.name ?? 'Lesson'} • {record.percentageWatched}% complete</p>
-                        </div>
-                        <span className="rounded-full bg-[#003087] px-3 py-1 text-xs font-semibold text-white">Updated</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-3xl bg-slate-50 p-6 text-slate-600">You have no progress records yet. Start a lesson or view your enrolled classes to begin tracking progress.</div>
-                )}
-              </div>
-            </section>
+            {/* Notifications Panel */}
+            <SectionCard title="Notifications" icon={Bell}>
+              <NotificationsPanel 
+                notifications={notifications}
+                onMarkAsRead={handleMarkNotificationAsRead}
+                onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+              />
+            </SectionCard>
 
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="resources">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Learning tools</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Learning features</h2>
+            {/* Parent Info */}
+            {user.studentProfile.parent && (
+              <SectionCard title="Parent Connection" icon={Users}>
+                <div className="space-y-3">
+                  <InfoRow label="Name" value={`${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}`} />
+                  <InfoRow label="Email" value={user.studentProfile.parent.email} />
+                  {user.studentProfile.parent.phone && (
+                    <InfoRow label="Phone" value={user.studentProfile.parent.phone} />
+                  )}
+                  <button 
+                    className="w-full mt-3 py-2 px-4 rounded-lg text-white font-medium transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: '#003087' }}
+                  >
+                    Contact Parent
+                  </button>
                 </div>
-                <ShieldCheck className="h-6 w-6 text-[#047857]" />
-              </div>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Live class sessions</p>
-                  <p className="mt-2 text-sm text-slate-600">Join live classrooms and stay on schedule with your teacher.</p>
+              </SectionCard>
+            )}
+
+            {/* Recent Payments */}
+            {payments.length > 0 && (
+              <SectionCard title="Recent Payments" icon={CreditCard}>
+                <div className="space-y-3">
+                  {payments.map((payment: any) => (
+                    <PaymentCard key={payment.id} payment={payment} />
+                  ))}
                 </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Homework tracker</p>
-                  <p className="mt-2 text-sm text-slate-600">Keep assignments, deadlines and feedback organized in one place.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Performance analytics</p>
-                  <p className="mt-2 text-sm text-slate-600">Monitor completion rates and focus areas using your progress history.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Parent updates</p>
-                  <p className="mt-2 text-sm text-slate-600">Stay connected with your parent’s account and school messages.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Study resources</p>
-                  <p className="mt-2 text-sm text-slate-600">Access course materials, recorded lessons and subject guides.</p>
-                </div>
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">Support chat</p>
-                  <p className="mt-2 text-sm text-slate-600">Reach out to your teacher or admin for academic support.</p>
-                </div>
-              </div>
-            </section>
+              </SectionCard>
+            )}
           </div>
-
-          <aside className="space-y-6">
-            <StudentDashboardSidebar
-              studentName={`${user.firstName} ${user.lastName}`}
-              grade={user.studentProfile?.grade}
-              schoolYear={user.studentProfile?.schoolYear}
-              parentName={parentName}
-              activeClasses={user.enrollments.length}
-              nextLessonTitle={nextLessonTitle}
-            />
-
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Recent notifications</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Alerts</h2>
-                </div>
-                <MessageCircle className="h-6 w-6 text-slate-600" />
-              </div>
-              <div className="mt-8 space-y-3 text-sm text-slate-600">
-                {user.notifications.length ? (
-                  user.notifications.map((notification) => (
-                    <div key={notification.id} className="rounded-3xl bg-slate-50 p-4">
-                      <p className="font-medium text-slate-900">{notification.title}</p>
-                      <p className="mt-1 leading-6">{notification.body}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-3xl bg-slate-50 p-4">No recent notifications yet. Notifications will appear here as your classes and lessons update.</div>
-                )}
-              </div>
-            </section>
-
-            <section className="rounded-3xl bg-slate-100 p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Connected portals</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Switch accounts</h2>
-                </div>
-              </div>
-              <div className="mt-8 grid gap-4">
-                {portalCards.map((portal) => {
-                  const Icon = portal.icon
-                  return (
-                    <Link key={portal.label} href={portal.href} className="flex items-center justify-between rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(15,23,42,0.08)] transition-colors hover:bg-slate-50">
-                      <div className="flex items-center gap-4">
-                        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${portal.accent}`}>
-                          <Icon className="h-5 w-5" />
-                        </span>
-                        <div>
-                          <p className="font-semibold text-slate-900">{portal.label}</p>
-                          <p className="text-sm text-slate-600">{portal.subtitle}</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-500" />
-                    </Link>
-                  )
-                })}
-              </div>
-            </section>
-          </aside>
         </div>
       </div>
-    </PortalLayout>
+    </div>
+  )
+}
+
+// Component Definitions
+function SectionCard({ title, icon: Icon, children }: any) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <Icon className="w-5 h-5" style={{ color: '#003087' }} />
+          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+        </div>
+      </div>
+      <div className="p-6">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function QuickActionButton({ href, label, icon: Icon, color }: any) {
+  return (
+    <Link 
+      href={href}
+      className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <Icon className="w-5 h-5" style={{ color }} />
+        <span className="text-gray-900">{label}</span>
+      </div>
+      <ChevronRight className="w-4 h-4 text-gray-400" />
+    </Link>
+  )
+}
+
+function InfoRow({ label, value }: any) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-sm text-gray-900 mt-1">{value}</p>
+    </div>
+  )
+}
+
+function PaymentCard({ payment }: any) {
+  const statusColors: any = {
+    SUCCEEDED: '#0EF117',
+    PENDING: '#003087',
+    FAILED: '#dc2626'
+  }
+  
+  return (
+    <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
+      <div>
+        <p className="font-medium text-gray-900">${payment.amount}</p>
+        <p className="text-xs text-gray-500">{payment.paymentMethod}</p>
+      </div>
+      <div 
+        className="px-2 py-1 rounded text-xs font-semibold text-white"
+        style={{ backgroundColor: statusColors[payment.status] }}
+      >
+        {payment.status}
+      </div>
+    </div>
+  )
+}
+
+function UnauthenticatedView() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-4" style={{ color: '#003087' }}>Welcome to Student Portal</h2>
+        <p className="text-gray-600 mb-6">Please sign in to access your dashboard</p>
+        <div className="space-y-3">
+          <Link 
+            href="/portal/student/login"
+            className="block w-full py-3 px-4 rounded-lg text-white text-center font-medium hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#003087' }}
+          >
+            Sign In
+          </Link>
+          <Link 
+            href="/portal/student/register"
+            className="block w-full py-3 px-4 rounded-lg text-center font-medium border-2 transition-colors"
+            style={{ borderColor: '#003087', color: '#003087' }}
+          >
+            Register
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NoProfileView() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full text-center">
+        <AlertCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#003087' }} />
+        <h2 className="text-2xl font-bold mb-2" style={{ color: '#003087' }}>Profile Not Found</h2>
+        <p className="text-gray-600">No student profile found for your account. Please contact support.</p>
+      </div>
+    </div>
   )
 }
