@@ -46,7 +46,7 @@ export default function StudentDashboardClient({
   const hasActive = subscriptions?.some((s: any) => s.status === 'active') ?? false;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pt-6 lg:pt-20">
       <div className="bg-[#003087] text-white pb-10">
         <div className="container mx-auto px-6 pt-10 pb-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -145,25 +145,81 @@ export default function StudentDashboardClient({
           </SectionCard>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <SectionCard title="Recent Progress" icon={TrendingUp}>
+            <SectionCard
+              title="Recent Progress"
+              icon={TrendingUp}
+              isEmpty={!recentProgress || recentProgress.length === 0}
+              emptyContent={(
+                <div className="text-center py-6">
+                  <p className="font-semibold">No progress records yet</p>
+                  <p className="text-sm text-gray-500 mt-2">Start watching lessons to track your progress</p>
+                  <div className="mt-4">
+                    <Link href="/student/classes" className="inline-block px-4 py-2 rounded-lg bg-[#003087] text-white">Browse Classes</Link>
+                  </div>
+                </div>
+              )}
+            >
               <RecentProgress progressRecords={recentProgress} />
             </SectionCard>
-            <SectionCard title="Performance Overview" icon={Target}>
+
+            <SectionCard
+              title="Performance Overview"
+              icon={Target}
+              isEmpty={!examAttempts || examAttempts.length === 0}
+              emptyContent={(
+                <div className="text-center py-6">
+                  <p className="font-semibold">Complete exams to see your performance chart</p>
+                </div>
+              )}
+            >
               <PerformanceChart examAttempts={examAttempts} />
             </SectionCard>
           </div>
 
-          <SectionCard title="My Classes" icon={Users}>
+          <SectionCard
+            title="My Classes"
+            icon={Users}
+            isEmpty={!enrollments || enrollments.length === 0}
+            emptyContent={(
+              <div className="text-center py-6">
+                <p className="font-semibold">No active classes</p>
+                <p className="text-sm text-gray-500 mt-2">Enroll in a program to start learning</p>
+                <div className="mt-4">
+                  <Link href="/portal/student/register" className="inline-block px-4 py-2 rounded-lg bg-[#003087] text-white">Browse Programs</Link>
+                </div>
+              </div>
+            )}
+          >
             <ActiveClasses enrollments={enrollments} />
           </SectionCard>
 
-          <SectionCard title="Recent Exams" icon={Award}>
+          <SectionCard
+            title="Recent Exams"
+            icon={Award}
+            isEmpty={!examAttempts || examAttempts.length === 0}
+            emptyContent={(
+              <div className="text-center py-6">
+                <p className="font-semibold">No exam attempts yet</p>
+                <p className="text-sm text-gray-500 mt-2">Check your classes for available exams</p>
+              </div>
+            )}
+          >
             <RecentExams examAttempts={examAttempts} />
           </SectionCard>
         </section>
 
         <aside className="space-y-6">
-          <SectionCard title="Notifications" icon={Bell}>
+          <SectionCard
+            title="Notifications"
+            icon={Bell}
+            isEmpty={!notifications || notifications.filter((n: any) => !n.read).length === 0}
+            emptyContent={(
+              <div className="text-center py-6">
+                <p className="font-semibold">No new notifications</p>
+                <p className="text-sm text-gray-500 mt-2">You're all caught up!</p>
+              </div>
+            )}
+          >
             <NotificationsPanel 
               notifications={notifications}
               onMarkAsRead={handleMarkNotificationAsRead}
@@ -171,7 +227,16 @@ export default function StudentDashboardClient({
             />
           </SectionCard>
 
-          <SectionCard title="Learning Resources" icon={FileText}>
+          <SectionCard
+            title="Learning Resources"
+            icon={FileText}
+            isEmpty={!recentResources || recentResources.length === 0}
+            emptyContent={(
+              <div className="text-center py-6">
+                <p className="font-semibold">No resources available</p>
+              </div>
+            )}
+          >
             <ResourcesWidget resources={recentResources} />
           </SectionCard>
 
@@ -208,18 +273,31 @@ export default function StudentDashboardClient({
   )
 }
 
-function SectionCard({ title, icon: Icon, children }: any) {
+function SectionCard({ title, icon: Icon, children, isEmpty = false, emptyContent = null }: any) {
+  const [open, setOpen] = useState(true)
+
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <Icon className="w-5 h-5" style={{ color: '#003087' }} />
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+      <div
+        className="p-6 border-b border-gray-200 cursor-pointer"
+        onClick={() => setOpen(!open)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(!open) }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5" style={{ color: '#003087' }} />
+            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          </div>
+          <ChevronRight className={`w-5 h-5 text-gray-400 transform transition-transform ${open ? 'rotate-90' : ''}`} />
         </div>
       </div>
-      <div className="p-6">
-        {children}
-      </div>
+      {open && (
+        <div className="p-6">
+          {isEmpty ? (emptyContent ?? null) : children}
+        </div>
+      )}
     </div>
   )
 }
