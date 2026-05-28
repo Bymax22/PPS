@@ -23,5 +23,8 @@
   ],
   "resolutions": {
     "@types/react": "19.1.16"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
   }
 }
