@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { BarChart2, Calendar, ChevronRight, FileText, GraduationCap, MessageCircle, ShieldCheck, User } from 'lucide-react'
 import PortalLayout from '@/components/PortalLayout'
+import StudentDashboardSidebar from '@/components/StudentDashboardSidebar'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -127,53 +128,70 @@ export default async function StudentPage() {
     ? Math.round(user.progressRecords.reduce((sum, item) => sum + item.percentageWatched, 0) / user.progressRecords.length)
     : 0
 
+  const nextLessonTitle = upcomingLessons[0]?.title ?? 'No upcoming lessons'
+  const parentName = user.studentProfile?.parent ? `${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}` : 'No linked parent'
+
   return (
     <PortalLayout role="student">
       <div className="space-y-8">
-        <section className="rounded-[2rem] bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Student dashboard</p>
-              <h1 className="mt-4 text-4xl font-semibold text-slate-900">Welcome back, {user.firstName}</h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">Your student portal is connected to the school database. Browse your lessons, progress and linked accounts without leaving the portal.</p>
+        <section className="rounded-[2rem] bg-gradient-to-br from-[#003087] via-[#0f4691] to-[#047857] p-10 text-white shadow-[0_24px_60px_rgba(0,49,135,0.18)]">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.28em] text-sky-200/80">Student dashboard</p>
+              <h1 className="mt-4 text-4xl font-semibold">Hello, {user.firstName}.</h1>
+              <p className="mt-4 text-base leading-7 text-slate-100/90">Your learning hub for class schedules, progress tracking, parent updates, and live learning tools.</p>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl bg-white p-6 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-                <p className="text-sm text-slate-500">Active classes</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">{user.enrollments.length}</p>
+            <div className="flex items-center gap-4 rounded-3xl bg-white/10 p-4 backdrop-blur">
+              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 text-3xl font-semibold text-white shadow-lg shadow-[#003087]/20">
+                {user.firstName?.[0] ?? 'S'}{user.lastName?.[0] ?? 'D'}
               </div>
-              <div className="rounded-3xl bg-white p-6 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-                <p className="text-sm text-slate-500">Average progress</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">{averageProgress}%</p>
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-sky-100/80">Active learner</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{user.enrollments.length} classes</p>
+                <p className="text-sm text-sky-100/80">Next lesson: {nextLessonTitle}</p>
               </div>
-              <div className="rounded-3xl bg-white p-6 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-                <p className="text-sm text-slate-500">Last payment</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">{user.payments[0]?.createdAt ? new Date(user.payments[0].createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'None'}</p>
-              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
+              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Average progress</p>
+              <p className="mt-4 text-3xl font-semibold text-white">{averageProgress}%</p>
+              <p className="mt-2 text-sm text-sky-100/80">Across recent lessons</p>
+            </div>
+            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
+              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Live sessions</p>
+              <p className="mt-4 text-3xl font-semibold text-white">{upcomingLessons.length}</p>
+              <p className="mt-2 text-sm text-sky-100/80">Upcoming scheduled lessons</p>
+            </div>
+            <div className="rounded-3xl bg-white/10 p-6 ring-1 ring-white/20">
+              <p className="text-sm uppercase tracking-[0.24em] text-sky-100/75">Parent connection</p>
+              <p className="mt-4 text-3xl font-semibold text-white">{parentName === 'No linked parent' ? 'Pending' : 'Connected'}</p>
+              <p className="mt-2 text-sm text-sky-100/80">Your parent account sync</p>
             </div>
           </div>
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
           <div className="space-y-6">
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
+            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="schedule">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Next lessons</p>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-900">Upcoming schedule</h2>
                 </div>
-                <Calendar className="h-6 w-6 text-slate-600" />
+                <Calendar className="h-6 w-6 text-[#003087]" />
               </div>
               <div className="mt-8 space-y-4">
                 {upcomingLessons.length > 0 ? (
                   upcomingLessons.map((lesson) => (
                     <div key={lesson.id} className="rounded-3xl bg-slate-50 p-5">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-semibold text-slate-900">{lesson.title}</p>
                           <p className="mt-2 text-sm text-slate-600">{lesson.class?.name ?? 'Class'} • {formatDate(new Date(lesson.scheduledAt ?? new Date()))}</p>
                         </div>
-                        <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Join</span>
+                        <span className="inline-flex rounded-full bg-[#047857] px-3 py-1 text-xs font-semibold text-white">Join session</span>
                       </div>
                     </div>
                   ))
@@ -183,25 +201,25 @@ export default async function StudentPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
+            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="progress">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm text-slate-500">Progress</p>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-900">Continue learning</h2>
                 </div>
-                <BarChart2 className="h-6 w-6 text-slate-600" />
+                <BarChart2 className="h-6 w-6 text-[#003087]" />
               </div>
 
               <div className="mt-8 space-y-4">
                 {user.progressRecords.length ? (
                   user.progressRecords.map((record) => (
                     <div key={record.id} className="rounded-3xl bg-slate-50 p-5">
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-medium text-slate-900">{record.lesson.title}</p>
                           <p className="mt-1 text-sm text-slate-600">{record.lesson.class?.name ?? 'Lesson'} • {record.percentageWatched}% complete</p>
                         </div>
-                        <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Updated</span>
+                        <span className="rounded-full bg-[#003087] px-3 py-1 text-xs font-semibold text-white">Updated</span>
                       </div>
                     </div>
                   ))
@@ -210,29 +228,59 @@ export default async function StudentPage() {
                 )}
               </div>
             </section>
+
+            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]" id="resources">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Learning tools</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Learning features</h2>
+                </div>
+                <ShieldCheck className="h-6 w-6 text-[#047857]" />
+              </div>
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Live class sessions</p>
+                  <p className="mt-2 text-sm text-slate-600">Join live classrooms and stay on schedule with your teacher.</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Homework tracker</p>
+                  <p className="mt-2 text-sm text-slate-600">Keep assignments, deadlines and feedback organized in one place.</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Performance analytics</p>
+                  <p className="mt-2 text-sm text-slate-600">Monitor completion rates and focus areas using your progress history.</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Parent updates</p>
+                  <p className="mt-2 text-sm text-slate-600">Stay connected with your parent’s account and school messages.</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Study resources</p>
+                  <p className="mt-2 text-sm text-slate-600">Access course materials, recorded lessons and subject guides.</p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm font-semibold text-slate-900">Support chat</p>
+                  <p className="mt-2 text-sm text-slate-600">Reach out to your teacher or admin for academic support.</p>
+                </div>
+              </div>
+            </section>
           </div>
 
           <aside className="space-y-6">
-            <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Student profile</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">{user.firstName} {user.lastName}</h2>
-                </div>
-                <User className="h-6 w-6 text-slate-600" />
-              </div>
-              <div className="mt-6 space-y-4 text-sm text-slate-600">
-                <div>Grade: {user.studentProfile?.grade ?? 'Unknown'}</div>
-                <div>School year: {user.studentProfile?.schoolYear ?? 'Not set'}</div>
-                <div>Parent: {user.studentProfile?.parent ? `${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}` : 'No linked parent'}</div>
-              </div>
-            </section>
+            <StudentDashboardSidebar
+              studentName={`${user.firstName} ${user.lastName}`}
+              grade={user.studentProfile?.grade}
+              schoolYear={user.studentProfile?.schoolYear}
+              parentName={parentName}
+              activeClasses={user.enrollments.length}
+              nextLessonTitle={nextLessonTitle}
+            />
 
             <section className="rounded-3xl bg-white p-8 shadow-[0_16px_30px_rgba(15,23,42,0.08)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Notifications</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Recent updates</h2>
+                  <p className="text-sm text-slate-500">Recent notifications</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Alerts</h2>
                 </div>
                 <MessageCircle className="h-6 w-6 text-slate-600" />
               </div>
@@ -263,7 +311,9 @@ export default async function StudentPage() {
                   return (
                     <Link key={portal.label} href={portal.href} className="flex items-center justify-between rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(15,23,42,0.08)] transition-colors hover:bg-slate-50">
                       <div className="flex items-center gap-4">
-                        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${portal.accent}`}> <Icon className="h-5 w-5" /> </span>
+                        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${portal.accent}`}>
+                          <Icon className="h-5 w-5" />
+                        </span>
                         <div>
                           <p className="font-semibold text-slate-900">{portal.label}</p>
                           <p className="text-sm text-slate-600">{portal.subtitle}</p>

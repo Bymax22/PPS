@@ -78,11 +78,11 @@ export function StudentRegisterForm() {
   }
 
   return (
-    <main className="pt-32 pb-20 min-h-screen bg-slate-100">
-      <div className="container mx-auto px-6 max-w-xl">
+    <main className="pt-32 pb-20 min-h-screen bg-white">
+      <div className="container mx-auto px-6 max-w-md">
         <Link
           href="/programs"
-          className="inline-flex items-center gap-2 text-slate-900 hover:text-slate-700 transition-colors mb-8 group"
+          className="inline-flex items-center gap-2 text-[#003087] hover:text-[var(--campus-gold)] transition-colors mb-8 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to Programs
@@ -91,107 +91,132 @@ export function StudentRegisterForm() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2rem] bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] overflow-hidden"
+          className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
         >
-          <div className="text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-white">
-              <Laptop className="w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-semibold text-slate-900">Create Online Learning Account</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-600">Register once and stay connected to your student portal, linked parent account and classroom updates.</p>
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#003087] to-[#001f5b] p-6 text-white text-center">
+            <Laptop className="w-12 h-12 text-[var(--campus-gold)] mx-auto mb-3" />
+            <h1 className="text-2xl font-bold mb-1">Create Online Learning Account</h1>
+            <p className="text-sm text-blue-200">Start your virtual learning journey</p>
           </div>
 
+          {/* Program Info */}
           {program === 'online' && (
-            <div className="mt-8 rounded-3xl bg-slate-100 p-4 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-slate-900" />
-                <span>You're registering for: <span className="font-semibold text-slate-900">Online Learning Program</span></span>
+            <div className="bg-[var(--campus-gold)]/10 p-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle className="w-4 h-4 text-[var(--campus-gold)]" />
+                <span className="text-gray-600">You're registering for: <span className="font-bold text-[#003087]">Online Learning Program</span></span>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block text-sm text-slate-700">
-                <span className="mb-2 block">First name</span>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
                   placeholder="John"
                 />
-              </label>
-              <label className="block text-sm text-slate-700">
-                <span className="mb-2 block">Last name</span>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
                   placeholder="Doe"
                 />
-              </label>
+              </div>
             </div>
 
-            <label className="block text-sm text-slate-700">
-              <span className="mb-2 block">Email address</span>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
-                placeholder="student@example.com"
-              />
-            </label>
-
-            <label className="block text-sm text-slate-700">
-              <span className="mb-2 block">Phone number</span>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
-                placeholder="0771 234 567"
-              />
-            </label>
-
-            <label className="block text-sm text-slate-700">
-              <span className="mb-2 block">Password</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address <span className="text-red-500">*</span>
+              </label>
               <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  placeholder="student@example.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  placeholder="0771 234 567"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 pr-12 text-sm text-slate-900 focus:outline-none"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
                   placeholder="Create a password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-            </label>
+              <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
+            </div>
 
-            <label className="block text-sm text-slate-700">
-              <span className="mb-2 block">Confirm password</span>
-              <input
-                type="password"
-                required
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
-                placeholder="Confirm your password"
-              />
-            </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  placeholder="Confirm your password"
+                />
+              </div>
+            </div>
 
             <div className="flex items-start gap-3">
               <input
@@ -200,10 +225,10 @@ export function StudentRegisterForm() {
                 checked={formData.agreeTerms}
                 onChange={(e) => setFormData(prev => ({ ...prev, agreeTerms: e.target.checked }))}
                 required
-                className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                className="mt-1"
               />
-              <label htmlFor="terms" className="text-sm leading-6 text-slate-600">
-                I agree to the <Link href="/terms" className="font-semibold text-slate-900 hover:text-slate-700">Terms of Service</Link> and <Link href="/privacy" className="font-semibold text-slate-900 hover:text-slate-700">Privacy Policy</Link>.
+              <label htmlFor="terms" className="text-sm text-gray-600">
+                I agree to the <Link href="/terms" className="text-[#003087] hover:text-[var(--campus-gold)]">Terms of Service</Link> and <Link href="/privacy" className="text-[#003087] hover:text-[var(--campus-gold)]">Privacy Policy</Link> <span className="text-red-500">*</span>
               </label>
             </div>
 
@@ -211,44 +236,44 @@ export function StudentRegisterForm() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-3xl bg-slate-900 px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full py-4 bg-[var(--campus-gold)] text-gray-900 rounded-xl font-semibold hover:bg-yellow-400 transition-colors mt-6"
             >
-              {loading ? 'Creating account...' : 'Create account & start learning'}
+              Create Account & Start Learning
             </button>
 
-            <p className="text-center text-sm text-slate-600">
+            <p className="text-center text-sm text-gray-500 mt-4">
               Already have an account?{' '}
-              <Link href="/portal/student/login" className="font-semibold text-slate-900 hover:text-slate-700">
-                Sign in
+              <Link href="/portal/student/login" className="text-[#003087] hover:text-[var(--campus-gold)] font-semibold">
+                Sign In
               </Link>
             </p>
           </form>
         </motion.div>
 
+        {/* Benefits */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-slate-600"
+          className="mt-8 grid grid-cols-3 gap-4 text-center text-sm"
         >
           <div>
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
-              <Laptop className="w-5 h-5" />
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Laptop className="w-5 h-5 text-blue-600" />
             </div>
-            <p>Live classes</p>
+            <p className="text-gray-600">Live Classes</p>
           </div>
           <div>
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
-              <CheckCircle className="w-5 h-5" />
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
             </div>
-            <p>Recorded sessions</p>
+            <p className="text-gray-600">Recorded Sessions</p>
           </div>
           <div>
-            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
-              <User className="w-5 h-5" />
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <User className="w-5 h-5 text-purple-600" />
             </div>
-            <p>Student support</p>
+            <p className="text-gray-600">1-on-1 Support</p>
           </div>
         </motion.div>
       </div>
