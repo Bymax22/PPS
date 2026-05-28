@@ -20,8 +20,14 @@ function AttendancePage() {
     const cls = classes.find(c => c.id === selectedClass)
     setStudents(cls?.students || [])
     // initialize attendance status to PRESENT
-    const init: any = {}
-    (cls?.students || []).forEach((s: any) => { init[s.id] = { status: 'PRESENT', remarks: '' } })
+    const init: any = {};
+
+(cls?.students || []).forEach((s: any) => {
+  init[s.id] = {
+    status: 'PRESENT',
+    remarks: ''
+  }
+})
     setAttendance(init)
   }, [selectedClass, classes])
 
