@@ -4,9 +4,13 @@ import bcrypt from 'bcryptjs'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, password, firstName, lastName, role } = body
-    if (!email || !password) {
+    const { email, password, firstName, lastName, phone, grade, schoolYear, role } = body
+    if (!email || !password || !firstName || !lastName) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+    }
+
+    if (role === 'STUDENT' && !grade) {
+      return NextResponse.json({ error: 'Grade is required for student registration' }, { status: 400 })
     }
 
     const { prisma } = await import('@/lib/prisma')
@@ -20,7 +24,14 @@ export async function POST(req: Request) {
         password: hashed,
         firstName,
         lastName,
-        role: role || 'STUDENT'
+        phone,
+        role: role || 'STUDENT',
+        studentProfile: role === 'STUDENT' ? {
+          create: {
+            grade: parseInt(grade, 10),
+            schoolYear: schoolYear || undefined
+          }
+        } : undefined
       }
     })
 

@@ -2,14 +2,12 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Laptop, User, Mail, Lock, Phone, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 
-export function StudentRegisterForm() {
-  const searchParams = useSearchParams()
-  const program = searchParams.get('program')
+export function ParentRegisterForm() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -19,8 +17,6 @@ export function StudentRegisterForm() {
     lastName: '',
     email: '',
     phone: '',
-    grade: '',
-    schoolYear: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false
@@ -50,10 +46,8 @@ export function StudentRegisterForm() {
           lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone,
-          grade: formData.grade,
-          schoolYear: formData.schoolYear,
           password: formData.password,
-          role: 'STUDENT'
+          role: 'PARENT'
         })
       })
 
@@ -66,14 +60,14 @@ export function StudentRegisterForm() {
         redirect: false,
         email: formData.email,
         password: formData.password,
-        callbackUrl: '/student'
+        callbackUrl: '/parent'
       })
 
       if (signInResult?.error) {
         throw new Error(signInResult.error || 'Unable to sign in after registration.')
       }
 
-      router.push(signInResult?.url || '/student')
+      router.push(signInResult?.url || '/parent')
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed. Please try again.')
@@ -98,24 +92,12 @@ export function StudentRegisterForm() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
         >
-          {/* Header */}
           <div className="bg-gradient-to-r from-[#003087] to-[#001f5b] p-6 text-white text-center">
             <Laptop className="w-12 h-12 text-[var(--campus-gold)] mx-auto mb-3" />
-            <h1 className="text-2xl font-bold mb-1">Create Online Learning Account</h1>
-            <p className="text-sm text-blue-200">Start your virtual learning journey</p>
+            <h1 className="text-2xl font-bold mb-1">Parent Account Registration</h1>
+            <p className="text-sm text-blue-200">Create your parent account to track your child&apos;s progress.</p>
           </div>
 
-          {/* Program Info */}
-          {program === 'online' && (
-            <div className="bg-[var(--campus-gold)]/10 p-4 border-b border-gray-100">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-[var(--campus-gold)]" />
-                <span className="text-gray-600">You're registering for: <span className="font-bold text-[#003087]">Online Learning Program</span></span>
-              </div>
-            </div>
-          )}
-
-          {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -128,7 +110,7 @@ export function StudentRegisterForm() {
                   value={formData.firstName}
                   onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="John"
+                  placeholder="Jane"
                 />
               </div>
 
@@ -147,42 +129,6 @@ export function StudentRegisterForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Grade <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={formData.grade}
-                  onChange={(e) => setFormData(prev => ({ ...prev, grade: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none bg-white"
-                >
-                  <option value="">Select grade</option>
-                  <option value="1">Grade 1</option>
-                  <option value="2">Grade 2</option>
-                  <option value="3">Grade 3</option>
-                  <option value="4">Grade 4</option>
-                  <option value="5">Grade 5</option>
-                  <option value="6">Grade 6</option>
-                  <option value="7">Grade 7</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  School Year
-                </label>
-                <input
-                  type="text"
-                  value={formData.schoolYear}
-                  onChange={(e) => setFormData(prev => ({ ...prev, schoolYear: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="2025/2026"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address <span className="text-red-500">*</span>
@@ -195,7 +141,7 @@ export function StudentRegisterForm() {
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="student@example.com"
+                  placeholder="parent@example.com"
                 />
               </div>
             </div>
@@ -278,44 +224,18 @@ export function StudentRegisterForm() {
             <button
               type="submit"
               className="w-full py-4 bg-[var(--campus-gold)] text-gray-900 rounded-xl font-semibold hover:bg-yellow-400 transition-colors mt-6"
+              disabled={loading}
             >
-              Create Account & Start Learning
+              Create Parent Account
             </button>
 
             <p className="text-center text-sm text-gray-500 mt-4">
               Already have an account?{' '}
-              <Link href="/portal/student/login" className="text-[#003087] hover:text-[var(--campus-gold)] font-semibold">
+              <Link href="/portal/parent/login" className="text-[#003087] hover:text-[var(--campus-gold)] font-semibold">
                 Sign In
               </Link>
             </p>
           </form>
-        </motion.div>
-
-        {/* Benefits */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-8 grid grid-cols-3 gap-4 text-center text-sm"
-        >
-          <div>
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <Laptop className="w-5 h-5 text-blue-600" />
-            </div>
-            <p className="text-gray-600">Live Classes</p>
-          </div>
-          <div>
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-gray-600">Recorded Sessions</p>
-          </div>
-          <div>
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <User className="w-5 h-5 text-purple-600" />
-            </div>
-            <p className="text-gray-600">1-on-1 Support</p>
-          </div>
         </motion.div>
       </div>
     </main>
