@@ -2,14 +2,18 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Laptop, User, Mail, Lock, Phone, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 
 export function StudentRegisterForm() {
   const searchParams = useSearchParams()
   const program = searchParams.get('program')
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,20 +24,64 @@ export function StudentRegisterForm() {
     agreeTerms: false
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle registration
-    console.log('Registering for online learning:', formData)
-    // Redirect to portal dashboard
-    window.location.href = '/portal/dashboard'
+    setError(null)
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    if (!formData.agreeTerms) {
+      setError('You must agree to the terms to continue.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          role: 'STUDENT'
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Registration failed. Please try again.')
+      }
+
+      const signInResult = await signIn('credentials', {
+        redirect: false,
+        email: formData.email,
+        password: formData.password
+      })
+
+      if (signInResult?.error) {
+        throw new Error('Unable to sign in after registration.')
+      }
+
+      router.push('/student')
+    } catch (err: any) {
+      console.error(err)
+      setError(err?.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <main className="pt-32 pb-20 min-h-screen bg-white">
-      <div className="container mx-auto px-6 max-w-md">
+    <main className="pt-32 pb-20 min-h-screen bg-slate-100">
+      <div className="container mx-auto px-6 max-w-xl">
         <Link
           href="/programs"
-          className="inline-flex items-center gap-2 text-[#003087] hover:text-[var(--campus-gold)] transition-colors mb-8 group"
+          className="inline-flex items-center gap-2 text-slate-900 hover:text-slate-700 transition-colors mb-8 group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to Programs
@@ -42,132 +90,107 @@ export function StudentRegisterForm() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+          className="rounded-[2rem] bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] overflow-hidden"
         >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-[#003087] to-[#001f5b] p-6 text-white text-center">
-            <Laptop className="w-12 h-12 text-[var(--campus-gold)] mx-auto mb-3" />
-            <h1 className="text-2xl font-bold mb-1">Create Online Learning Account</h1>
-            <p className="text-sm text-blue-200">Start your virtual learning journey</p>
+          <div className="text-center">
+            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-white">
+              <Laptop className="w-6 h-6" />
+            </div>
+            <h1 className="text-3xl font-semibold text-slate-900">Create Online Learning Account</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600">Register once and stay connected to your student portal, linked parent account and classroom updates.</p>
           </div>
 
-          {/* Program Info */}
           {program === 'online' && (
-            <div className="bg-[var(--campus-gold)]/10 p-4 border-b border-gray-100">
-              <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-[var(--campus-gold)]" />
-                <span className="text-gray-600">You're registering for: <span className="font-bold text-[#003087]">Online Learning Program</span></span>
+            <div className="mt-8 rounded-3xl bg-slate-100 p-4 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-slate-900" />
+                <span>You're registering for: <span className="font-semibold text-slate-900">Online Learning Program</span></span>
               </div>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name <span className="text-red-500">*</span>
-                </label>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block text-sm text-slate-700">
+                <span className="mb-2 block">First name</span>
                 <input
                   type="text"
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
                   placeholder="John"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
+              </label>
+              <label className="block text-sm text-slate-700">
+                <span className="mb-2 block">Last name</span>
                 <input
                   type="text"
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
                   placeholder="Doe"
                 />
-              </div>
+              </label>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="student@example.com"
-                />
-              </div>
-            </div>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-2 block">Email address</span>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
+                placeholder="student@example.com"
+              />
+            </label>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="0771 234 567"
-                />
-              </div>
-            </div>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-2 block">Phone number</span>
+              <input
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
+                placeholder="0771 234 567"
+              />
+            </label>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-2 block">Password</span>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                  className="w-full rounded-3xl bg-slate-100 px-4 py-3 pr-12 text-sm text-slate-900 focus:outline-none"
                   placeholder="Create a password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
-            </div>
+            </label>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                  placeholder="Confirm your password"
-                />
-              </div>
-            </div>
+            <label className="block text-sm text-slate-700">
+              <span className="mb-2 block">Confirm password</span>
+              <input
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                className="w-full rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-900 focus:outline-none"
+                placeholder="Confirm your password"
+              />
+            </label>
 
             <div className="flex items-start gap-3">
               <input
@@ -176,53 +199,55 @@ export function StudentRegisterForm() {
                 checked={formData.agreeTerms}
                 onChange={(e) => setFormData(prev => ({ ...prev, agreeTerms: e.target.checked }))}
                 required
-                className="mt-1"
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
-              <label htmlFor="terms" className="text-sm text-gray-600">
-                I agree to the <Link href="/terms" className="text-[#003087] hover:text-[var(--campus-gold)]">Terms of Service</Link> and <Link href="/privacy" className="text-[#003087] hover:text-[var(--campus-gold)]">Privacy Policy</Link> <span className="text-red-500">*</span>
+              <label htmlFor="terms" className="text-sm leading-6 text-slate-600">
+                I agree to the <Link href="/terms" className="font-semibold text-slate-900 hover:text-slate-700">Terms of Service</Link> and <Link href="/privacy" className="font-semibold text-slate-900 hover:text-slate-700">Privacy Policy</Link>.
               </label>
             </div>
 
+            {error && <p className="text-sm text-rose-600">{error}</p>}
+
             <button
               type="submit"
-              className="w-full py-4 bg-[var(--campus-gold)] text-gray-900 rounded-xl font-semibold hover:bg-yellow-400 transition-colors mt-6"
+              disabled={loading}
+              className="w-full rounded-3xl bg-slate-900 px-5 py-4 text-base font-semibold text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Create Account & Start Learning
+              {loading ? 'Creating account...' : 'Create account & start learning'}
             </button>
 
-            <p className="text-center text-sm text-gray-500 mt-4">
+            <p className="text-center text-sm text-slate-600">
               Already have an account?{' '}
-              <Link href="/portal/student/login" className="text-[#003087] hover:text-[var(--campus-gold)] font-semibold">
-                Sign In
+              <Link href="/portal/student/login" className="font-semibold text-slate-900 hover:text-slate-700">
+                Sign in
               </Link>
             </p>
           </form>
         </motion.div>
 
-        {/* Benefits */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-8 grid grid-cols-3 gap-4 text-center text-sm"
+          className="mt-8 grid grid-cols-3 gap-4 text-center text-sm text-slate-600"
         >
           <div>
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <Laptop className="w-5 h-5 text-blue-600" />
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
+              <Laptop className="w-5 h-5" />
             </div>
-            <p className="text-gray-600">Live Classes</p>
+            <p>Live classes</p>
           </div>
           <div>
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
+              <CheckCircle className="w-5 h-5" />
             </div>
-            <p className="text-gray-600">Recorded Sessions</p>
+            <p>Recorded sessions</p>
           </div>
           <div>
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <User className="w-5 h-5 text-purple-600" />
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-900">
+              <User className="w-5 h-5" />
             </div>
-            <p className="text-gray-600">1-on-1 Support</p>
+            <p>Student support</p>
           </div>
         </motion.div>
       </div>
