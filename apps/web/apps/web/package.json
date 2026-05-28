@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@prisma/client": "^7.4.1",
-    "web": "file:../.."
-  }
-}
