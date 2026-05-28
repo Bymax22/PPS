@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { formatZMW } from '@/lib/currency'
 import { 
   Bell, 
   Menu, 
@@ -191,6 +192,47 @@ export default function ParentDashboard() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Poll parent dashboard for realtime mockup data
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/parent/dashboard')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!mounted) return
+
+        if (data.children) setChildren(data.children)
+
+        if (data.children) {
+          const pd: Record<string, any> = {}
+          const ad: Record<string, any> = {}
+          data.children.forEach((c: any) => {
+            if (c.progress) pd[c.id] = c.progress
+            if (c.attendance) ad[c.id] = c.attendance
+          })
+          setProgressData(pd)
+          setAttendanceData(ad)
+        }
+
+        if (data.notifications) setNotifications(data.notifications)
+        if (data.messages) setMessages(data.messages)
+        if (data.payments) setPayments(data.payments)
+        if (data.savedCards) setSavedCards(data.savedCards)
+      } catch (err) {
+        console.error('Parent dashboard fetch error', err)
+      }
+    }
+
+    fetchData()
+    const id = setInterval(fetchData, 5000)
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
+  }, [])
+
   const selectedChildData = selectedChild ? children.find(c => c.id === selectedChild) : null
   const selectedProgress = selectedChild ? progressData[selectedChild] : null
   const selectedAttendance = selectedChild ? attendanceData[selectedChild] : null
@@ -323,8 +365,8 @@ export default function ParentDashboard() {
               <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">
                 Sarah Johnson
               </h2>
-              <p className="text-white/70 text-sm mt-2">
-                Managing {children.length} child{children.length !== 1 ? 'ren' : ''} • {totalOutstanding > 0 ? `${totalOutstanding} USD outstanding` : 'All fees paid'}
+                <p className="text-white/70 text-sm mt-2">
+                Managing {children.length} child{children.length !== 1 ? 'ren' : ''} • {totalOutstanding > 0 ? `${formatZMW(totalOutstanding) } outstanding` : 'All fees paid'}
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -369,7 +411,7 @@ export default function ParentDashboard() {
           <StatCard 
             icon={CreditCard}
             label="Outstanding"
-            value={`$${totalOutstanding}`}
+            value={formatZMW(totalOutstanding)}
             subtitle="Due for payment"
           />
         </div>
@@ -617,17 +659,39 @@ export default function ParentDashboard() {
 
       {/* Make Payment Modal */}
       {showMakePayment && (
-        <PaymentModal 
-          children={children}
-          selectedChild={selectedChild}
-          savedCards={savedCards}
-          onClose={() => setShowMakePayment(false)}
-          onPay={(data) => {
-            // Process payment logic
-            setShowMakePayment(false)
-          }}
-        />
-      )}
+            <PaymentModal 
+              children={children}
+              selectedChild={selectedChild}
+              savedCards={savedCards}
+              onClose={() => setShowMakePayment(false)}
+              onPay={async (data: any) => {
+                try {
+                  const res = await fetch('/api/parent/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                  })
+                  if (!res.ok) throw new Error('Payment API error')
+                  const payment = await res.json()
+                  // optimistic update
+                  setPayments(prev => [{
+                    id: payment.id || `mock-${Date.now()}`,
+                    childId: data.childId,
+                    amount: Number(data.amount),
+                    status: payment.status || 'PENDING',
+                    date: new Date(),
+                    description: data.description || 'Manual Payment',
+                    method: data.paymentMethod || data.method,
+                    currency: 'ZMW'
+                  }, ...prev])
+                } catch (err) {
+                  console.error('Payment failed', err)
+                } finally {
+                  setShowMakePayment(false)
+                }
+              }}
+            />
+          )}
     </div>
   )
 }
@@ -771,7 +835,7 @@ function PaymentStatusCard({ payment }: any) {
   return (
     <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
       <div>
-        <p className="font-medium text-gray-900">${payment.amount}</p>
+        <p className="font-medium text-gray-900">{formatZMW(payment.amount)}</p>
         <p className="text-xs text-gray-500">{payment.description}</p>
         <p className="text-xs text-gray-400 mt-0.5">
           {new Date(payment.date).toLocaleDateString()}
@@ -971,6 +1035,10 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
   const [selectedCard, setSelectedCard] = useState(savedCards.find(c => c.isDefault)?.id)
   const [useNewCard, setUseNewCard] = useState(false)
   const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '', name: '' })
+  const [method, setMethod] = useState<'saved_card'|'new_card'|'mobile_money'|'bank_transfer'>(selectedCard ? 'saved_card' : 'mobile_money')
+  const [mobileProvider, setMobileProvider] = useState('MTN')
+  const [mobileNumber, setMobileNumber] = useState('')
+  const [bankReference, setBankReference] = useState('')
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1001,16 +1069,41 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (ZMW)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="method" checked={method === 'saved_card'} onChange={() => { setMethod('saved_card'); setUseNewCard(false) }} />
+                  <span className="text-gray-700">Saved Card</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="method" checked={method === 'new_card'} onChange={() => { setMethod('new_card'); setUseNewCard(true) }} />
+                  <span className="text-gray-700">New Card</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="method" checked={method === 'mobile_money'} onChange={() => setMethod('mobile_money')} />
+                  <span className="text-gray-700">Mobile Money</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <input type="radio" name="method" checked={method === 'bank_transfer'} onChange={() => setMethod('bank_transfer')} />
+                  <span className="text-gray-700">Bank Transfer</span>
+                </label>
+              </div>
+            </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
@@ -1047,7 +1140,7 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
             </div>
           </div>
 
-          {useNewCard && (
+          {method === 'new_card' && (
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
@@ -1085,15 +1178,65 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
               </div>
             </div>
           )}
+
+          {method === 'mobile_money' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                <select value={mobileProvider} onChange={(e) => setMobileProvider(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]">
+                  <option value="MTN">MTN Mobile Money</option>
+                  <option value="AIRTEL">Airtel Money</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="e.g. 0974123456" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]" />
+              </div>
+              <p className="text-xs text-gray-500">You'll be prompted to approve the mobile money payment on your phone.</p>
+            </div>
+          )}
+
+          {method === 'bank_transfer' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reference / Transaction ID</label>
+                <input type="text" value={bankReference} onChange={(e) => setBankReference(e.target.value)} placeholder="Enter bank transaction reference" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]" />
+              </div>
+              <p className="text-xs text-gray-500">Use the following bank details: PPS School Ltd — Zambia National Bank — A/C 1234567890</p>
+            </div>
+          )}
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
           <button
-            onClick={() => onPay({ childId: selectedChildId, amount, method: useNewCard ? 'new' : 'saved' })}
+            onClick={() => {
+              const payload: any = {
+                childId: selectedChildId,
+                amount: Number(amount) || 0,
+                currency: 'ZMW'
+              }
+
+              if (method === 'saved_card') {
+                payload.paymentMethod = 'card'
+                payload.cardId = selectedCard
+              } else if (method === 'new_card') {
+                payload.paymentMethod = 'card'
+                payload.card = newCard
+              } else if (method === 'mobile_money') {
+                payload.paymentMethod = 'mobile_money'
+                payload.mobileProvider = mobileProvider
+                payload.mobileNumber = mobileNumber
+              } else if (method === 'bank_transfer') {
+                payload.paymentMethod = 'bank_transfer'
+                payload.bankReference = bankReference
+              }
+
+              onPay(payload)
+            }}
             className="w-full py-3 rounded-lg text-white font-medium transition-colors hover:bg-opacity-90"
             style={{ backgroundColor: '#003087' }}
           >
-            Pay ${amount || '0'}
+            Pay {formatZMW(Number(amount) || 0)}
           </button>
         </div>
       </div>

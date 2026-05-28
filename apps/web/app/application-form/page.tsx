@@ -74,10 +74,24 @@ export default function ApplicationFormPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission for campus and home programs
-    console.log('Form submitted:', formData)
-    // In production, send to API endpoint
-    router.push('/application-success')
+    ;(async () => {
+      try {
+        const payload: any = { ...formData }
+        // include file names if uploaded
+        if (formData.schoolReport) payload.schoolReportName = (formData.schoolReport as File).name
+        if (formData.birthCertificate) payload.birthCertificateName = (formData.birthCertificate as File).name
+        if (formData.passportPhoto) payload.passportPhotoName = (formData.passportPhoto as File).name
+        if (formData.immunizations) payload.immunizationsName = (formData.immunizations as File).name
+
+        const res = await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Submission failed')
+        router.push(`/application-success?id=${data.id}`)
+      } catch (err) {
+        console.error(err)
+        alert('Unable to submit application. Please try again later.')
+      }
+    })()
   }
 
   const nextStep = () => setStep(prev => prev + 1)

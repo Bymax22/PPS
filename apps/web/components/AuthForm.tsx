@@ -22,12 +22,20 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
   const [isRegister, setIsRegister] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '' })
+  const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '', phone: '' })
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     if (!form.firstName || !form.lastName) {
       setError('Please provide your full name.')
+      return
+    }
+    if (!form.password || form.password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.')
       return
     }
     setError(null)
@@ -130,6 +138,16 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
           className="w-full p-2 border rounded"
         />
+        {isRegister && (
+          <input
+            required
+            type="password"
+            placeholder="Confirm password"
+            value={form.confirmPassword}
+            onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+            className="w-full p-2 border rounded"
+          />
+        )}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <div className="flex items-center justify-between">
           <button disabled={loading} className="px-4 py-2 bg-[var(--campus-gold)] rounded font-semibold">{isRegister ? 'Register' : 'Sign in'}</button>

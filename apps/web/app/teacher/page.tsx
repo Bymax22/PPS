@@ -171,6 +171,7 @@ export default function TeacherDashboard() {
   const [showCreateExam, setShowCreateExam] = useState(false)
   const [showUploadResource, setShowUploadResource] = useState(false)
   const [showGradeSubmission, setShowGradeSubmission] = useState(false)
+  const [gradingExamId, setGradingExamId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [scrolled, setScrolled] = useState(false)
 
@@ -180,6 +181,45 @@ export default function TeacherDashboard() {
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Poll teacher dashboard for realtime mockup data
+  useEffect(() => {
+    let mounted = true
+
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/teacher/dashboard')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!mounted) return
+
+        if (data.classes) setTeacherClasses(data.classes.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          grade: c.grade,
+          subject: c.subject,
+          program: c.program,
+          schedule: c.schedule || [],
+          students: c.students || []
+        })))
+
+        if (data.lessons) setLessons(data.lessons)
+        if (data.exams) setExams(data.exams)
+        if (data.resources) setResources(data.resources)
+        if (data.messages) setMessages(data.messages)
+        if (data.notifications) setNotifications(data.notifications)
+      } catch (err) {
+        console.error('Teacher dashboard fetch error', err)
+      }
+    }
+
+    fetchData()
+    const id = setInterval(fetchData, 5000)
+    return () => {
+      mounted = false
+      clearInterval(id)
+    }
   }, [])
 
   // Mock data - replace with API calls
@@ -595,7 +635,7 @@ export default function TeacherDashboard() {
                 {exams.filter(e => e.classId === selectedClass).length > 0 ? (
                   <div className="space-y-3">
                     {exams.filter(e => e.classId === selectedClass).map(exam => (
-                      <ExamItem key={exam.id} exam={exam} onGrade={() => setShowGradeSubmission(true)} />
+                      <ExamItem key={exam.id} exam={exam} onGrade={(id: string) => { setGradingExamId(id); setShowGradeSubmission(true) }} />
                     ))}
                   </div>
                 ) : (
@@ -796,10 +836,13 @@ export default function TeacherDashboard() {
 
       {showGradeSubmission && (
         <GradeSubmissionModal 
+          examId={gradingExamId}
+          studentId={selectedStudent}
+          studentName={selectedStudentData ? `${selectedStudentData.firstName} ${selectedStudentData.lastName}` : 'Student'}
           onClose={() => setShowGradeSubmission(false)}
           onGrade={(submission) => {
-            // Update grading logic
             setShowGradeSubmission(false)
+            // optionally trigger a refresh; dashboard polling will pick up changes
           }}
         />
       )}
@@ -925,9 +968,9 @@ function ExamItem({ exam, onGrade }: any) {
         <span className="mx-2">•</span>
         <span>Duration: {exam.duration} min</span>
       </div>
-      {pendingSubmissions > 0 && (
+        {pendingSubmissions > 0 && (
         <button
-          onClick={onGrade}
+          onClick={() => onGrade(exam.id)}
           className="mt-2 text-sm font-medium hover:opacity-80 flex items-center gap-1"
           style={{ color: '#003087' }}
         >
@@ -1168,7 +1211,19 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
               Cancel
             </button>
             <button
-              onClick={() => onCreate({...formData, id: Date.now().toString(), status: 'DRAFT', createdAt: new Date()})}
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/teacher/lessons', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                  })
+                  const data = await res.json()
+                  onCreate(data)
+                } catch (err) {
+                  onCreate({ ...formData, id: Date.now().toString(), status: 'DRAFT', createdAt: new Date() })
+                }
+              }}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium hover:bg-opacity-90"
               style={{ backgroundColor: '#003087' }}
             >
@@ -1393,7 +1448,19 @@ function CreateExamModal({ classes, selectedClass, onClose, onCreate }: any) {
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
           <button
-            onClick={() => onCreate({...formData, id: Date.now().toString(), questions, submissions: []})}
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/teacher/exams', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...formData, questions })
+                })
+                const data = await res.json()
+                onCreate(data)
+              } catch (err) {
+                onCreate({ ...formData, id: Date.now().toString(), questions, submissions: [] })
+              }
+            }}
             className="w-full py-3 rounded-lg text-white font-medium hover:bg-opacity-90"
             style={{ backgroundColor: '#003087' }}
           >
@@ -1491,7 +1558,21 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
               Cancel
             </button>
             <button
-              onClick={() => onUpload({...formData, id: Date.now().toString(), createdAt: new Date(), downloadCount: 0})}
+              onClick={async () => {
+                try {
+                  // For now send metadata; file upload is mocked
+                  const payload = { ...formData, cloudinaryUrl: '', cloudinaryPublicId: '', fileSize: 0 }
+                  const res = await fetch('/api/teacher/resources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  })
+                  const data = await res.json()
+                  onUpload(data)
+                } catch (err) {
+                  onUpload({ ...formData, id: Date.now().toString(), createdAt: new Date(), downloadCount: 0 })
+                }
+              }}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium"
               style={{ backgroundColor: '#003087' }}
             >
@@ -1504,7 +1585,7 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
   )
 }
 
-function GradeSubmissionModal({ onClose, onGrade }: any) {
+function GradeSubmissionModal({ onClose, onGrade, examId, studentId, studentName }: any) {
   const [grade, setGrade] = useState('')
   const [feedback, setFeedback] = useState('')
 
@@ -1556,7 +1637,20 @@ function GradeSubmissionModal({ onClose, onGrade }: any) {
               Cancel
             </button>
             <button
-              onClick={() => onGrade({ score: parseInt(grade), feedback })}
+              onClick={async () => {
+                try {
+                  const payload = { examId, studentId, score: parseInt(grade), feedback }
+                  const res = await fetch('/api/teacher/exams/grade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  })
+                  const data = await res.json()
+                  onGrade(data)
+                } catch (err) {
+                  onGrade({ score: parseInt(grade), feedback })
+                }
+              }}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium"
               style={{ backgroundColor: '#003087' }}
             >

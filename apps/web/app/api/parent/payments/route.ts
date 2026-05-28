@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { childId, amount, paymentMethod, subscriptionId } = body
+    const { childId, amount, paymentMethod, subscriptionId, mobileProvider, mobileNumber, bankReference, card, cardId } = body
 
     // Get student
     const student = await prisma.student.findUnique({
@@ -69,15 +69,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Create payment record
+    // Map incoming method to Prisma enum values
+    let prismaMethod: any = 'BANK_TRANSFER'
+    if (paymentMethod === 'card' || paymentMethod === 'saved_card' || paymentMethod === 'new_card') prismaMethod = 'STRIPE'
+    if (paymentMethod === 'bank_transfer') prismaMethod = 'BANK_TRANSFER'
+    if (paymentMethod === 'mobile_money') {
+      if (mobileProvider === 'MTN') prismaMethod = 'MTN_MONEY'
+      else if (mobileProvider === 'AIRTEL') prismaMethod = 'AIRTEL_MONEY'
+      else prismaMethod = 'MTN_MONEY'
+    }
+
+    const transactionRef = paymentMethod === 'bank_transfer' && bankReference
+      ? bankReference
+      : `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
     const payment = await prisma.payment.create({
       data: {
         userId: student.userId,
         subscriptionId: subscriptionId || null,
         amount: parseFloat(amount),
         currency: 'ZMW',
-        paymentMethod,
+        paymentMethod: prismaMethod,
         status: 'PENDING',
-        transactionRef: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        transactionRef
       }
     })
 
