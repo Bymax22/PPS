@@ -57,13 +57,13 @@ export default async function StudentDashboardPage() {
       enrollments: {
         include: {
           class: {
-            include: { 
+            include: {
               program: true,
               teachers: {
                 include: {
                   teacher: {
                     include: {
-                      user: true
+                      teacherProfile: true
                     }
                   }
                 }
