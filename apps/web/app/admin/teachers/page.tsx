@@ -25,6 +25,16 @@ export default function AdminTeachersPage() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [password, setPassword] = useState('')
+  const [qualifications, setQualifications] = useState('')
+  const [specialties, setSpecialties] = useState('')
+  const [hourlyRate, setHourlyRate] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -73,6 +83,46 @@ export default function AdminTeachersPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSaving(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/teachers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          phone: phone || undefined,
+          password,
+          qualifications: qualifications || undefined,
+          specialties: specialties || undefined,
+          hourlyRate: hourlyRate ? Number(hourlyRate) : undefined
+        })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Create failed')
+      setMessage('Teacher registered successfully.')
+      setFirstName('')
+      setLastName('')
+      setEmail('')
+      setPhone('')
+      setPassword('')
+      setQualifications('')
+      setSpecialties('')
+      setHourlyRate('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Create failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   useEffect(() => {
     load()
     const timer = window.setInterval(load, 5000)
@@ -81,71 +131,130 @@ export default function AdminTeachersPage() {
 
   return (
     <div className="space-y-8 py-10">
-      <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-          <div>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div className="mb-6">
             <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Teachers</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-900">Teacher roster</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Manage teaching staff, assigned classes, and contact details.</p>
+            <h1 className="mt-3 text-3xl font-semibold text-slate-900">Teacher registration</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Create teacher accounts with qualifications and specialties.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            <div className="w-full sm:w-auto">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search teachers..."
-                className="w-full min-w-[220px] rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-              />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-700">
+                First name
+                <input value={firstName} onChange={(event) => setFirstName(event.target.value)} required className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
+                Last name
+                <input value={lastName} onChange={(event) => setLastName(event.target.value)} required className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+              </label>
             </div>
-            <div className="flex gap-3">
-              <button onClick={load} className="rounded-3xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-                Refresh
-              </button>
-              <button onClick={exportCsv} className="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
-                Export CSV
+            <label className="space-y-2 text-sm text-slate-700">
+              Email address
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-700">
+              Phone number
+              <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-700">
+              Password
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required placeholder="Min 8 characters" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-700">
+                Qualifications
+                <input value={qualifications} onChange={(event) => setQualifications(event.target.value)} placeholder="e.g., B.Ed, M.Sc" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+              </label>
+              <label className="space-y-2 text-sm text-slate-700">
+                Specialties
+                <input value={specialties} onChange={(event) => setSpecialties(event.target.value)} placeholder="e.g., Math, Physics" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+              </label>
+            </div>
+            <label className="space-y-2 text-sm text-slate-700">
+              Hourly rate (USD)
+              <input type="number" min="0" step="0.01" value={hourlyRate} onChange={(event) => setHourlyRate(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button type="submit" disabled={saving} className="inline-flex items-center justify-center rounded-3xl bg-[#003087] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+                {saving ? 'Registering…' : 'Register teacher'}
               </button>
             </div>
+            {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+            {error ? <p className="text-sm text-rose-700">{error}</p> : null}
+          </form>
+        </section>
+
+        <section className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div className="mb-6">
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Live summary</p>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-900">Teachers overview</h2>
           </div>
-        </div>
+          <div className="grid gap-4">
+            <div className="rounded-3xl bg-slate-50 p-4 text-sm text-slate-700">Total teachers: {rows.length}</div>
+          </div>
+        </section>
       </div>
 
       {error ? <div className="rounded-[2rem] bg-rose-50 p-8 text-rose-700 shadow-[0_24px_60px_rgba(248,113,113,0.15)]">{error}</div> : null}
 
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-        <table className="min-w-full border-separate border-spacing-0 text-left">
-          <thead className="bg-slate-100">
-            <tr>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Teacher</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Email</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Phone</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Subject</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Classes</th>
-              <th className="px-6 py-4 text-sm font-semibold text-slate-700">Last updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Teachers list</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">All teacher accounts</h2>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search teachers..."
+              className="w-full min-w-[220px] rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+            />
+            <button onClick={load} className="rounded-3xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Refresh
+            </button>
+            <button onClick={exportCsv} className="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100">
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left">
+            <thead className="bg-slate-100">
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">Loading teachers…</td>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Teacher</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Email</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Phone</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Subject</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Classes</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Last updated</th>
               </tr>
-            ) : filteredRows.length ? (
-              filteredRows.map((row) => (
-                <tr key={row.id} className="border-t border-slate-200 even:bg-slate-50">
-                  <td className="px-6 py-4 text-sm font-semibold text-slate-900">{row.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-900">{row.email}</td>
-                  <td className="px-6 py-4 text-sm text-slate-900">{row.phone ?? 'N/A'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-900">{row.subject ?? 'N/A'}</td>
-                  <td className="px-6 py-4 text-sm text-slate-900">{row.classes}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{new Date(row.lastUpdated).toLocaleDateString()}</td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">Loading teachers…</td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">No teacher accounts found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ) : filteredRows.length ? (
+                filteredRows.map((row) => (
+                  <tr key={row.id} className="border-t border-slate-200 even:bg-slate-50">
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{row.name}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900">{row.email}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900">{row.phone ?? 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900">{row.subject ?? 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-900">{row.classes}</td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{new Date(row.lastUpdated).toLocaleDateString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500">No teacher accounts found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

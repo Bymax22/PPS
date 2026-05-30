@@ -45,11 +45,10 @@ export async function POST(req: Request) {
     })
 
     const verificationToken = createVerificationToken(user.id)
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:2000'}/portal/verify-email?token=${encodeURIComponent(verificationToken)}`
 
     let verificationSent = false
     try {
-      await sendVerificationEmail(email, `${firstName} ${lastName}`, verificationUrl)
+      await sendVerificationEmail(email, `${firstName} ${lastName}`, verificationToken)
       verificationSent = true
     } catch (error) {
       console.error('Verification email failed', error)
