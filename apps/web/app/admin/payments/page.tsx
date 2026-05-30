@@ -31,7 +31,7 @@ export default function AdminPaymentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/payments', { cache: 'no-store' })
+      const res = await fetch('/api/admin/payments', { cache: 'no-store', credentials: 'include' })
       if (!res.ok) throw new Error('Unable to load payments')
       const json = await res.json()
       setRows(json.payments ?? [])

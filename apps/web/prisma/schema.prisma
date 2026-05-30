@@ -9,8 +9,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Production-ready Prisma schema for PPS LMS
-// Users, roles, subscriptions, programs, lessons, exams, resources, notifications, audit logs
+// Production-ready Prisma schema for PPS LMS (expanded for scalability)
+// Includes soft-deletes, media assets, content revisioning, invoices, refunds,
+// granular permissions, site settings, analytics, webhooks and integrations.
 
 model User {
   id               String       @id @default(cuid())
@@ -21,14 +22,19 @@ model User {
   emailVerified    DateTime?
   firstName        String
   lastName         String
+  displayName      String?
   dateOfBirth      DateTime?
   gender           String?
-  profileImage     String?
+  avatarId         String?
+  avatar           MediaAsset?  @relation("UserAvatar", fields: [avatarId], references: [id])
   role             UserRole     @default(STUDENT)
   status           UserStatus   @default(ACTIVE)
   nationalId       String?      @unique
   idVerified       Boolean      @default(false)
   idVerifiedAt     DateTime?
+  metadata         Json?
+  isDeleted        Boolean      @default(false)
+  deletedAt        DateTime?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -47,6 +53,12 @@ model User {
   auditLogs        AuditLog[]
   children         Student[] @relation("StudentParent")
   sessionAttendances SessionAttendee[]
+  apiKeys          ApiKey[]
+  invoices         Invoice[] @relation("UserInvoices")
+  uploadedMedia    MediaAsset[] @relation("MediaAssetUploader")
+  resources        Resource[] @relation("UserResources")
+  contentRevisions ContentRevision[] @relation("UserContentRevisions")
+  newsArticles     NewsArticle[] @relation("UserNewsArticles")
 }
 
 enum UserRole {
@@ -55,6 +67,8 @@ enum UserRole {
   TEACHER
   ADMIN
   FINANCE
+  SUPPORT
+  CONTENT
 }
 
 enum UserStatus {
@@ -68,10 +82,13 @@ model Student {
   id         String   @id @default(cuid())
   userId     String   @unique
   user       User     @relation("StudentUser", fields: [userId], references: [id], onDelete: Cascade)
-  grade      Int
+  grade      Int?
+  cohort     String?
   schoolYear String?
   parentId   String?
   parent     User?    @relation("StudentParent", fields: [parentId], references: [id], onDelete: SetNull)
+  isDeleted  Boolean  @default(false)
+  deletedAt  DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -85,6 +102,9 @@ model Teacher {
   bio               String?
   specialties       String?  // JSON array
   hourlyRate        Float?
+  publicProfile     Boolean  @default(true)
+  isDeleted         Boolean  @default(false)
+  deletedAt         DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -92,12 +112,27 @@ model Teacher {
 model Program {
   id          String        @id @default(cuid())
   name        String        @unique
+  slug        String        @unique
   description String?
   type        ProgramType
   icon        String?
+  metadata    Json?
+  isDeleted   Boolean       @default(false)
+  deletedAt   DateTime?
   createdAt   DateTime      @default(now())
   subscriptionPlans SubscriptionPlan[]
   classes     Class[]
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  code      String?  @unique
+  metadata  Json?
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum ProgramType {
@@ -113,54 +148,116 @@ model SubscriptionPlan {
   programId    String
   program      Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
   name         String
+  slug         String?  @unique
   description  String?
   priceUsd     Float
   currency     String   @default("USD")
   durationDays Int
   billingCycle String?
-  subjects     String?  // JSON
-  grades       String?  // JSON
+  billingInterval SubscriptionBillingInterval @default(PER_MONTH)
+  intervalCount Int      @default(1)
+  targetType   SubscriptionTargetType @default(GENERAL)
+  targetId     String?
+  targetMetadata Json?
+  subjectId    String?
+  classId      String?
+  lessonId     String?
+  subjects     Json?
+  grades       Json?
+  metadata     Json?
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   subscriptions Subscription[]
 }
 
 model Subscription {
-  id                    String   @id @default(cuid())
-  userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId                String
-  plan                  SubscriptionPlan @relation(fields: [planId], references: [id])
-  startDate             DateTime @default(now())
-  expiryDate            DateTime
-  isActive              Boolean  @default(true)
-  autoRenew             Boolean  @default(true)
-  stripeSubscriptionId  String?  @unique
-  pesapalOrderId        String?  @unique
-  payments              Payment[]
-  addons                SubscriptionAddon[]
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  targetType       SubscriptionTargetType?
+  targetId         String?
+  targetMetadata   Json?
+  subjectId        String?
+  classId          String?
+  lessonId         String?
+  status           SubscriptionStatus @default(ACTIVE)
+  startDate        DateTime      @default(now())
+  endDate          DateTime?
+  renewAt          DateTime?
+  cancelledAt      DateTime?
+  metadata         Json?
+  invoices         Invoice[]
+  payments         Payment[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
-model SubscriptionAddon {
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  EXPIRED
+  PAST_DUE
+}
+
+enum SubscriptionBillingInterval {
+  PER_HOUR
+  PER_DAY
+  PER_WEEK
+  PER_MONTH
+  PER_YEAR
+  PER_TERM
+  PER_SEMESTER
+  PER_SESSION
+}
+
+enum SubscriptionTargetType {
+  GENERAL
+  SUBJECT
+  CLASS
+  SESSION
+  TERM
+  SEMESTER
+  CUSTOM
+}
+
+model Invoice {
   id             String   @id @default(cuid())
-  subscriptionId String
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  type           AddonType
-  name           String
-  priceUsd       Float
-  quantity       Int      @default(1)
-  addedAt        DateTime @default(now())
+  invoiceNumber  String   @unique
+  userId         String
+  user           User     @relation("UserInvoices", fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  amount         Float
+  currency       String   @default("USD")
+  url            String?
+  issuedAt       DateTime @default(now())
+  dueAt          DateTime?
+  paidAt         DateTime?
+  status         PaymentStatus
+  metadata       Json?
 }
 
-enum AddonType {
-  EXTRA_SUBJECT
-  EXTRA_GRADE
-  TUTORING_HOURS
-  PAST_PAPERS_BUNDLE
-  PREMIUM_SUPPORT
-  EXAM_PROCTOR
+model Refund {
+  id            String   @id @default(cuid())
+  paymentId     String
+  payment       Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  amount        Float
+  reason        String?
+  processedAt   DateTime?
+  externalRef   String?
+  status        RefundStatus @default(PENDING)
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 model Payment {
@@ -180,10 +277,13 @@ model Payment {
   invoiceUrl            String?
   receiptUrl            String?
   failureReason         String?
+  gatewayResponse       Json?
   retryCount            Int      @default(0)
   nextRetryAt           DateTime?
+  refunded              Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  refunds               Refund[]
 }
 
 enum PaymentMethod {
@@ -192,6 +292,7 @@ enum PaymentMethod {
   BANK_TRANSFER
   MTN_MONEY
   AIRTEL_MONEY
+  WALLET
 }
 
 enum PaymentStatus {
@@ -216,6 +317,9 @@ model Class {
   lessons     Lesson[]
   exams       Exam[]
   resources   Resource[]
+  metadata    Json?
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -228,6 +332,8 @@ model Enrollment {
   class     Class    @relation(fields: [classId], references: [id])
   enrolledAt DateTime @default(now())
   status    EnrollmentStatus @default(ACTIVE)
+  metadata  Json?
+  cancelledAt DateTime?
   @@unique([userId, classId])
 }
 
@@ -269,10 +375,13 @@ model Lesson {
   isPublished         Boolean  @default(false)
   accessLevel         String?
   subject             String?
-  tags                String?
+  tags                Json?
   contentType         String?
+  contentBlocks       ContentBlock[]
   attendees           SessionAttendee[]
   progress            Progress[]
+  isDeleted           Boolean  @default(false)
+  deletedAt           DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -289,6 +398,16 @@ enum LessonStatus {
   LIVE
   COMPLETED
   ARCHIVED
+}
+
+model ContentBlock {
+  id        String @id @default(cuid())
+  lessonId  String?
+  lesson    Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type      String
+  order     Int    @default(0)
+  content   Json
+  createdAt DateTime @default(now())
 }
 
 model SessionAttendee {
@@ -335,6 +454,8 @@ model Exam {
   passingMarks     Int      @default(50)
   questions        Question[]
   attempts         ExamAttempt[]
+  isDeleted        Boolean  @default(false)
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -356,10 +477,11 @@ model Question {
   text          String
   marks         Int      @default(1)
   orderIndex    Int
-  options       String?  // JSON
-  correctAnswer String?
+  options       Json?
+  correctAnswer Json?
   explanation   String?
-  imageUrl      String?
+  imageAssetId  String?
+  imageAsset    MediaAsset? @relation("QuestionImageAsset", fields: [imageAssetId], references: [id])
   answers       Answer[]
   createdAt     DateTime @default(now())
 }
@@ -401,7 +523,7 @@ model Answer {
   questionId  String
   question    Question @relation(fields: [questionId], references: [id])
   answerText  String?
-  selectedOption String?
+  selectedOption Json?
   numericAnswer Float?
   isCorrect   Boolean?
   earnedMarks Int?
@@ -418,14 +540,17 @@ model Resource {
   subject          String?
   isPublished      Boolean  @default(true)
   accessLevel      String
-  cloudinaryPublicId String
-  cloudinaryUrl    String
-  fileSize         Int
-  author           String?
+  mediaId          String?
+  media            MediaAsset? @relation("ResourceMedia", fields: [mediaId], references: [id])
+  fileSize         Int?
+  authorId         String?
+  author           User? @relation("UserResources", fields: [authorId], references: [id])
   year             Int?
   examBoard        String?
-  tags             String?
+  tags             Json?
   downloadCount    Int      @default(0)
+  isDeleted        Boolean  @default(false)
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -448,12 +573,14 @@ model Notification {
   title          String
   body           String
   link           String?
-  metadata       String?
+  metadata       Json?
   read           Boolean  @default(false)
   readAt         DateTime?
   sentToEmail    Boolean  @default(false)
   sentToSms      Boolean  @default(false)
   sentToPush     Boolean  @default(false)
+  channel        String?
+  priority       Int      @default(0)
   createdAt      DateTime @default(now())
 }
 
@@ -479,7 +606,8 @@ model Communication {
   type       CommunicationType
   subject    String?
   body       String
-  attachmentUrl String?
+  attachmentMediaId String?
+  attachmentMedia   MediaAsset? @relation("CommunicationAttachmentMedia", fields: [attachmentMediaId], references: [id])
   read       Boolean  @default(false)
   readAt     DateTime?
   parentId   String?
@@ -507,8 +635,8 @@ model AdmissionForm {
   previousSchool    String?
   previousGrade     Int?
   applyingForGrade  Int
-  preferredSubjects String?
-  documentsUrl      String?
+  preferredSubjects Json?
+  documentsMediaIds String? // CSV of media ids or JSON
   consentSigned     Boolean  @default(false)
   status            AdmissionStatus @default(SUBMITTED)
   submittedAt       DateTime @default(now())
@@ -553,8 +681,8 @@ model AuditLog {
   action    String
   entity    String
   entityId  String?
-  oldValue  String?
-  newValue  String?
+  oldValue  Json?
+  newValue  Json?
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -565,7 +693,143 @@ model SystemMetric {
   metric  String
   value   Float
   date    DateTime
-  tags    String?
+  tags    Json?
   createdAt DateTime @default(now())
 }
+
+// Media and storage
+model MediaAsset {
+  id              String   @id @default(cuid())
+  provider        StorageProvider @default(CLOUDINARY)
+  providerId      String?  @unique
+  originalUrl     String
+  publicId        String?
+  filename        String?
+  mimeType        String?
+  size            Int?
+  width           Int?
+  height          Int?
+  thumbnails      Json?
+  metadata        Json?
+  uploadedById    String?
+  uploadedBy      User?    @relation("MediaAssetUploader", fields: [uploadedById], references: [id])
+  avatars         User[]   @relation("UserAvatar")
+  questions       Question[] @relation("QuestionImageAsset")
+  resources       Resource[] @relation("ResourceMedia")
+  communicationAttachments Communication[] @relation("CommunicationAttachmentMedia")
+  heroMediaArticles NewsArticle[] @relation("NewsArticleHeroMedia")
+  isPrivate       Boolean  @default(false)
+  isDeleted       Boolean  @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum StorageProvider {
+  CLOUDINARY
+  S3
+  LOCAL
+}
+
+// Content editing / revision history
+model ContentRevision {
+  id        String   @id @default(cuid())
+  entity    String
+  entityId  String
+  data      Json
+  authorId  String?
+  author    User?    @relation("UserContentRevisions", fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  note      String?
+}
+
+model NewsArticle {
+  id          String @id @default(cuid())
+  slug        String @unique
+  title       String
+  summary     String?
+  content     Json
+  authorId    String?
+  author      User?  @relation("UserNewsArticles", fields: [authorId], references: [id])
+  heroMediaId String?
+  heroMedia   MediaAsset? @relation("NewsArticleHeroMedia", fields: [heroMediaId], references: [id])
+  tags        Json?
+  isPublished Boolean @default(false)
+  publishedAt DateTime?
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Permissions & API keys
+model Permission {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  rolePermissions RolePermission[] @relation("PermissionRolePermissions")
+}
+
+model RolePermission {
+  id          String @id @default(cuid())
+  role        UserRole
+  permissionId String
+  permission   Permission @relation("PermissionRolePermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+}
+
+model ApiKey {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String
+  scopes     Json?
+  lastUsedAt DateTime?
+  revoked    Boolean @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// Webhooks / integrations
+model Webhook {
+  id        String @id @default(cuid())
+  url       String
+  secret    String?
+  events    Json
+  enabled   Boolean @default(true)
+  lastSent  DateTime?
+  createdAt DateTime @default(now())
+}
+
+// Analytics / events
+model EventTrack {
+  id        String @id @default(cuid())
+  userId    String?
+  event     String
+  payload   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+// Site / tenant settings
+model SiteSetting {
+  id      String @id @default(cuid())
+  key     String @unique
+  value   Json
+  scope   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Misc helpers
+model RateLimit {
+  id        String @id @default(cuid())
+  key       String
+  limit     Int
+  windowSec Int
+  remaining Int
+  resetAt   DateTime
+}
+
+// Indexes and views can be added later; keep schema flexible for migrations.
 

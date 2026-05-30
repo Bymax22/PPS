@@ -36,7 +36,7 @@ export default function AdminNotificationsPage() {
   const loadLogs = async () => {
     setRefreshing(true)
     try {
-      const res = await fetch('/api/admin/notifications', { cache: 'no-store' })
+      const res = await fetch('/api/admin/notifications', { cache: 'no-store', credentials: 'include' })
       if (!res.ok) throw new Error('Unable to load logs')
       const json = await res.json()
       setLogs(json.notifications ?? [])
@@ -57,6 +57,7 @@ export default function AdminNotificationsPage() {
     try {
       const res = await fetch('/api/admin/notifications', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject, body, targetType, targetValue, sendEmail })
       })

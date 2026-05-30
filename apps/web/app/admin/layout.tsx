@@ -20,8 +20,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin/parents" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
               Parents
             </Link>
+            <Link href="/admin/students" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
+              Students
+            </Link>
             <Link href="/admin/teachers" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
               Teachers
+            </Link>
+            <Link href="/admin/classes" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
+              Classes
+            </Link>
+            <Link href="/admin/subjects" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
+              Subjects
             </Link>
             <Link href="/admin/payments" className="block rounded-xl border border-[#001f4d] bg-[#003087] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#001f5b]">
               Payments

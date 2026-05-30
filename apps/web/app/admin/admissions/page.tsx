@@ -10,7 +10,7 @@ export default function AdminAdmissionsPage() {
 
   async function load() {
     try {
-      const res = await fetch('/api/admin/admissions?take=50')
+      const res = await fetch('/api/admin/admissions?take=50', { credentials: 'include' })
       if (!res.ok) return
       const data = await res.json()
       setItems(data.items || [])

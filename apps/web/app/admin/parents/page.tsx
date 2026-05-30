@@ -30,7 +30,7 @@ export default function AdminParentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/parents', { cache: 'no-store' })
+      const res = await fetch('/api/admin/parents', { cache: 'no-store', credentials: 'include' })
       if (!res.ok) throw new Error('Unable to load parents')
       const json = await res.json()
       setRows(json.parents ?? [])

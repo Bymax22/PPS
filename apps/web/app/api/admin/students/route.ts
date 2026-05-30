@@ -15,25 +15,34 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const teachers = await prisma.user.findMany({
-    take: 50,
-    where: { role: 'TEACHER' },
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      teacherProfile: true,
-      teachingClasses: { include: { class: { select: { name: true } } } }
-    }
-  })
+  const [students, parents] = await prisma.$transaction([
+    prisma.student.findMany({
+      take: 50,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        user: true,
+        parent: { select: { id: true, firstName: true, lastName: true, email: true } }
+      }
+    }),
+    prisma.user.findMany({
+      where: { role: 'PARENT' },
+      orderBy: { lastName: 'asc' },
+      select: { id: true, firstName: true, lastName: true, email: true }
+    })
+  ])
 
   return NextResponse.json({
-    teachers: teachers.map((teacher) => ({
-      id: teacher.id,
-      name: `${teacher.firstName} ${teacher.lastName}`,
-      email: teacher.email,
-      phone: teacher.phone,
-      subject: teacher.teacherProfile?.specialties?.split(',')[0].trim() ?? null,
-      classes: teacher.teachingClasses.map((item) => item.class.name).join(', '),
-      lastUpdated: teacher.updatedAt.toISOString()
+    parents,
+    students: students.map((student) => ({
+      id: student.id,
+      firstName: student.user.firstName,
+      lastName: student.user.lastName,
+      email: student.user.email,
+      phone: student.user.phone,
+      grade: student.grade,
+      schoolYear: student.schoolYear,
+      parentName: student.parent ? `${student.parent.firstName} ${student.parent.lastName}` : null,
+      lastUpdated: student.updatedAt.toISOString()
     }))
   })
 }
@@ -50,9 +59,9 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { firstName, lastName, email, phone, password, qualifications, specialties, hourlyRate } = body
+  const { firstName, lastName, email, phone, password, grade, schoolYear, parentEmail } = body
 
-  if (!firstName || !lastName || !email || !password) {
+  if (!firstName || !lastName || !email || !password || !grade) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -61,24 +70,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'User already exists' }, { status: 409 })
   }
 
+  const parent = parentEmail
+    ? await prisma.user.findUnique({ where: { email: parentEmail, role: 'PARENT' } as any })
+    : null
+
   const hashedPassword = await bcrypt.hash(password, 10)
-  const teacher = await prisma.user.create({
+
+  const user = await prisma.user.create({
     data: {
       firstName,
       lastName,
       email,
       phone,
       password: hashedPassword,
-      role: 'TEACHER',
-      teacherProfile: {
+      role: 'STUDENT',
+      studentProfile: {
         create: {
-          qualifications: qualifications || undefined,
-          specialties: specialties || undefined,
-          hourlyRate: hourlyRate ? Number(hourlyRate) : undefined
+          grade: Number(grade),
+          schoolYear: schoolYear || undefined,
+          parent: parent ? { connect: { id: parent.id } } : undefined
         }
       }
     }
   })
 
-  return NextResponse.json({ id: teacher.id, email: teacher.email }, { status: 201 })
+  return NextResponse.json({ id: user.id, email: user.email }, { status: 201 })
 }

@@ -31,7 +31,7 @@ export default function AdminSessionsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/sessions', { cache: 'no-store' })
+      const res = await fetch('/api/admin/sessions', { cache: 'no-store', credentials: 'include' })
       if (!res.ok) throw new Error('Unable to load sessions')
       const json = await res.json()
       setRows(json.sessions ?? [])

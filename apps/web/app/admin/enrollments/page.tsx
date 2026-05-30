@@ -32,7 +32,7 @@ export default function AdminEnrollmentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/enrollments', { cache: 'no-store' })
+      const res = await fetch('/api/admin/enrollments', { cache: 'no-store', credentials: 'include' })
       if (!res.ok) throw new Error('Unable to load enrollments')
       const json = await res.json()
       setRows(json.enrollments ?? [])
