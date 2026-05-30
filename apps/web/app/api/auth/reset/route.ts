@@ -1,23 +1,17 @@
 import { NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { verifySignedToken } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
     const { token, password } = await req.json()
     if (!token || !password) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-    const buf = Buffer.from(token, 'base64url').toString('utf8')
-    const parts = buf.split(':')
-    if (parts.length < 3) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
-    const userId = parts[0]
-    const expires = parseInt(parts[1], 10)
-    const sentHmac = parts.slice(2).join(':')
 
-    const secret = process.env.NEXTAUTH_SECRET || process.env.SECRET || 'dev_secret'
-    const payload = `${userId}:${expires}`
-    const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-    if (expected !== sentHmac) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
-    if (Date.now() > expires) return NextResponse.json({ error: 'Token expired' }, { status: 400 })
+    const verified = verifySignedToken(token)
+    if (!verified || verified.type !== 'reset') {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 })
+    }
 
+    const userId = verified.id
     const { prisma } = await import('@/lib/prisma')
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -27,7 +21,7 @@ export async function POST(req: Request) {
     await prisma.user.update({ where: { id: userId }, data: { password: hashed } })
 
     return NextResponse.json({ ok: true })
-  } catch (err) {
+  } catch (err: any) {
     console.error('reset error', err)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { createResetToken, sendPasswordResetEmail } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -11,15 +11,14 @@ export async function POST(req: Request) {
     // Always return success to avoid user enumeration
     if (!user) return NextResponse.json({ ok: true })
 
-    const secret = process.env.NEXTAUTH_SECRET || process.env.SECRET || 'dev_secret'
-    const expires = Date.now() + 1000 * 60 * 60 // 1 hour
-    const payload = `${user.id}:${expires}`
-    const hmac = crypto.createHmac('sha256', secret).update(payload).digest('hex')
-    const token = Buffer.from(`${payload}:${hmac}`).toString('base64url')
+    const token = createResetToken(user.id)
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:2000'}/portal/reset-password?token=${encodeURIComponent(token)}`
 
-    const resetLink = `${process.env.NEXTAUTH_URL || ''}/portal/reset-password?token=${encodeURIComponent(token)}`
-    // TODO: send email via SMTP/provider. For now log to server console.
-    console.log('Password reset link for', email, resetLink)
+    try {
+      await sendPasswordResetEmail(email, resetLink)
+    } catch (error) {
+      console.error('Password reset email failed', error)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

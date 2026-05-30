@@ -1,7 +1,7 @@
 // app/(dashboard)/teacher/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { 
   Bell, 
@@ -1478,8 +1478,11 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
     description: '',
     type: 'PDF_NOTE',
     classId: selectedClass || classes[0]?.id || '',
-    file: null
+    file: null as File | null,
   })
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1543,11 +1546,29 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
               />
             </div>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#003087] transition-colors cursor-pointer">
+            <div
+              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#003087] transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">Click to upload file</p>
+              <p className="text-sm text-gray-600">Click to choose a file</p>
               <p className="text-xs text-gray-500 mt-1">PDF, DOC, MP4 up to 50MB</p>
+              {formData.file && (
+                <p className="text-sm text-gray-700 mt-3">Selected file: {formData.file.name}</p>
+              )}
             </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".pdf,.doc,.docx,.mp4,.ppt,.pptx"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setFormData((prev) => ({ ...prev, file }))
+                setUploadError(null)
+              }}
+            />
+            {uploadError && <p className="text-sm text-rose-600 mt-2">{uploadError}</p>}
           </div>
 
           <div className="flex gap-3 mt-6">
@@ -1559,24 +1580,58 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
             </button>
             <button
               onClick={async () => {
+                if (!formData.file) {
+                  setUploadError('Please choose a file to upload.')
+                  return
+                }
+
+                setUploading(true)
+                setUploadError(null)
                 try {
-                  // For now send metadata; file upload is mocked
-                  const payload = { ...formData, cloudinaryUrl: '', cloudinaryPublicId: '', fileSize: 0 }
+                  const uploadPayload = new FormData()
+                  uploadPayload.append('file', formData.file)
+                  if (formData.type === 'VIDEO_TUTORIAL') {
+                    uploadPayload.append('resourceType', 'video')
+                  }
+
+                  const uploadRes = await fetch('/api/cloudinary/upload', {
+                    method: 'POST',
+                    body: uploadPayload,
+                  })
+                  const uploadData = await uploadRes.json()
+                  if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || 'Upload failed')
+                  }
+
+                  const payload = {
+                    title: formData.title,
+                    description: formData.description,
+                    type: formData.type,
+                    classId: formData.classId,
+                    cloudinaryUrl: uploadData.url,
+                    cloudinaryPublicId: uploadData.public_id,
+                    fileSize: uploadData.bytes || formData.file.size,
+                  }
+
                   const res = await fetch('/api/teacher/resources', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
                   })
                   const data = await res.json()
                   onUpload(data)
-                } catch (err) {
-                  onUpload({ ...formData, id: Date.now().toString(), createdAt: new Date(), downloadCount: 0 })
+                } catch (err: any) {
+                  console.error('Upload error', err)
+                  setUploadError(err?.message || 'Unable to upload file')
+                } finally {
+                  setUploading(false)
                 }
               }}
+              disabled={uploading}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium"
               style={{ backgroundColor: '#003087' }}
             >
-              Upload
+              {uploading ? 'Uploading…' : 'Upload'}
             </button>
           </div>
         </div>

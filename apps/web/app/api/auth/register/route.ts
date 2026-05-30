@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { createVerificationToken, sendVerificationEmail } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -26,16 +27,32 @@ export async function POST(req: Request) {
         lastName,
         phone,
         role: role || 'STUDENT',
-        studentProfile: role === 'STUDENT' ? {
-          create: {
-            grade: parseInt(grade, 10),
-            schoolYear: schoolYear || undefined
-          }
-        } : undefined
-      }
+        studentProfile:
+          role === 'STUDENT'
+            ? {
+                create: {
+                  grade: parseInt(grade, 10),
+                  schoolYear: schoolYear || undefined,
+                },
+              }
+            : undefined,
+      },
     })
 
-    return NextResponse.json({ id: user.id, email: user.email })
+    const verificationToken = createVerificationToken(user.id)
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:2000'}/portal/verify-email?token=${encodeURIComponent(
+      verificationToken,
+    )}
+
+    let verificationSent = false
+    try {
+      await sendVerificationEmail(email, `${firstName} ${lastName}`, verificationUrl)
+      verificationSent = true
+    } catch (error) {
+      console.error('Verification email failed', error)
+    }
+
+    return NextResponse.json({ id: user.id, email: user.email, verificationSent })
   } catch (err) {
     console.error('register error', err)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })
