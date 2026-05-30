@@ -67,6 +67,7 @@ export function StudentRegisterForm() {
         redirect: false,
         email: formData.email,
         password: formData.password,
+        role: 'STUDENT',
         callbackUrl: '/student'
       })
 

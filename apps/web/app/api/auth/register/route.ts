@@ -16,7 +16,12 @@ export async function POST(req: Request) {
 
     const { prisma } = await import('@/lib/prisma')
     const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return NextResponse.json({ error: 'user_exists' }, { status: 409 })
+    if (existing) return NextResponse.json({ error: 'Email is already registered' }, { status: 409 })
+
+    if (phone) {
+      const existingPhone = await prisma.user.findUnique({ where: { phone } })
+      if (existingPhone) return NextResponse.json({ error: 'Phone number is already registered' }, { status: 409 })
+    }
 
     const hashed = await bcrypt.hash(password, 10)
     const user = await prisma.user.create({
@@ -51,9 +56,22 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ id: user.id, email: user.email, verificationSent })
-  } catch (err) {
+  } catch (err: any) {
     console.error('register error', err)
-    // Return a human-friendly error message so the client doesn't display raw codes
+    // Handle Prisma unique constraint failures with friendly messages
+    if (err?.code === 'P2002') {
+      const target = err?.meta?.target
+      const field = Array.isArray(target) ? target.join(', ') : String(target || '')
+      if (field.toLowerCase().includes('phone')) {
+        return NextResponse.json({ error: 'Phone number is already registered' }, { status: 409 })
+      }
+      if (field.toLowerCase().includes('email')) {
+        return NextResponse.json({ error: 'Email is already registered' }, { status: 409 })
+      }
+      return NextResponse.json({ error: 'A record with a unique field already exists' }, { status: 409 })
+    }
+
+    // Fallback: general server error message
     return NextResponse.json({ error: 'Server error. Please try again later.' }, { status: 500 })
   }
 }

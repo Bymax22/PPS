@@ -61,6 +61,7 @@ export function ParentRegisterForm() {
         redirect: false,
         email: formData.email,
         password: formData.password,
+        role: 'PARENT',
         callbackUrl: '/parent'
       })
 
