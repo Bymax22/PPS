@@ -57,7 +57,8 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         redirect: false,
         email: form.email,
         password: form.password,
-        callbackUrl: target
+        role,
+        callbackUrl: target,
       })
 
       if (signInResult?.error) {
@@ -84,7 +85,8 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         redirect: false,
         email: form.email,
         password: form.password,
-        callbackUrl: target
+        role,
+        callbackUrl: target,
       })
 
       if (signInResult?.error) {

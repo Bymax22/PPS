@@ -13,19 +13,45 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         name: 'Credentials',
         credentials: {
           email: { label: 'Email', type: 'text' },
-          password: { label: 'Password', type: 'password' }
+          password: { label: 'Password', type: 'password' },
+          role: { label: 'Role', type: 'text' },
         },
         async authorize(credentials) {
-          if (!credentials) return null
+          if (!credentials || !credentials.email || !credentials.password || !credentials.role) return null
           const user = await prisma.user.findUnique({ where: { email: credentials.email } })
           if (!user || !user.password) return null
           const isValid = await bcrypt.compare(credentials.password, user.password)
           if (!isValid) return null
-          return { id: user.id, email: user.email, name: `${user.firstName} ${user.lastName}` }
-        }
-      })
+          if (user.role !== credentials.role) {
+            throw new Error('User does not have access to this role')
+          }
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            role: user.role,
+          }
+        },
+      }),
     ],
     session: { strategy: 'jwt' },
+    callbacks: {
+      async jwt({ token, user }) {
+        if (user) {
+          token.role = (user as any).role
+        }
+        return token
+      },
+      async session({ session, token }) {
+        if (token.role) {
+          session.user = {
+            ...session.user,
+            role: token.role as string,
+          }
+        }
+        return session
+      },
+    },
     secret: process.env.NEXTAUTH_SECRET,
   }
 
