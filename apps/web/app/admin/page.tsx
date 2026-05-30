@@ -1,4 +1,3 @@
-import PortalLayout from '@/components/PortalLayout'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -10,20 +9,17 @@ export default async function AdminPage() {
 
   if (!admin || admin.role !== 'ADMIN') {
     return (
-      <PortalLayout role="admin">
-        <section className="rounded-[2rem] bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Admin access required</p>
-          <h1 className="mt-4 text-4xl font-semibold text-slate-900">Admin access only</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">You must sign in with an administrator account to use the admin dashboard.</p>
-        </section>
-      </PortalLayout>
+      <section className="rounded-xl bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Admin access required</p>
+        <h1 className="mt-4 text-4xl font-semibold text-slate-900">Admin access only</h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">You must sign in with an administrator account to use the admin dashboard.</p>
+      </section>
     )
   }
 
   return (
-    <PortalLayout role="admin">
       <div className="space-y-8 py-10">
-        <section className="rounded-[2rem] bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <section className="rounded-xl bg-slate-100 p-10 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Admin dashboard</p>
@@ -40,12 +36,13 @@ export default async function AdminPage() {
             { label: 'Teachers', href: '/admin/teachers' },
             { label: 'Payments', href: '/admin/payments' },
             { label: 'Sessions', href: '/admin/sessions' },
+            { label: 'Notices', href: '/admin/notifications' },
             { label: 'Admissions', href: '/admin/admissions' }
           ].map((section) => (
             <a
               key={section.label}
               href={section.href}
-              className="rounded-[2rem] bg-white p-6 text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition hover:-translate-y-1"
+              className="rounded-xl bg-white p-6 text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition hover:-translate-y-1"
             >
               <p className="text-sm uppercase tracking-[0.24em] text-slate-500">{section.label}</p>
               <p className="mt-4 text-xl font-semibold">Open {section.label}</p>
@@ -55,6 +52,5 @@ export default async function AdminPage() {
 
         <AdminDashboardClient />
       </div>
-    </PortalLayout>
   )
 }

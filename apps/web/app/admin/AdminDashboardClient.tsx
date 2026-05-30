@@ -89,9 +89,9 @@ type DashboardData = {
 }
 
 const fetchDashboardData = async (): Promise<DashboardData> => {
-  const response = await fetch('/api/admin/dashboard', { cache: 'no-store' })
+  const response = await fetch('/api/admin/dashboard', { cache: 'no-store', credentials: 'include' })
   if (!response.ok) {
-    throw new Error('Unable to load admin dashboard data')
+    throw new Error(`Unable to load admin dashboard data: ${response.status} ${response.statusText}`)
   }
   return response.json()
 }
@@ -136,7 +136,7 @@ export default function AdminDashboardClient() {
 
   if (error) {
     return (
-      <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+      <div className="rounded-xl bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <h2 className="text-2xl font-semibold text-slate-900">Admin dashboard error</h2>
         <p className="mt-4 text-slate-600">{error}</p>
       </div>
@@ -145,14 +145,14 @@ export default function AdminDashboardClient() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+      <section className="rounded-xl bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Live update</p>
             <h2 className="mt-3 text-3xl font-semibold text-slate-900">Real-time campus overview</h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Data refreshes automatically every 5 seconds so you can review enrollments, payments, and sessions with confidence.</p>
           </div>
-          <div className="rounded-3xl bg-slate-50 px-5 py-4 text-slate-700">
+          <div className="rounded-xl bg-[#e8eefb] px-5 py-4 text-slate-700">
             <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Status</p>
             <p className="mt-2 text-lg font-semibold">{isLoading ? 'Refreshing…' : 'Live'}</p>
           </div>
@@ -161,7 +161,7 @@ export default function AdminDashboardClient() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
-          <article key={card.label} className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
+          <article key={card.label} className="rounded-xl bg-[#00264d] p-6 text-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
             <p className="text-sm uppercase tracking-[0.28em] text-slate-400">{card.label}</p>
             <p className="mt-4 text-3xl font-semibold">{card.value}</p>
           </article>
@@ -174,7 +174,7 @@ export default function AdminDashboardClient() {
           <p className="text-sm text-slate-500">Showing the most recent enrollment activity and payment status.</p>
         </div>
 
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <table className="min-w-full border-separate border-spacing-0 text-left">
             <thead className="bg-slate-100">
               <tr>
@@ -217,7 +217,7 @@ export default function AdminDashboardClient() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="space-y-6 rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="space-y-6 rounded-xl bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h3 className="text-2xl font-semibold text-slate-900">Family and parent overview</h3>
@@ -254,7 +254,7 @@ export default function AdminDashboardClient() {
           </div>
         </div>
 
-        <div className="space-y-6 rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="space-y-6 rounded-xl bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div>
             <h3 className="text-2xl font-semibold text-slate-900">Upcoming sessions</h3>
             <p className="mt-2 text-sm text-slate-500">Upcoming lessons and attendance counts for the next sessions.</p>
@@ -293,7 +293,7 @@ export default function AdminDashboardClient() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
             <div className="bg-slate-100 px-6 py-4">
               <h4 className="text-lg font-semibold text-slate-900">Teachers</h4>
             </div>
@@ -312,7 +312,7 @@ export default function AdminDashboardClient() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
             <div className="bg-slate-100 px-6 py-4">
               <h4 className="text-lg font-semibold text-slate-900">Classes</h4>
             </div>
@@ -340,7 +340,7 @@ export default function AdminDashboardClient() {
           <p className="text-sm text-slate-500">Latest completed and pending payments for students and parents.</p>
         </div>
 
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="overflow-hidden rounded-xl border border-slate-200 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <table className="min-w-full border-separate border-spacing-0 text-left">
             <thead className="bg-slate-100">
               <tr>

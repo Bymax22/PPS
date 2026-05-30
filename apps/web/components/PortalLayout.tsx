@@ -43,7 +43,7 @@ export default function PortalLayout({ children, role }: { children: React.React
         </nav>
       </header>
 
-      <main className="max-w-6xl mx-auto p-4">{children}</main>
+      <main className={`mx-auto p-4 ${role === 'admin' ? 'max-w-none' : 'max-w-6xl'}`}>{children}</main>
       <PortalModal isOpen={open} onClose={() => setOpen(false)} />
     </div>
   )
