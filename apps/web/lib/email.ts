@@ -35,7 +35,7 @@ function verifyToken(token: string) {
   }
 }
 
-async function sendBrevoEmail(options: {
+export async function sendBrevoEmail(options: {
   to: string
   name?: string
   subject: string

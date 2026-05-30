@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     recipients = await prisma.user.findMany({ where: { status: 'ACTIVE' } })
   } else if (targetType === 'INDIVIDUAL') {
     const identifiers = targetValue
-n      .split(',')
+      .split(',')
       .map((value) => value.trim())
       .filter(Boolean)
 

@@ -75,6 +75,13 @@ export default function AdminSessionsPage() {
     URL.revokeObjectURL(url)
   }
 
+  useEffect(() => {
+    load()
+    const timer = window.setInterval(load, 5000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  return (
     <div className="space-y-8 py-10">
       <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
