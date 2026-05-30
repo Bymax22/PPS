@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Laptop, User, Mail, Lock, Phone, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
+import { getFriendlyAuthError } from '@/lib/authErrors'
 
 export function ParentRegisterForm() {
   const router = useRouter()
@@ -64,7 +65,7 @@ export function ParentRegisterForm() {
       })
 
       if (signInResult?.error) {
-        throw new Error(signInResult.error || 'Unable to sign in after registration.')
+        throw new Error(getFriendlyAuthError(signInResult.error, 'PARENT'))
       }
 
       router.push(signInResult?.url || '/parent')

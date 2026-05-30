@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { getFriendlyAuthError } from '@/lib/authErrors'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function AdminLoginPage() {
       }
 
       if (res.error) {
-        throw new Error(res.error)
+        throw new Error(getFriendlyAuthError(res.error, 'ADMIN'))
       }
 
       const destination = res.url || '/admin'

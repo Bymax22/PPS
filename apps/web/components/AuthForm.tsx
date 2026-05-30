@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
+import { getFriendlyAuthError } from '@/lib/authErrors'
 
 function getDestination(role: string) {
   switch (role) {
@@ -62,7 +63,7 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
       })
 
       if (signInResult?.error) {
-        throw new Error(signInResult.error || 'Unable to sign in after registration')
+        throw new Error(getFriendlyAuthError(signInResult.error, role))
       }
 
       router.push(signInResult?.url || target)
@@ -90,7 +91,7 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
       })
 
       if (signInResult?.error) {
-        throw new Error(signInResult.error || 'Invalid email or password')
+        throw new Error(getFriendlyAuthError(signInResult.error, role))
       }
 
       router.push(signInResult?.url || target)

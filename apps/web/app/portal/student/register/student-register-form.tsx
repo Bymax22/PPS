@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Laptop, User, Mail, Lock, Phone, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
+import { getFriendlyAuthError } from '@/lib/authErrors'
 
 export function StudentRegisterForm() {
   const searchParams = useSearchParams()
@@ -70,7 +71,7 @@ export function StudentRegisterForm() {
       })
 
       if (signInResult?.error) {
-        throw new Error(signInResult.error || 'Unable to sign in after registration.')
+        throw new Error(getFriendlyAuthError(signInResult.error, 'STUDENT'))
       }
 
       router.push(signInResult?.url || '/student')
