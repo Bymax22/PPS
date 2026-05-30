@@ -46,7 +46,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
         if (token.role) {
           session.user = {
             ...session.user,
-            role: token.role as string,
+            role: token.role as 'STUDENT' | 'PARENT' | 'TEACHER' | 'ADMIN',
           }
         }
         return session
