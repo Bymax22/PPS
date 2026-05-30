@@ -10,6 +10,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [roleMismatch, setRoleMismatch] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
@@ -31,13 +32,25 @@ export default function AdminLoginPage() {
       }
 
       if (res.error) {
+        // Detect explicit role/access messages and mark roleMismatch
+        const raw = String(res.error || '')
+        if (raw.toLowerCase().includes('role') || raw.toLowerCase().includes('access')) {
+          setRoleMismatch(true)
+          throw new Error(getFriendlyAuthError(raw, 'ADMIN'))
+        }
+
         throw new Error(getFriendlyAuthError(res.error, 'ADMIN'))
       }
 
       const destination = res.url || '/admin'
       router.push(destination)
     } catch (err: any) {
-      setError(err?.message || 'Unable to sign in')
+      const msg = err?.message || 'Unable to sign in'
+      setError(msg)
+      // If message indicates role mismatch, set flag
+      if (String(msg).toLowerCase().includes('role') || String(msg).toLowerCase().includes('access')) {
+        setRoleMismatch(true)
+      }
     } finally {
       setLoading(false)
     }
@@ -72,6 +85,9 @@ export default function AdminLoginPage() {
             />
           </div>
           {error && <p className="text-sm text-rose-600">{error}</p>}
+          {roleMismatch && (
+            <p className="text-sm text-yellow-700">It looks like this account doesn't have administrator access. If you believe this is an error, contact your site administrator to request admin access.</p>
+          )}
           <button
             type="submit"
             disabled={loading}

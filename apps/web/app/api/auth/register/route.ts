@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ id: user.id, email: user.email, verificationSent })
   } catch (err) {
     console.error('register error', err)
-    return NextResponse.json({ error: 'server_error' }, { status: 500 })
+    // Return a human-friendly error message so the client doesn't display raw codes
+    return NextResponse.json({ error: 'Server error. Please try again later.' }, { status: 500 })
   }
 }
