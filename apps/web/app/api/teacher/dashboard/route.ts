@@ -1,188 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
-// Mock data for teacher dashboard
-const mockTeacherData = {
-  id: 'teacher-1',
-  name: 'Mr. Johnson',
-  email: 'johnson@school.com',
-  profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=johnson',
-  classes: [
-    {
-      id: '1',
-      name: 'Mathematics Grade 10',
-      grade: 10,
-      subject: 'Mathematics',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      studentCount: 25,
-      schedule: [
-        { id: '1', day: 'Monday', time: '09:00', duration: 60 },
-        { id: '2', day: 'Wednesday', time: '09:00', duration: 60 },
-        { id: '3', day: 'Friday', time: '09:00', duration: 60 }
-      ],
-      students: [
-        {
-          id: '1',
-          userId: 'user1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          grade: 10,
-          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
-          attendance: [
-            { id: 'a1', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), status: 'PRESENT', remarks: '' },
-            { id: 'a2', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), status: 'PRESENT', remarks: '' },
-            { id: 'a3', date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), status: 'LATE', remarks: 'Minor delay' }
-          ],
-          progress: [
-            { id: 'p1', lessonId: '1', lessonTitle: 'Algebra Basics', percentageWatched: 100, completedAt: new Date(), score: 88 },
-            { id: 'p2', lessonId: '2', lessonTitle: 'Quadratic Equations', percentageWatched: 75, completedAt: null, score: null }
-          ],
-          parent: {
-            firstName: 'Mike',
-            lastName: 'Doe',
-            email: 'mike.doe@example.com',
-            phone: '+260974567890'
-          }
-        },
-        {
-          id: '2',
-          userId: 'user2',
-          firstName: 'Emma',
-          lastName: 'Smith',
-          email: 'emma.smith@example.com',
-          grade: 10,
-          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emma',
-          attendance: [
-            { id: 'a4', date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), status: 'PRESENT', remarks: '' },
-            { id: 'a5', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), status: 'ABSENT', remarks: 'Illness' }
-          ],
-          progress: [
-            { id: 'p3', lessonId: '1', lessonTitle: 'Algebra Basics', percentageWatched: 100, completedAt: new Date(), score: 92 }
-          ],
-          parent: {
-            firstName: 'Sarah',
-            lastName: 'Smith',
-            email: 'sarah.smith@example.com',
-            phone: '+260978901234'
-          }
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Physics Grade 11',
-      grade: 11,
-      subject: 'Physics',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      studentCount: 18,
-      schedule: [
-        { id: '1', day: 'Tuesday', time: '11:00', duration: 60 },
-        { id: '2', day: 'Thursday', time: '11:00', duration: 60 }
-      ],
-      students: []
-    }
-  ],
-  lessons: [
-    {
-      id: '1',
-      title: 'Introduction to Algebra',
-      description: 'Basic algebraic concepts and equations',
-      type: 'RECORDED' as const,
-      status: 'COMPLETED' as const,
-      scheduledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      duration: 45,
-      classId: '1',
-      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-    },
-    {
-      id: '2',
-      title: 'Quadratic Equations',
-      description: 'Solving quadratic equations using various methods',
-      type: 'LIVE' as const,
-      status: 'SCHEDULED' as const,
-      scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      duration: 60,
-      classId: '1',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    }
-  ],
-  exams: [
-    {
-      id: '1',
-      title: 'Algebra Midterm',
-      description: 'Covers all algebra topics from chapters 1-5',
-      type: 'MIDTERM' as const,
-      scheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      duration: 90,
-      totalMarks: 100,
-      passingMarks: 50,
-      classId: '1',
-      submissions: [
-        {
-          id: '1',
-          studentId: '1',
-          studentName: 'John Doe',
-          score: 85,
-          percentage: 85,
-          submittedAt: new Date(),
-          status: 'GRADED' as const
-        },
-        {
-          id: '2',
-          studentId: '2',
-          studentName: 'Emma Smith',
-          score: null,
-          percentage: null,
-          submittedAt: null,
-          status: 'PENDING' as const
-        }
-      ]
-    }
-  ],
-  resources: [
-    {
-      id: '1',
-      title: 'Algebra Formula Sheet',
-      description: 'Comprehensive formula reference',
-      type: 'PDF_NOTE',
-      fileUrl: '/resources/formula-sheet.pdf',
-      fileSize: 1024 * 1024,
-      downloadCount: 45,
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    }
-  ],
-  messages: [
-    {
-      id: '1',
-      from: 'Parent - Mike Doe',
-      fromRole: 'parent',
-      to: 'teacher',
-      message: 'My son is struggling with algebra. Can you provide additional resources?',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      read: false,
-      childId: '1'
-    }
-  ],
-  notifications: [
-    {
-      id: '1',
-      title: 'New Student Enrollment',
-      message: 'A new student has been enrolled in your Physics class',
-      date: new Date(),
-      read: false,
-      type: 'enrollment'
-    },
-    {
-      id: '2',
-      title: 'Assignment Submission',
-      message: 'John Doe has submitted their assignment',
-      date: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      read: false,
-      type: 'submission'
-    }
-  ]
+function formatUserName(user: { firstName?: string; lastName?: string }) {
+  return [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || 'Unknown'
 }
 
 export async function GET(req: NextRequest) {
@@ -192,8 +14,162 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Return mockup data
-    return NextResponse.json(mockTeacherData)
+    const teacher = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: {
+        teachingClasses: {
+          include: {
+            class: {
+              include: {
+                program: true,
+                enrollments: {
+                  where: { status: 'ACTIVE' },
+                  include: {
+                    user: {
+                      include: {
+                        studentProfile: true
+                      }
+                    }
+                  }
+                },
+                lessons: {
+                  where: { isDeleted: false },
+                  orderBy: { scheduledAt: 'desc' }
+                },
+                exams: {
+                  where: { isDeleted: false },
+                  include: {
+                    attempts: {
+                      include: { user: true },
+                      orderBy: { submittedAt: 'desc' }
+                    }
+                  },
+                  orderBy: { scheduledAt: 'desc' }
+                },
+                resources: {
+                  where: { isDeleted: false },
+                  include: { media: true },
+                  orderBy: { createdAt: 'desc' }
+                }
+              }
+            }
+          }
+        },
+        receivedMessages: {
+          include: { sender: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        },
+        notifications: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        }
+      }
+    })
+
+    if (!teacher) {
+      return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
+    }
+
+    const classes = teacher.teachingClasses.map((tc) => {
+      const cls = tc.class
+      return {
+        id: cls.id,
+        name: cls.name,
+        grade: cls.grade ?? 0,
+        subject: cls.subject ?? 'General',
+        program: cls.program ? { name: cls.program.name, type: cls.program.type } : { name: 'General', type: 'ONLINE_FULL_TIME' },
+        students: cls.enrollments.map((enrollment) => ({
+          id: enrollment.user.id,
+          userId: enrollment.user.id,
+          firstName: enrollment.user.firstName,
+          lastName: enrollment.user.lastName,
+          email: enrollment.user.email,
+          grade: enrollment.user.studentProfile?.grade ?? cls.grade ?? 0,
+          phone: enrollment.user.phone ?? undefined,
+          attendance: [],
+          progress: []
+        })),
+        schedule: cls.lessons.map((lesson) => ({
+          id: lesson.id,
+          day: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
+          time: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
+          duration: lesson.duration ?? 0
+        }))
+      }
+    })
+
+    const lessons = teacher.teachingClasses
+      .flatMap((tc) => tc.class.lessons)
+      .map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description ?? '',
+        type: lesson.type,
+        status: lesson.status,
+        scheduledAt: lesson.scheduledAt?.toISOString(),
+        duration: lesson.duration ?? 0,
+        classId: lesson.classId,
+        createdAt: lesson.createdAt.toISOString()
+      }))
+
+    const exams = teacher.teachingClasses
+      .flatMap((tc) => tc.class.exams)
+      .map((exam) => ({
+        id: exam.id,
+        title: exam.title,
+        description: exam.description ?? '',
+        type: exam.type,
+        scheduledAt: exam.scheduledAt?.toISOString(),
+        duration: exam.duration,
+        totalMarks: exam.totalMarks,
+        passingMarks: exam.passingMarks,
+        classId: exam.classId,
+        submissions: exam.attempts.map((attempt) => ({
+          id: attempt.id,
+          studentId: attempt.userId,
+          studentName: formatUserName(attempt.user),
+          score: attempt.score ?? 0,
+          percentage: attempt.percentage ?? 0,
+          submittedAt: attempt.submittedAt?.toISOString() ?? null,
+          status: attempt.score != null ? 'GRADED' : 'PENDING'
+        }))
+      }))
+
+    const resources = teacher.teachingClasses
+      .flatMap((tc) => tc.class.resources)
+      .map((resource) => ({
+        id: resource.id,
+        title: resource.title,
+        description: resource.description ?? '',
+        type: resource.type,
+        fileUrl: resource.media?.cloudinaryUrl ?? '',
+        fileSize: resource.fileSize ?? 0,
+        downloadCount: resource.downloadCount,
+        createdAt: resource.createdAt.toISOString()
+      }))
+
+    const messages = teacher.receivedMessages.map((message) => ({
+      id: message.id,
+      from: formatUserName(message.sender),
+      fromRole: message.sender.role,
+      to: 'teacher',
+      message: message.body,
+      date: message.createdAt.toISOString(),
+      read: message.read,
+      childId: message.parentId ?? undefined
+    }))
+
+    const notifications = teacher.notifications.map((notification) => ({
+      id: notification.id,
+      title: notification.title,
+      message: notification.body,
+      date: notification.createdAt.toISOString(),
+      read: notification.read,
+      type: notification.type
+    }))
+
+    return NextResponse.json({ classes, lessons, exams, resources, messages, notifications })
   } catch (error) {
     console.error('Dashboard error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

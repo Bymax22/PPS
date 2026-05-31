@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { 
   Bell, 
   Menu, 
@@ -173,6 +174,7 @@ export default function TeacherDashboard() {
   const [showGradeSubmission, setShowGradeSubmission] = useState(false)
   const [gradingExamId, setGradingExamId] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -229,179 +231,12 @@ export default function TeacherDashboard() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Mock data - replace with API calls
-  const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([
-    {
-      id: '1',
-      name: 'Grade 10 Physics',
-      grade: 10,
-      subject: 'Physics',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      schedule: [
-        { id: '1', day: 'Monday', time: '10:00', duration: 60 },
-        { id: '2', day: 'Wednesday', time: '10:00', duration: 60 },
-        { id: '3', day: 'Friday', time: '10:00', duration: 60 }
-      ],
-      students: Array(32).fill(null).map((_, i) => ({
-        id: `${i}`,
-        userId: `user${i}`,
-        firstName: `Student${i}`,
-        lastName: `Name${i}`,
-        email: `student${i}@example.com`,
-        grade: 10,
-        attendance: [],
-        progress: []
-      }))
-    },
-    {
-      id: '2',
-      name: 'Grade 11 Physics',
-      grade: 11,
-      subject: 'Physics',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      schedule: [
-        { id: '1', day: 'Tuesday', time: '11:00', duration: 60 },
-        { id: '2', day: 'Thursday', time: '11:00', duration: 60 }
-      ],
-      students: Array(28).fill(null).map((_, i) => ({
-        id: `${i}`,
-        userId: `user${i}`,
-        firstName: `Student${i}`,
-        lastName: `Name${i}`,
-        email: `student${i}@example.com`,
-        grade: 11,
-        attendance: [],
-        progress: []
-      }))
-    },
-    {
-      id: '3',
-      name: 'Grade 9 Science',
-      grade: 9,
-      subject: 'Science',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      schedule: [
-        { id: '1', day: 'Monday', time: '14:00', duration: 60 }
-      ],
-      students: Array(35).fill(null).map((_, i) => ({
-        id: `${i}`,
-        userId: `user${i}`,
-        firstName: `Student${i}`,
-        lastName: `Name${i}`,
-        email: `student${i}@example.com`,
-        grade: 9,
-        attendance: [],
-        progress: []
-      }))
-    },
-    {
-      id: '4',
-      name: 'Grade 12 Physics',
-      grade: 12,
-      subject: 'Physics',
-      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
-      schedule: [
-        { id: '1', day: 'Wednesday', time: '14:00', duration: 90 }
-      ],
-      students: Array(33).fill(null).map((_, i) => ({
-        id: `${i}`,
-        userId: `user${i}`,
-        firstName: `Student${i}`,
-        lastName: `Name${i}`,
-        email: `student${i}@example.com`,
-        grade: 12,
-        attendance: [],
-        progress: []
-      }))
-    }
-  ])
-
-  const [lessons, setLessons] = useState<Lesson[]>([
-    {
-      id: '1',
-      title: 'Introduction to Algebra',
-      description: 'Basic algebraic concepts and equations',
-      type: 'RECORDED',
-      status: 'COMPLETED',
-      scheduledAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      duration: 45,
-      classId: '1',
-      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-    },
-    {
-      id: '2',
-      title: 'Quadratic Equations',
-      description: 'Solving quadratic equations using various methods',
-      type: 'LIVE',
-      status: 'SCHEDULED',
-      scheduledAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      duration: 60,
-      classId: '1',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    }
-  ])
-
-  const [exams, setExams] = useState<Exam[]>([
-    {
-      id: '1',
-      title: 'Algebra Midterm',
-      description: 'Covers all algebra topics from chapters 1-5',
-      type: 'MIDTERM',
-      scheduledAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      duration: 90,
-      totalMarks: 100,
-      passingMarks: 50,
-      classId: '1',
-      submissions: [
-        {
-          id: '1',
-          studentId: '1',
-          studentName: 'John Doe',
-          score: 85,
-          percentage: 85,
-          submittedAt: new Date(),
-          status: 'GRADED'
-        }
-      ]
-    }
-  ])
-
-  const [resources, setResources] = useState<Resource[]>([
-    {
-      id: '1',
-      title: 'Algebra Formula Sheet',
-      description: 'Comprehensive formula reference',
-      type: 'PDF_NOTE',
-      fileUrl: '/resources/formula-sheet.pdf',
-      fileSize: 1024 * 1024,
-      downloadCount: 45,
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    }
-  ])
-
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      from: 'Parent - John Doe',
-      fromRole: 'parent',
-      to: 'teacher',
-      message: 'My son is struggling with algebra. Can you provide additional resources?',
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      read: false,
-      childId: '1'
-    }
-  ])
-
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'New Student Enrollment',
-      message: 'A new student has been enrolled in your Physics class',
-      date: new Date(),
-      read: false,
-      type: 'enrollment'
-    }
-  ])
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
+  const [exams, setExams] = useState<Exam[]>([])
+  const [resources, setResources] = useState<Resource[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
 
   const totalStudents = teacherClasses.reduce((sum, c) => sum + c.students.length, 0)
   const totalLessons = lessons.length
@@ -429,7 +264,7 @@ export default function TeacherDashboard() {
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#f3f4f6' }}>
       {/* Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-40 w-72 flex flex-col transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} style={{ backgroundColor: '#003087' }}>
+      <div className={`fixed lg:static top-[112px] bottom-0 left-0 z-40 w-72 flex flex-col transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} style={{ backgroundColor: '#003087' }}>
         {/* Sidebar Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -442,18 +277,21 @@ export default function TeacherDashboard() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white/80 hover:text-white hover:bg-white/10 ${
-                item.label === 'Dashboard' ? 'bg-white/20 text-white' : ''
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          ))}
+          {sidebarItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/teacher' && pathname?.startsWith(item.href))
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white/80 hover:text-white hover:bg-white/10 ${
+                  isActive ? 'bg-white/20 text-white' : ''
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Sidebar Footer */}
@@ -466,7 +304,7 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col w-full pt-[112px] lg:pt-[120px]">
         {/* Header */}
         <header className={`sticky top-0 z-30 bg-white transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
           <div className="px-4 sm:px-6 lg:px-8">
