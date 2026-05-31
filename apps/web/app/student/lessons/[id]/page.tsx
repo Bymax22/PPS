@@ -322,9 +322,7 @@ export default function StudentLessonPage() {
                   <div className="space-y-1">
                     {participants.map((p) => (
                       <div key={p.id} className="bg-green-50 rounded p-2 text-xs border border-green-200">
-                        <p className="font-semibold text-green-900">
-                          {p.user?.firstName} {p.user?.lastName}
-                        </p>
+                        <p className="font-semibold text-green-900">{p.name}</p>
                         <p className="text-xs text-green-600">🟢 Active</p>
                       </div>
                     ))}

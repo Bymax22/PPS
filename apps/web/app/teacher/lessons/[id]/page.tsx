@@ -334,10 +334,8 @@ export default function TeacherLessonPage() {
                   <div className="space-y-2">
                     {participants.map((p) => (
                       <div key={p.id} className="bg-blue-50 rounded p-2 text-sm">
-                        <div className="font-semibold text-blue-900">{p.user?.firstName} {p.user?.lastName}</div>
-                        <div className="text-xs text-blue-600 mt-1">
-                          ✓ Joined · {p.durationSeconds || 0}s
-                        </div>
+                        <div className="font-semibold text-blue-900">{p.name}</div>
+                        <div className="text-xs text-blue-600 mt-1">✓ Joined · Score {p.participationScore}</div>
                       </div>
                     ))}
                   </div>

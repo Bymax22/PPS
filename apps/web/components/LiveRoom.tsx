@@ -49,19 +49,16 @@ export default function LiveRoom({
       try {
         const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher ? 'true' : undefined)
 
-        const r = new Room()
-        await r.connect(
-          process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880',
-          token,
-          {
-            autoSubscribe: true,
-            audioCaptureDefaults: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-            },
-          }
-        )
+        const r = new Room({
+          audioCaptureDefaults: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        })
+        await r.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880', token, {
+          autoSubscribe: true,
+        })
 
         if (!mounted) {
           r.disconnect()
@@ -73,12 +70,12 @@ export default function LiveRoom({
         // Publish local tracks if teacher
         if (isTeacher) {
           try {
-            const tracks = await r.localParticipant.createLocalTracks({
+            const tracks = await r.localParticipant.createTracks({
               audio: true,
               video: { facingMode: 'user', resolution: { width: 1280, height: 720 } },
             })
             for (const t of tracks) {
-              await r.localParticipant.publishTrack(t.track)
+              await r.localParticipant.publishTrack(t)
             }
           } catch (e) {
             console.warn('Local track publish failed:', e)
@@ -107,10 +104,10 @@ export default function LiveRoom({
         r.on(RoomEvent.ParticipantDisconnected, onParticipantDisconnected)
 
         // Handle data messages (chat)
-        r.on(RoomEvent.DataPacketReceived, (packet: DataPacket_Kind) => {
+        r.on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: Participant, kind?: any) => {
           try {
             const decoder = new TextDecoder()
-            const msg = JSON.parse(decoder.decode(packet.payload))
+            const msg = JSON.parse(decoder.decode(payload))
             if (msg.type === 'chat') {
               setChatMessages((prev) => [
                 ...prev,
@@ -123,9 +120,9 @@ export default function LiveRoom({
         })
 
         // Initial participant list
-        r.participants.forEach(onParticipantConnected)
+        r.remoteParticipants.forEach(onParticipantConnected)
 
-        onParticipantCountChange?.(r.participants.size + 1)
+        onParticipantCountChange?.(r.numParticipants)
       } catch (err) {
         console.error('LiveRoom init failed', err)
         setError(String(err))
@@ -159,12 +156,12 @@ export default function LiveRoom({
       element?.remove()
     }
 
-    participant.on(ParticipantEvent.TrackSubscribed, onTrackSubscribed)
-    participant.on(ParticipantEvent.TrackUnsubscribed, onTrackUnsubscribed)
+    participant.on(ParticipantEvent.TrackSubscribed, (track: Track) => onTrackSubscribed(track))
+    participant.on(ParticipantEvent.TrackUnsubscribed, (track: Track) => onTrackUnsubscribed(track))
 
-    participant.tracks.forEach((track) => {
-      if (track.isSubscribed) {
-        onTrackSubscribed(track.track)
+    participant.getTrackPublications().forEach((pub) => {
+      if (pub.isSubscribed && pub.track) {
+        onTrackSubscribed(pub.track as Track)
       }
     })
   }
@@ -213,7 +210,7 @@ export default function LiveRoom({
     }
 
     try {
-      await room.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(message)), DataPacket_Kind.LOSSY)
+      await room.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(message)))
       setChatMessages((prev) => [...prev, { from: message.from, text: message.text, timestamp: message.timestamp }])
       setChatInput('')
     } catch (e) {
@@ -256,11 +253,11 @@ export default function LiveRoom({
               </div>
 
               {/* Remote participants */}
-              {participants.map((p) => (
+                  {participants.map((p) => (
                 <div key={p.identity} className="bg-gray-700 rounded p-2 text-sm">
                   <div className="font-semibold truncate">{p.name || p.identity}</div>
                   <div className="text-xs text-gray-400">
-                    {p.tracks.size > 0 ? '🔴 Active' : '⚪ Listening'}
+                    {p.getTrackPublications().length > 0 ? '🔴 Active' : '⚪ Listening'}
                   </div>
                 </div>
               ))}
