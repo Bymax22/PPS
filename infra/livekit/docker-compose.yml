@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  livekit:
+    image: livekit/livekit:latest
+    restart: unless-stopped
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_ICE_SERVERS=turn:coturn:3478?transport=udp
+      - LIVEKIT_RTC_PORT=7883
+      - LIVEKIT_HTTP_PORT=7880
+      - LIVEKIT_LOG_LEVEL=info
+    ports:
+      - '7880:7880' # LiveKit HTTP API
+      - '7881:7881' # LiveKit WebSocket (optional)
+      - '7883:7883/udp' # WebRTC UDP (DTLS/SRTP)
+    depends_on:
+      - coturn
+    volumes:
+      - ./livekit-data:/var/lib/livekit
+
+  coturn:
+    image: instrumentisto/coturn:4.5.2
+    restart: unless-stopped
+    ports:
+      - '3478:3478'
+      - '3478:3478/udp'
+      - '5349:5349'
+      - '5349:5349/udp'
+    command: [
+      "-n",
+      "--lt-cred-mech",
+      "--use-auth-secret",
+      "--static-auth-secret=${TURN_SHARED_SECRET}",
+      "--realm=livekit",
+      "--no-multicast-peers"
+    ]
+    volumes:
+      - ./coturn-data:/var/lib/coturn
+
+networks:
+  default:
+    driver: bridge

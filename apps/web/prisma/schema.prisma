@@ -59,6 +59,12 @@ model User {
   resources        Resource[] @relation("UserResources")
   contentRevisions ContentRevision[] @relation("UserContentRevisions")
   newsArticles     NewsArticle[] @relation("UserNewsArticles")
+  chatMessages     ChatMessage[]
+  studentActivities StudentActivity[]
+  createdExercises ClassExercise[] @relation("ExerciseCreator")
+  exerciseResponses ClassExerciseResponse[] @relation("ExerciseResponses")
+  createdPolls     LivePoll[] @relation("PollCreator")
+  pollResponses    LivePollResponse[] @relation("PollResponses")
 }
 
 enum UserRole {
@@ -380,6 +386,12 @@ model Lesson {
   contentBlocks       ContentBlock[]
   attendees           SessionAttendee[]
   progress            Progress[]
+  session             LessonSession?
+  chatMessages        ChatMessage[]
+  activities          StudentActivity[]
+  exercises           ClassExercise[]
+  polls               LivePoll[]
+  recordings          LessonRecording[]
   isDeleted           Boolean  @default(false)
   deletedAt           DateTime?
   createdAt           DateTime @default(now())
@@ -421,6 +433,8 @@ model SessionAttendee {
   durationSeconds Int      @default(0)
   attended        Boolean  @default(true)
   watchedRecording Boolean @default(false)
+  sessionId       String?
+  liveSession     LessonSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
 }
 
@@ -822,6 +836,183 @@ model SiteSetting {
 }
 
 // Misc helpers
+model LessonSession {
+  id              String   @id @default(cuid())
+  lessonId        String   @unique
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  roomId          String   @unique
+  streamKey       String?  // RTMP stream key for broadcasting
+  status          LiveSessionStatus @default(PENDING)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  recordingUrl    String?
+  recordingId     String?  // Cloudinary recording ID
+  maxParticipants Int      @default(500)
+  currentViewers  Int      @default(0)
+  description     String?
+  attendees       SessionAttendee[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum LiveSessionStatus {
+  PENDING
+  LIVE
+  RECORDING
+  COMPLETED
+  ARCHIVED
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  isSystem  Boolean  @default(false)
+  reactions Json?    // For emoji reactions
+  pinnedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId])
+  @@index([userId])
+}
+
+model StudentActivity {
+  id         String   @id @default(cuid())
+  lessonId   String
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     ActivityType
+  metadata   Json?    // Additional data like raised hand timestamp, poll response, etc
+  createdAt  DateTime @default(now())
+
+  @@index([lessonId])
+  @@index([userId])
+}
+
+enum ActivityType {
+  JOINED
+  RAISED_HAND
+  LOWERED_HAND
+  ANSWERED_POLL
+  SHARED_SCREEN
+  SHARED_CHAT
+  PARTICIPATED
+  LEFT
+}
+
+// In-class exercises and live questions
+model ClassExercise {
+  id              String   @id @default(cuid())
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdBy       String
+  createdByUser   User     @relation("ExerciseCreator", fields: [createdBy], references: [id])
+  title           String
+  description     String?
+  type            String   @default("ASSIGNMENT") // ASSIGNMENT, QUIZ, DISCUSSION, CODE_CHALLENGE
+  timeLimit       Int?     // in seconds
+  isPublished     Boolean  @default(true)
+  questions       ClassExerciseQuestion[]
+  responses       ClassExerciseResponse[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([lessonId])
+  @@index([createdBy])
+}
+
+model ClassExerciseQuestion {
+  id               String   @id @default(cuid())
+  exerciseId       String
+  exercise         ClassExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order            Int
+  type             String   @default("MCQ") // MCQ, SHORT_ANSWER, ESSAY, CODE
+  text             String
+  options          Json?    // for MCQ: [{ id, text }, ...]
+  correctAnswer    Json?
+  explanation      String?
+  points           Int      @default(1)
+  createdAt        DateTime @default(now())
+
+  @@index([exerciseId])
+}
+
+model ClassExerciseResponse {
+  id                String   @id @default(cuid())
+  exerciseId        String
+  exercise          ClassExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation("ExerciseResponses", fields: [userId], references: [id])
+  answers           Json?    // { questionId: answer }
+  submittedAt       DateTime @default(now())
+  score             Int?
+  feedback          String?
+  isCorrect         Boolean?
+  createdAt         DateTime @default(now())
+
+  @@unique([exerciseId, userId])
+  @@index([exerciseId])
+  @@index([userId])
+}
+
+// Live polls for real-time feedback
+model LivePoll {
+  id              String   @id @default(cuid())
+  lessonId        String
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdBy       String
+  createdByUser   User     @relation("PollCreator", fields: [createdBy], references: [id])
+  question        String
+  type            String   @default("SINGLE_CHOICE") // SINGLE_CHOICE, MULTIPLE_CHOICE, OPEN_ENDED
+  options         Json?    // [{ id, text }, ...]
+  isActive        Boolean  @default(true)
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  responses       LivePollResponse[]
+  createdAt       DateTime @default(now())
+
+  @@index([lessonId])
+  @@index([createdBy])
+}
+
+model LivePollResponse {
+  id            String   @id @default(cuid())
+  pollId        String
+  poll          LivePoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation("PollResponses", fields: [userId], references: [id])
+  selectedOption Json?    // { optionId } or { text } for open-ended
+  respondedAt   DateTime @default(now())
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+}
+
+// Recording metadata and storage
+model LessonRecording {
+  id                String   @id @default(cuid())
+  lessonId          String
+  lesson            Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  recordingId       String   @unique
+  storagePath       String   // S3, Cloudinary, or file path
+  duration          Int?     // in seconds
+  fileSize          Int?
+  transcriptUrl     String?
+  thumbnailUrl      String?
+  metadata          Json?
+  isPublished       Boolean  @default(true)
+  accessLevel       String   @default("ENROLLED") // PUBLIC, ENROLLED, PRIVATE
+  createdAt         DateTime @default(now())
+
+  @@index([lessonId])
+}
+
 model RateLimit {
   id        String @id @default(cuid())
   key       String
