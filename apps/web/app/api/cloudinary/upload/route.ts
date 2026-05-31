@@ -9,8 +9,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing file upload' }, { status: 400 })
     }
 
-    const resourceType = String(formData.get('resourceType') || 'auto')
-    const folder = String(formData.get('folder') || 'pps_resources')
+    const resourceTypeValue = formData.get('resourceType')
+    const folderValue = formData.get('folder')
+
+    const resourceType = typeof resourceTypeValue === 'string' && resourceTypeValue.trim() ? resourceTypeValue.trim() : 'auto'
+    const folder = typeof folderValue === 'string' && folderValue.trim() ? folderValue.trim() : 'pps_resources'
     const result = await uploadToCloudinary(file, { folder, resourceType })
 
     return NextResponse.json({
