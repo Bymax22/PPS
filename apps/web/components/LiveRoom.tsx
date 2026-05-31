@@ -1,7 +1,6 @@
 "use client"
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
-  connect,
   Room,
   Track,
   Participant,
@@ -50,7 +49,8 @@ export default function LiveRoom({
       try {
         const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher ? 'true' : undefined)
 
-        const r = await connect(
+        const r = new Room()
+        await r.connect(
           process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880',
           token,
           {

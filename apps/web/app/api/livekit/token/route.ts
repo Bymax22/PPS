@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
-import { AccessToken, VideoGrant } from 'livekit-server-sdk'
+import { AccessToken } from 'livekit-server-sdk'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -44,11 +44,11 @@ export async function GET(req: NextRequest) {
     const identity = `${user.id}-${Date.now()}`
 
     const at = new AccessToken(apiKey, apiSecret, { identity, name: displayName })
-    
+
     // Host tokens get publish/subscribe permissions; students only subscribe
     const grant = isHost
-      ? new VideoGrant({ room, canPublish: true, canPublishData: true, canSubscribe: true })
-      : new VideoGrant({ room, canPublish: false, canPublishData: true, canSubscribe: true })
+      ? { room, canPublish: true, canPublishData: true, canSubscribe: true }
+      : { room, canPublish: false, canPublishData: true, canSubscribe: true }
 
     at.addGrant(grant)
 

@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'
-
 export async function fetchLiveKitToken(room: string, identity?: string) {
   const url = new URL(`/api/livekit/token`, process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
   url.searchParams.set('room', room)
