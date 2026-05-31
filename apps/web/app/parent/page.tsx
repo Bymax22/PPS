@@ -233,465 +233,283 @@ export default function ParentDashboard() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!selectedChild && children.length === 1) {
+      setSelectedChild(children[0].id)
+    }
+  }, [children, selectedChild])
+
   const selectedChildData = selectedChild ? children.find(c => c.id === selectedChild) : null
   const selectedProgress = selectedChild ? progressData[selectedChild] : null
   const selectedAttendance = selectedChild ? attendanceData[selectedChild] : null
 
+  const sidebarItems = [
+    { icon: Home, label: 'Dashboard', href: '/parent' },
+    { icon: Users, label: 'My Children', href: '/parent/children' },
+    { icon: CreditCard, label: 'Payments', href: '/parent/payments' },
+    { icon: MessageCircle, label: 'Messages', href: '/parent/messages' },
+    { icon: Calendar, label: 'Events', href: '/parent/events' },
+    { icon: Settings, label: 'Settings', href: '/parent/settings' }
+  ]
+
   const totalOutstanding = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 w-80 bg-white shadow-xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
-                    style={{ backgroundColor: '#003087' }}
-                  >
-                    P
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Parent Portal</p>
-                    <p className="text-sm text-gray-500">Sarah Johnson</p>
-                  </div>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2">
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-              
-              <nav className="space-y-2">
-                <MobileNavItem href="/parent" icon={Home} label="Dashboard" active />
-                <MobileNavItem href="/parent/children" icon={Users} label="My Children" />
-                <MobileNavItem href="/parent/payments" icon={CreditCard} label="Payments" />
-                <MobileNavItem href="/parent/messages" icon={MessageCircle} label="Messages" />
-                <MobileNavItem href="/parent/settings" icon={Settings} label="Settings" />
-              </nav>
-              
-              <div className="absolute bottom-8 left-0 right-0 px-6">
-                <button className="flex items-center gap-3 text-gray-600 hover:text-gray-900 transition-colors w-full p-3">
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className={`sticky top-0 z-40 bg-white transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: '#003087' }}
-                >
-                  <Users className="w-4 h-4" />
-                </div>
-                <h1 className="text-xl font-bold" style={{ color: '#003087' }}>
-                  Parent Portal
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.filter(n => !n.read).length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#0EF117' }} />
-                )}
-              </button>
-
-              <div className="hidden md:flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">Sarah Johnson</p>
-                  <p className="text-xs text-gray-500">Parent</p>
-                </div>
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold"
-                  style={{ backgroundColor: '#003087' }}
-                >
-                  SJ
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Navigation Tabs */}
-        <div className="hidden lg:block px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-          <div className="flex gap-6">
-            {['overview', 'children', 'payments', 'messages', 'settings'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-1 py-3 text-sm font-medium transition-colors relative ${
-                  activeTab === tab 
-                    ? 'text-[#003087]' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#003087' }} />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Welcome Banner */}
-        <div className="mb-8 p-6 rounded-xl" style={{ backgroundColor: '#003087' }}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="min-h-screen flex overflow-hidden bg-slate-50">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform bg-[#003087] text-white transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="h-full flex flex-col py-6 px-5">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-bold">P</div>
             <div>
-              <p className="text-sm font-medium text-white/80">Welcome back,</p>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">
-                Sarah Johnson
-              </h2>
-                <p className="text-white/70 text-sm mt-2">
-                Managing {children.length} child{children.length !== 1 ? 'ren' : ''} • {totalOutstanding > 0 ? `${formatZMW(totalOutstanding) } outstanding` : 'All fees paid'}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowAddChild(true)}
-                className="px-4 py-2 rounded-lg bg-white text-[#003087] font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Child
-              </button>
-              <button
-                onClick={() => setShowMakePayment(true)}
-                className="px-4 py-2 rounded-lg bg-[#0EF117] text-[#003087] font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2"
-              >
-                <CreditCard className="w-4 h-4" />
-                Make Payment
-              </button>
+              <p className="text-sm text-slate-200">Parent Portal</p>
+              <p className="font-semibold text-white">Sarah Johnson</p>
             </div>
           </div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard 
-            icon={Users}
-            label="My Children"
-            value={children.length}
-            subtitle="Active students"
-          />
-          <StatCard 
-            icon={BarChart3}
-            label="Avg. Performance"
-            value={`${Math.round(children.reduce((sum, child) => sum + (progressData[child.id]?.averageScore || 0), 0) / children.length)}%`}
-            subtitle="Across all children"
-          />
-          <StatCard 
-            icon={CheckCircle}
-            label="Attendance Rate"
-            value={`${Math.round(children.reduce((sum, child) => sum + (attendanceData[child.id]?.percentage || 0), 0) / children.length)}%`}
-            subtitle="Average attendance"
-          />
-          <StatCard 
-            icon={CreditCard}
-            label="Outstanding"
-            value={formatZMW(totalOutstanding)}
-            subtitle="Due for payment"
-          />
-        </div>
-
-        {/* Child Selector */}
-        {children.length > 1 && (
-          <div className="mb-8">
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Select Child</label>
-            <div className="flex gap-3 flex-wrap">
-              {children.map(child => (
-                <button
-                  key={child.id}
-                  onClick={() => setSelectedChild(child.id)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedChild === child.id
-                      ? 'bg-[#003087] text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {child.user.firstName} {child.user.lastName}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* If no child selected and multiple children, show summary */}
-        {!selectedChild && children.length > 1 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {children.map(child => (
-              <ChildSummaryCard
-                key={child.id}
-                child={child}
-                progress={progressData[child.id]}
-                attendance={attendanceData[child.id]}
-                onSelect={() => setSelectedChild(child.id)}
-              />
+          <nav className="space-y-2 flex-1 overflow-y-auto pr-1">
+            {sidebarItems.map(item => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
             ))}
+          </nav>
+          <button className="mt-4 flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20">
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex flex-1 flex-col lg:pl-72">
+        <header className={`sticky top-0 z-30 border-b border-slate-200/70 bg-white transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
+          <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 lg:hidden">
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+              <div>
+                <p className="text-sm text-slate-500">Welcome back</p>
+                <h1 className="text-xl font-semibold text-slate-900">Parent Dashboard</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
+                <Bell className="h-5 w-5" />
+                {notifications.filter(n => !n.read).length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400" />}
+              </button>
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#003087] text-white font-semibold">SJ</div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-slate-900">Sarah Johnson</p>
+                  <p className="text-xs text-slate-500">Parent</p>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </header>
 
-        {/* Detailed View for Selected Child */}
-        {(selectedChild || children.length === 1) && (
-          <>
-            {children.length === 1 && !selectedChild && setSelectedChild(children[0].id)}
-            
-            {selectedChildData && selectedProgress && selectedAttendance && (
-              <>
-                {/* Child Profile Header */}
-                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-xl flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: '#003087' }}>
-                        {selectedChildData.user.firstName[0]}{selectedChildData.user.lastName[0]}
-                      </div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+            <section className="mb-6 overflow-hidden rounded-[32px] bg-[#003087] px-6 py-8 text-white shadow-lg shadow-slate-500/10 sm:px-8">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.16em] text-slate-200">Parent Portal</p>
+                  <h2 className="mt-3 text-3xl font-semibold">Good to see you, Sarah</h2>
+                  <p className="mt-3 max-w-2xl text-sm text-slate-200/90">
+                    You’re supporting {children.length} student{children.length !== 1 ? 's' : ''}. {totalOutstanding > 0 ? `${formatZMW(totalOutstanding)} outstanding balance` : 'All accounts are current.'}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-auto">
+                  <button onClick={() => setShowAddChild(true)} className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#003087] shadow-sm transition hover:brightness-95">
+                    <UserPlus className="mr-2 h-4 w-4" /> Add Child
+                  </button>
+                  <button onClick={() => setShowMakePayment(true)} className="inline-flex items-center justify-center rounded-2xl bg-emerald-300 px-5 py-3 text-sm font-semibold text-[#003087] shadow-sm transition hover:brightness-95">
+                    <CreditCard className="mr-2 h-4 w-4" /> Make Payment
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-4 lg:grid-cols-4">
+              <StatCard icon={Users} label="My Children" value={children.length} subtitle="Active learners" />
+              <StatCard icon={BarChart3} label="Avg. Performance" value={`${Math.round(children.reduce((sum, child) => sum + (progressData[child.id]?.averageScore || 0), 0) / children.length)}%`} subtitle="Across all children" />
+              <StatCard icon={CheckCircle} label="Attendance Rate" value={`${Math.round(children.reduce((sum, child) => sum + (attendanceData[child.id]?.percentage || 0), 0) / children.length)}%`} subtitle="Attendance average" />
+              <StatCard icon={CreditCard} label="Outstanding" value={formatZMW(totalOutstanding)} subtitle="Pending dues" />
+            </section>
+
+            <section className="mt-6 rounded-[32px] bg-white p-6 shadow-sm">
+              <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Choose a child</h3>
+                  <p className="text-sm text-slate-500">View individual performance, attendance, and payments.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {children.map(child => (
+                    <button
+                      key={child.id}
+                      onClick={() => setSelectedChild(child.id)}
+                      className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${selectedChild === child.id ? 'bg-[#003087] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                      {child.user.firstName} {child.user.lastName}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                {children.map(child => (
+                  <div key={child.id} className="rounded-3xl border border-slate-200 p-5 shadow-sm transition hover:shadow-md">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {selectedChildData.user.firstName} {selectedChildData.user.lastName}
-                        </h3>
-                        <p className="text-gray-600">Grade {selectedChildData.grade} • {selectedChildData.schoolYear}</p>
-                        <div className="flex items-center gap-4 mt-2 text-sm">
-                          <span className="flex items-center gap-1 text-gray-500">
-                            <Mail className="w-3 h-3" />
-                            {selectedChildData.user.email}
-                          </span>
-                          {selectedChildData.user.phone && (
-                            <span className="flex items-center gap-1 text-gray-500">
-                              <Phone className="w-3 h-3" />
-                              {selectedChildData.user.phone}
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-sm text-slate-500">{child.grade}</p>
+                        <h4 className="mt-2 text-lg font-semibold text-slate-900">{child.user.firstName} {child.user.lastName}</h4>
+                      </div>
+                      <div className="inline-flex h-11 w-11 items-center justify-center rounded-3xl bg-[#003087] text-white text-lg font-semibold">
+                        {child.user.firstName[0]}{child.user.lastName[0]}
                       </div>
                     </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => {/* Remove child logic */}}
-                        className="px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-                      >
-                        <UserMinus className="w-4 h-4" />
-                        Remove
-                      </button>
-                      <Link
-                        href={`/parent/messages?child=${selectedChildData.id}`}
-                        className="px-3 py-2 rounded-lg text-[#003087] hover:bg-blue-50 transition-colors flex items-center gap-2"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        Message Teacher
-                      </Link>
+                    <div className="mt-4 space-y-3 text-sm text-slate-500">
+                      <p>{child.schoolYear}</p>
+                      <p>{progressData[child.id]?.averageScore}% average score</p>
+                      <p>{attendanceData[child.id]?.percentage}% attendance</p>
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            </section>
 
-                {/* Performance Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <MetricCard
-                    label="Average Score"
-                    value={`${selectedProgress.averageScore}%`}
-                    subtitle="Overall performance"
-                    color="#003087"
-                  />
-                  <MetricCard
-                    label="Lessons Completed"
-                    value={`${selectedProgress.completedLessons}/${selectedProgress.totalLessons}`}
-                    subtitle={`${Math.round((selectedProgress.completedLessons / selectedProgress.totalLessons) * 100)}% complete`}
-                    color="#0EF117"
-                  />
-                  <MetricCard
-                    label="Exams Passed"
-                    value={`${selectedProgress.passedExams}/${selectedProgress.totalExams}`}
-                    subtitle={`${Math.round((selectedProgress.passedExams / selectedProgress.totalExams) * 100)}% pass rate`}
-                    color="#003087"
-                  />
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column - 2/3 */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {/* Recent Activity */}
-                    <DashboardCard title="Recent Activity" icon={Clock}>
-                      <div className="space-y-3">
-                        {selectedProgress.recentActivity.map(activity => (
-                          <ActivityItem key={activity.id} activity={activity} />
-                        ))}
-                      </div>
-                    </DashboardCard>
-
-                    {/* Attendance Overview */}
-                    <DashboardCard title="Attendance Overview" icon={Calendar}>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-4 gap-4">
-                          <AttendanceStat label="Present" value={selectedAttendance.present} color="#0EF117" />
-                          <AttendanceStat label="Absent" value={selectedAttendance.absent} color="#dc2626" />
-                          <AttendanceStat label="Late" value={selectedAttendance.late} color="#f59e0b" />
-                          <AttendanceStat label="Excused" value={selectedAttendance.excused} color="#003087" />
-                        </div>
-                        <div>
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-gray-600">Overall Attendance</span>
-                            <span className="font-semibold" style={{ color: selectedAttendance.percentage >= 85 ? '#0EF117' : '#f59e0b' }}>
-                              {selectedAttendance.percentage}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full transition-all"
-                              style={{ 
-                                width: `${selectedAttendance.percentage}%`,
-                                backgroundColor: selectedAttendance.percentage >= 85 ? '#0EF117' : '#f59e0b'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </DashboardCard>
-
-                    {/* Teacher Messages */}
-                    <DashboardCard title="Teacher Messages" icon={MessageCircle}>
-                      {messages.filter(m => m.childId === selectedChild).length > 0 ? (
-                        <div className="space-y-3">
-                          {messages.filter(m => m.childId === selectedChild).map(msg => (
-                            <MessageItem key={msg.id} message={msg} />
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState message="No messages from teachers" />
-                      )}
-                      <Link 
-                        href={`/parent/messages?child=${selectedChild}`}
-                        className="inline-block mt-4 text-sm font-medium hover:opacity-80"
-                        style={{ color: '#003087' }}
-                      >
-                        Send a message →
-                      </Link>
-                    </DashboardCard>
+            <section className="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
+              <div className="space-y-6">
+                <DashboardCard title="Recent Activity" icon={Clock}>
+                  <div className="space-y-4">
+                    {selectedProgress?.recentActivity.map(activity => (
+                      <ActivityItem key={activity.id} activity={activity} />
+                    ))}
                   </div>
+                </DashboardCard>
 
-                  {/* Right Column - 1/3 */}
-                  <div className="space-y-6">
-                    {/* Payment Status */}
-                    <DashboardCard title="Payment Status" icon={CreditCard}>
-                      <div className="space-y-3">
-                        {payments.filter(p => p.childId === selectedChild).map(payment => (
-                          <PaymentStatusCard key={payment.id} payment={payment} />
-                        ))}
-                        {payments.filter(p => p.childId === selectedChild).length === 0 && (
-                          <EmptyState message="No payment records" />
-                        )}
+                <DashboardCard title="Attendance Overview" icon={Calendar}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <AttendanceStat label="Present" value={selectedAttendance?.present ?? 0} color="#0EF117" />
+                      <AttendanceStat label="Absent" value={selectedAttendance?.absent ?? 0} color="#dc2626" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <AttendanceStat label="Late" value={selectedAttendance?.late ?? 0} color="#f59e0b" />
+                      <AttendanceStat label="Excused" value={selectedAttendance?.excused ?? 0} color="#003087" />
+                    </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
+                        <span>Overall attendance</span>
+                        <span className={`font-semibold ${selectedAttendance?.percentage >= 85 ? 'text-emerald-500' : 'text-amber-500'}`}>{selectedAttendance?.percentage ?? 0}%</span>
                       </div>
-                      <button
-                        onClick={() => setShowMakePayment(true)}
-                        className="w-full mt-4 py-2 px-4 rounded-lg text-white font-medium transition-colors hover:bg-opacity-90"
-                        style={{ backgroundColor: '#003087' }}
-                      >
-                        Make a Payment
-                      </button>
-                    </DashboardCard>
-
-                    {/* Upcoming Events */}
-                    <DashboardCard title="Upcoming Events" icon={Calendar}>
-                      <div className="space-y-3">
-                        <EventItem 
-                          title="Parent-Teacher Meeting"
-                          date={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
-                          type="meeting"
-                        />
-                        <EventItem 
-                          title="Term Exams Start"
-                          date={new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)}
-                          type="exam"
-                        />
-                        <EventItem 
-                          title="Fee Payment Deadline"
-                          date={new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)}
-                          type="payment"
-                        />
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                        <div className="h-2 rounded-full bg-[#003087] transition-all" style={{ width: `${selectedAttendance?.percentage ?? 0}%` }} />
                       </div>
-                    </DashboardCard>
+                    </div>
+                  </div>
+                </DashboardCard>
 
-                    {/* Notifications */}
-                    <DashboardCard title="Notifications" icon={Bell}>
-                      {notifications.filter(n => !n.childId || n.childId === selectedChild).slice(0, 3).map(notification => (
-                        <NotificationItem key={notification.id} notification={notification} />
+                <DashboardCard title="Teacher Messages" icon={MessageCircle}>
+                  {messages.filter(m => m.childId === selectedChild).length > 0 ? (
+                    <div className="space-y-3">
+                      {messages.filter(m => m.childId === selectedChild).map(msg => (
+                        <MessageItem key={msg.id} message={msg} />
                       ))}
-                      {notifications.length === 0 && (
-                        <EmptyState message="No new notifications" />
-                      )}
-                    </DashboardCard>
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </main>
+                    </div>
+                  ) : (
+                    <EmptyState message="No messages from teachers" />
+                  )}
+                  <Link href={`/parent/messages?child=${selectedChild}`} className="mt-4 inline-flex text-sm font-semibold text-[#003087] hover:underline">
+                    Send a message →
+                  </Link>
+                </DashboardCard>
+              </div>
 
-      {/* Add Child Modal */}
+              <div className="space-y-6">
+                <DashboardCard title="Payment Status" icon={CreditCard}>
+                  <div className="space-y-4">
+                    {payments.filter(payment => payment.childId === selectedChild).map(payment => (
+                      <PaymentStatusCard key={payment.id} payment={payment} />
+                    ))}
+                    {!payments.filter(payment => payment.childId === selectedChild).length && (
+                      <EmptyState message="No payment records" />
+                    )}
+                  </div>
+                  <button onClick={() => setShowMakePayment(true)} className="mt-4 w-full rounded-2xl bg-[#003087] px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+                    Make a Payment
+                  </button>
+                </DashboardCard>
+
+                <DashboardCard title="Notifications" icon={Bell}>
+                  <div className="space-y-3">
+                    {notifications.filter(notification => !notification.childId || notification.childId === selectedChild).slice(0, 3).map(notification => (
+                      <NotificationItem key={notification.id} notification={notification} />
+                    ))}
+                    {!notifications.filter(notification => !notification.childId || notification.childId === selectedChild).length && (
+                      <EmptyState message="No new notifications" />
+                    )}
+                  </div>
+                </DashboardCard>
+
+                <DashboardCard title="Quick Actions" icon={Settings}>
+                  <div className="space-y-3">
+                    <Link href="/parent/payments" className="block rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200">View payment history</Link>
+                    <Link href="/parent/messages" className="block rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200">Message a teacher</Link>
+                    <Link href="/parent/events" className="block rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-200">View upcoming events</Link>
+                  </div>
+                </DashboardCard>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+
+      {mobileMenuOpen && <div className="fixed inset-0 z-30 lg:hidden bg-black/50" onClick={() => setMobileMenuOpen(false)} />}
+
       {showAddChild && (
         <AddChildModal onClose={() => setShowAddChild(false)} onAdd={(child) => {
-          // Add child logic
           setShowAddChild(false)
         }} />
       )}
 
-      {/* Make Payment Modal */}
       {showMakePayment && (
-            <PaymentModal 
-              children={children}
-              selectedChild={selectedChild}
-              savedCards={savedCards}
-              onClose={() => setShowMakePayment(false)}
-              onPay={async (data: any) => {
-                try {
-                  const res = await fetch('/api/parent/payments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                  })
-                  if (!res.ok) throw new Error('Payment API error')
-                  const payment = await res.json()
-                  // optimistic update
-                  setPayments(prev => [{
-                    id: payment.id || `mock-${Date.now()}`,
-                    childId: data.childId,
-                    amount: Number(data.amount),
-                    status: payment.status || 'PENDING',
-                    date: new Date(),
-                    description: data.description || 'Manual Payment',
-                    method: data.paymentMethod || data.method,
-                    currency: 'ZMW'
-                  }, ...prev])
-                } catch (err) {
-                  console.error('Payment failed', err)
-                } finally {
-                  setShowMakePayment(false)
-                }
-              }}
-            />
-          )}
+        <PaymentModal 
+          children={children}
+          selectedChild={selectedChild}
+          savedCards={savedCards}
+          onClose={() => setShowMakePayment(false)}
+          onPay={async (data: any) => {
+            try {
+              const res = await fetch('/api/parent/payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              })
+              if (!res.ok) throw new Error('Payment API error')
+              const payment = await res.json()
+              setPayments(prev => [{
+                id: payment.id || `mock-${Date.now()}`,
+                childId: data.childId,
+                amount: Number(data.amount),
+                status: payment.status || 'PENDING',
+                date: new Date(),
+                description: data.description || 'Manual Payment',
+                method: data.paymentMethod || data.method,
+                currency: 'ZMW'
+              }, ...prev])
+            } catch (err) {
+              console.error('Payment failed', err)
+            } finally {
+              setShowMakePayment(false)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

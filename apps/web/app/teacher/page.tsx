@@ -38,7 +38,9 @@ import {
   PieChart,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Star,
+  Monitor
 } from 'lucide-react'
 
 // Types
@@ -165,14 +167,11 @@ interface Notification {
 
 export default function TeacherDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [selectedClass, setSelectedClass] = useState<string | null>(null)
-  const [selectedStudent, setSelectedStudent] = useState<string | null>(null)
   const [showCreateLesson, setShowCreateLesson] = useState(false)
   const [showCreateExam, setShowCreateExam] = useState(false)
   const [showUploadResource, setShowUploadResource] = useState(false)
   const [showGradeSubmission, setShowGradeSubmission] = useState(false)
   const [gradingExamId, setGradingExamId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -222,51 +221,41 @@ export default function TeacherDashboard() {
     }
   }, [])
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   // Mock data - replace with API calls
   const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([
     {
       id: '1',
-      name: 'Mathematics Grade 10',
+      name: 'Grade 10 Physics',
       grade: 10,
-      subject: 'Mathematics',
+      subject: 'Physics',
       program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
       schedule: [
-        { id: '1', day: 'Monday', time: '09:00', duration: 60 },
-        { id: '2', day: 'Wednesday', time: '09:00', duration: 60 },
-        { id: '3', day: 'Friday', time: '09:00', duration: 60 }
+        { id: '1', day: 'Monday', time: '10:00', duration: 60 },
+        { id: '2', day: 'Wednesday', time: '10:00', duration: 60 },
+        { id: '3', day: 'Friday', time: '10:00', duration: 60 }
       ],
-      students: [
-        {
-          id: '1',
-          userId: 'user1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          grade: 10,
-          attendance: [],
-          progress: [],
-          parent: {
-            firstName: 'Mike',
-            lastName: 'Doe',
-            email: 'mike.doe@example.com',
-            phone: '+1234567890'
-          }
-        },
-        {
-          id: '2',
-          userId: 'user2',
-          firstName: 'Emma',
-          lastName: 'Smith',
-          email: 'emma.smith@example.com',
-          grade: 10,
-          attendance: [],
-          progress: []
-        }
-      ]
+      students: Array(32).fill(null).map((_, i) => ({
+        id: `${i}`,
+        userId: `user${i}`,
+        firstName: `Student${i}`,
+        lastName: `Name${i}`,
+        email: `student${i}@example.com`,
+        grade: 10,
+        attendance: [],
+        progress: []
+      }))
     },
     {
       id: '2',
-      name: 'Physics Grade 11',
+      name: 'Grade 11 Physics',
       grade: 11,
       subject: 'Physics',
       program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
@@ -274,7 +263,56 @@ export default function TeacherDashboard() {
         { id: '1', day: 'Tuesday', time: '11:00', duration: 60 },
         { id: '2', day: 'Thursday', time: '11:00', duration: 60 }
       ],
-      students: []
+      students: Array(28).fill(null).map((_, i) => ({
+        id: `${i}`,
+        userId: `user${i}`,
+        firstName: `Student${i}`,
+        lastName: `Name${i}`,
+        email: `student${i}@example.com`,
+        grade: 11,
+        attendance: [],
+        progress: []
+      }))
+    },
+    {
+      id: '3',
+      name: 'Grade 9 Science',
+      grade: 9,
+      subject: 'Science',
+      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
+      schedule: [
+        { id: '1', day: 'Monday', time: '14:00', duration: 60 }
+      ],
+      students: Array(35).fill(null).map((_, i) => ({
+        id: `${i}`,
+        userId: `user${i}`,
+        firstName: `Student${i}`,
+        lastName: `Name${i}`,
+        email: `student${i}@example.com`,
+        grade: 9,
+        attendance: [],
+        progress: []
+      }))
+    },
+    {
+      id: '4',
+      name: 'Grade 12 Physics',
+      grade: 12,
+      subject: 'Physics',
+      program: { name: 'Online Full Time', type: 'ONLINE_FULL_TIME' },
+      schedule: [
+        { id: '1', day: 'Wednesday', time: '14:00', duration: 90 }
+      ],
+      students: Array(33).fill(null).map((_, i) => ({
+        id: `${i}`,
+        userId: `user${i}`,
+        firstName: `Student${i}`,
+        lastName: `Name${i}`,
+        email: `student${i}@example.com`,
+        grade: 12,
+        attendance: [],
+        progress: []
+      }))
     }
   ])
 
@@ -365,443 +403,316 @@ export default function TeacherDashboard() {
     }
   ])
 
-  const selectedClassData = selectedClass ? teacherClasses.find(c => c.id === selectedClass) : teacherClasses[0]
-  const selectedStudentData = selectedStudent && selectedClassData 
-    ? selectedClassData.students.find(s => s.id === selectedStudent)
-    : null
-
   const totalStudents = teacherClasses.reduce((sum, c) => sum + c.students.length, 0)
   const totalLessons = lessons.length
   const totalExams = exams.length
   const pendingGrading = exams.reduce((sum, e) => sum + (e.submissions?.filter(s => s.status === 'PENDING').length || 0), 0)
 
+  // Sidebar navigation items
+  const sidebarItems = [
+    { icon: Home, label: 'Dashboard', href: '/teacher' },
+    { icon: BookOpen, label: 'My Classes', href: '/teacher/classes' },
+    { icon: Video, label: 'Lessons', href: '/teacher/lessons' },
+    { icon: Monitor, label: 'Live Sessions', href: '/teacher/live' },
+    { icon: Star, label: 'Ratings', href: '/teacher/ratings' },
+    { icon: FileText, label: 'Assignments', href: '/teacher/assignments' },
+    { icon: Award, label: 'Exams', href: '/teacher/exams' },
+    { icon: Users, label: 'Students', href: '/teacher/students' },
+    { icon: UserCheck, label: 'Attendance', href: '/teacher/attendance' },
+    { icon: BarChart3, label: 'Grades', href: '/teacher/grades' },
+    { icon: MessageCircle, label: 'Messages', href: '/teacher/messages' },
+    { icon: Calendar, label: 'Calendar', href: '/teacher/calendar' },
+    { icon: FileText, label: 'Reports', href: '/teacher/reports' },
+    { icon: Settings, label: 'Settings', href: '/teacher/settings' }
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed inset-y-0 left-0 w-80 bg-white shadow-xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
-                    style={{ backgroundColor: '#003087' }}
-                  >
-                    T
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Teacher Portal</p>
-                    <p className="text-sm text-gray-500">Mr. Johnson</p>
-                  </div>
-                </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2">
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-              
-              <nav className="space-y-2">
-                <MobileNavItem href="/teacher" icon={Home} label="Dashboard" active />
-                <MobileNavItem href="/teacher/classes" icon={BookOpen} label="My Classes" />
-                <MobileNavItem href="/teacher/students" icon={Users} label="Students" />
-                <MobileNavItem href="/teacher/exams" icon={Award} label="Exams" />
-                <MobileNavItem href="/teacher/messages" icon={MessageCircle} label="Messages" />
-                <MobileNavItem href="/teacher/settings" icon={Settings} label="Settings" />
-              </nav>
-              
-              <div className="absolute bottom-8 left-0 right-0 px-6">
-                <button className="flex items-center gap-3 text-gray-600 hover:text-gray-900 transition-colors w-full p-3">
-                  <LogOut className="w-5 h-5" />
-                  <span>Logout</span>
-                </button>
-              </div>
+    <div className="min-h-screen flex" style={{ backgroundColor: '#f3f4f6' }}>
+      {/* Sidebar */}
+      <div className={`fixed lg:static inset-y-0 left-0 z-40 w-72 flex flex-col transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} style={{ backgroundColor: '#003087' }}>
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
+              📚
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className={`sticky top-0 z-40 bg-white transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Menu className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center gap-3">
-                <div 
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: '#003087' }}
-                >
-                  <GraduationCap className="w-4 h-4" />
-                </div>
-                <h1 className="text-xl font-bold" style={{ color: '#003087' }}>
-                  Teacher Portal
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                {notifications.filter(n => !n.read).length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#0EF117' }} />
-                )}
-              </button>
-
-              <div className="hidden md:flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">Mr. Johnson</p>
-                  <p className="text-xs text-gray-500">Mathematics Teacher</p>
-                </div>
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold"
-                  style={{ backgroundColor: '#003087' }}
-                >
-                  MJ
-                </div>
-              </div>
-            </div>
+            <h1 className="text-lg font-bold text-white">PPS LMS</h1>
           </div>
         </div>
 
-        {/* Desktop Navigation Tabs */}
-        <div className="hidden lg:block px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-          <div className="flex gap-6">
-            {['overview', 'classes', 'students', 'exams', 'resources', 'messages'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-1 py-3 text-sm font-medium transition-colors relative ${
-                  activeTab === tab 
-                    ? 'text-[#003087]' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: '#003087' }} />
-                )}
-              </button>
-            ))}
-          </div>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+          {sidebarItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white/80 hover:text-white hover:bg-white/10 ${
+                item.label === 'Dashboard' ? 'bg-white/20 text-white' : ''
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-white/10">
+          <button className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <LogOut className="w-5 h-5" />
+            <span className="font-medium">Log out</span>
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Welcome Banner */}
-        <div className="mb-8 p-6 rounded-xl" style={{ backgroundColor: '#003087' }}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-white/80">Welcome back,</p>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mt-1">
-                Mr. Johnson
-              </h2>
-              <p className="text-white/70 text-sm mt-2">
-                Teaching {teacherClasses.length} classes • {totalStudents} students
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => setShowCreateLesson(true)}
-                className="px-4 py-2 rounded-lg bg-white text-[#003087] font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2"
-              >
-                <Video className="w-4 h-4" />
-                Create Lesson
-              </button>
-              <button
-                onClick={() => setShowCreateExam(true)}
-                className="px-4 py-2 rounded-lg bg-white text-[#003087] font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2"
-              >
-                <ClipboardList className="w-4 h-4" />
-                Create Exam
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard 
-            icon={BookOpen}
-            label="My Classes"
-            value={teacherClasses.length}
-            subtitle="Active courses"
-          />
-          <StatCard 
-            icon={Users}
-            label="Total Students"
-            value={totalStudents}
-            subtitle="Enrolled learners"
-          />
-          <StatCard 
-            icon={ClipboardList}
-            label="Pending Grading"
-            value={pendingGrading}
-            subtitle="Exams to grade"
-          />
-          <StatCard 
-            icon={TrendingUp}
-            label="Avg. Performance"
-            value="78%"
-            subtitle="Class average"
-          />
-        </div>
-
-        {/* Class Selector */}
-        {teacherClasses.length > 0 && (
-          <div className="mb-8">
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Select Class</label>
-            <div className="flex gap-3 flex-wrap">
-              {teacherClasses.map(cls => (
-                <button
-                  key={cls.id}
-                  onClick={() => {
-                    setSelectedClass(cls.id)
-                    setSelectedStudent(null)
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedClass === cls.id || (!selectedClass && cls.id === teacherClasses[0]?.id)
-                      ? 'bg-[#003087] text-white'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
+      <div className="flex-1 flex flex-col w-full">
+        {/* Header */}
+        <header className={`sticky top-0 z-30 bg-white transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  {cls.name} ({cls.students.length} students)
+                  {mobileMenuOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+                <h2 className="text-xl font-bold text-gray-900">Teacher Dashboard</h2>
+              </div>
 
-        {selectedClassData && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - 2/3 */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Class Schedule */}
-              <DashboardCard title="Class Schedule" icon={Calendar}>
-                <div className="space-y-3">
-                  {selectedClassData.schedule.map((schedule, idx) => (
-                    <ScheduleItem key={idx} schedule={schedule} />
-                  ))}
-                </div>
-              </DashboardCard>
-
-              {/* Lessons */}
-              <DashboardCard 
-                title="Lessons" 
-                icon={Video}
-                action={
-                  <button
-                    onClick={() => setShowCreateLesson(true)}
-                    className="text-sm font-medium hover:opacity-80 flex items-center gap-1"
-                    style={{ color: '#003087' }}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Lesson
-                  </button>
-                }
-              >
-                {lessons.filter(l => l.classId === selectedClass).length > 0 ? (
-                  <div className="space-y-3">
-                    {lessons.filter(l => l.classId === selectedClass).map(lesson => (
-                      <LessonItem key={lesson.id} lesson={lesson} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="No lessons created yet" />
-                )}
-              </DashboardCard>
-
-              {/* Exams */}
-              <DashboardCard 
-                title="Exams" 
-                icon={Award}
-                action={
-                  <button
-                    onClick={() => setShowCreateExam(true)}
-                    className="text-sm font-medium hover:opacity-80 flex items-center gap-1"
-                    style={{ color: '#003087' }}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create Exam
-                  </button>
-                }
-              >
-                {exams.filter(e => e.classId === selectedClass).length > 0 ? (
-                  <div className="space-y-3">
-                    {exams.filter(e => e.classId === selectedClass).map(exam => (
-                      <ExamItem key={exam.id} exam={exam} onGrade={(id: string) => { setGradingExamId(id); setShowGradeSubmission(true) }} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="No exams created yet" />
-                )}
-              </DashboardCard>
-
-              {/* Resources */}
-              <DashboardCard 
-                title="Class Resources" 
-                icon={FolderOpen}
-                action={
-                  <button
-                    onClick={() => setShowUploadResource(true)}
-                    className="text-sm font-medium hover:opacity-80 flex items-center gap-1"
-                    style={{ color: '#003087' }}
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload
-                  </button>
-                }
-              >
-                {resources.length > 0 ? (
-                  <div className="space-y-3">
-                    {resources.map(resource => (
-                      <ResourceItem key={resource.id} resource={resource} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState message="No resources uploaded" />
-                )}
-              </DashboardCard>
-            </div>
-
-            {/* Right Column - 1/3 */}
-            <div className="space-y-6">
-              {/* Students List */}
-              <DashboardCard 
-                title="Students" 
-                icon={Users}
-                action={
-                  <span className="text-sm text-gray-500">
-                    {selectedClassData.students.length} enrolled
-                  </span>
-                }
-              >
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {selectedClassData.students.length > 0 ? (
-                    selectedClassData.students.map(student => (
-                      <StudentItem 
-                        key={student.id} 
-                        student={student}
-                        onSelect={() => setSelectedStudent(student.id)}
-                        isSelected={selectedStudent === student.id}
-                      />
-                    ))
-                  ) : (
-                    <EmptyState message="No students enrolled" />
+              <div className="flex items-center gap-4">
+                <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500" />
                   )}
-                </div>
-              </DashboardCard>
+                </button>
 
-              {/* Student Details (when selected) */}
-              {selectedStudentData && (
-                <DashboardCard title="Student Details" icon={UserCheck}>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#003087' }}>
-                        {selectedStudentData.firstName[0]}{selectedStudentData.lastName[0]}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {selectedStudentData.firstName} {selectedStudentData.lastName}
-                        </h3>
-                        <p className="text-sm text-gray-500">Grade {selectedStudentData.grade}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <InfoRow label="Email" value={selectedStudentData.email} icon={Mail} />
-                      {selectedStudentData.phone && (
-                        <InfoRow label="Phone" value={selectedStudentData.phone} icon={Phone} />
-                      )}
-                      {selectedStudentData.parent && (
-                        <>
-                          <div className="pt-2 mt-2 border-t border-gray-100">
-                            <p className="text-xs font-semibold text-gray-500 mb-2">Parent Information</p>
-                            <InfoRow label="Parent" value={`${selectedStudentData.parent.firstName} ${selectedStudentData.parent.lastName}`} />
-                            <InfoRow label="Parent Email" value={selectedStudentData.parent.email} icon={Mail} />
-                            {selectedStudentData.parent.phone && (
-                              <InfoRow label="Parent Phone" value={selectedStudentData.parent.phone} icon={Phone} />
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <button className="flex-1 py-2 px-3 rounded-lg text-white text-sm font-medium hover:bg-opacity-90" style={{ backgroundColor: '#003087' }}>
-                        <MessageCircle className="w-4 h-4 inline mr-2" />
-                        Message
-                      </button>
-                      <button className="flex-1 py-2 px-3 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
-                        <Eye className="w-4 h-4 inline mr-2" />
-                        View Profile
-                      </button>
-                    </div>
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-medium text-gray-900">Mr. David Smith</p>
+                    <p className="text-xs text-gray-500">Physics Teacher</p>
                   </div>
-                </DashboardCard>
-              )}
-
-              {/* Recent Messages */}
-              <DashboardCard title="Recent Messages" icon={MessageCircle}>
-                {messages.length > 0 ? (
-                  <div className="space-y-3">
-                    {messages.slice(0, 3).map(msg => (
-                      <MessageItem key={msg.id} message={msg} />
-                    ))}
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                    style={{ backgroundColor: '#003087' }}
+                  >
+                    DS
                   </div>
-                ) : (
-                  <EmptyState message="No messages" />
-                )}
-                <Link 
-                  href="/teacher/messages"
-                  className="inline-block mt-4 text-sm font-medium hover:opacity-80"
-                  style={{ color: '#003087' }}
-                >
-                  View all messages →
-                </Link>
-              </DashboardCard>
-
-              {/* Quick Actions */}
-              <DashboardCard title="Quick Actions" icon={Settings}>
-                <div className="grid grid-cols-2 gap-3">
-                  <QuickActionCard 
-                    href="/teacher/attendance"
-                    label="Take Attendance"
-                    icon={UserCheck}
-                  />
-                  <QuickActionCard 
-                    href="/teacher/grades"
-                    label="Enter Grades"
-                    icon={Edit}
-                  />
-                  <QuickActionCard 
-                    href="/teacher/reports"
-                    label="Generate Report"
-                    icon={Download}
-                  />
-                  <QuickActionCard 
-                    href="/teacher/analytics"
-                    label="Analytics"
-                    icon={PieChart}
-                  />
                 </div>
-              </DashboardCard>
+              </div>
             </div>
           </div>
-        )}
-      </main>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="px-4 sm:px-6 lg:px-8 py-6">
+            {/* Welcome Banner */}
+            <div className="mb-6 p-6 rounded-xl bg-white shadow-sm border border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Welcome back,</p>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">Mr. David Smith 👋</h2>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <StatCardNew 
+                icon={BookOpen}
+                label="Classes Assigned"
+                value={teacherClasses.length}
+                subtitle="all classes"
+                color="blue"
+              />
+              <StatCardNew 
+                icon={Users}
+                label="Students"
+                value={totalStudents}
+                subtitle="enrolled learners"
+                color="green"
+              />
+              <StatCardNew 
+                icon={Video}
+                label="Lessons This Week"
+                value="8"
+                subtitle="view schedule"
+                color="purple"
+              />
+              <StatCardNew 
+                icon={ClipboardList}
+                label="Pending Tasks"
+                value={pendingGrading}
+                subtitle="tasks to do"
+                color="orange"
+              />
+            </div>
+
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - 2/3 */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* My Classes */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <BookOpen className="w-5 h-5" style={{ color: '#003087' }} />
+                      My Classes
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="space-y-3">
+                      {teacherClasses.map(cls => (
+                        <div key={cls.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+                          <div>
+                            <p className="font-medium text-gray-900">{cls.name}</p>
+                            <p className="text-sm text-gray-500">{cls.students.length} students enrolled</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500">Live</span>
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Today's Schedule */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Calendar className="w-5 h-5" style={{ color: '#003087' }} />
+                      Today's Schedule
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="space-y-3">
+                      <ScheduleItemNew time="10:00 AM" className="Grade 10 Physics" duration="60 min" status="LIVE" />
+                      <ScheduleItemNew time="1:00 PM" className="Grade 11 Physics" duration="60 min" status="UPCOMING" />
+                      <ScheduleItemNew time="3:00 PM" className="Grade 9 Science" duration="60 min" status="UPCOMING" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Submissions */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5" style={{ color: '#003087' }} />
+                      Recent Submissions
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="space-y-3">
+                      <SubmissionItem title="Algebra Set 5" className="Grade 10 Physics" count="23 / 32 submitted" />
+                      <SubmissionItem title="Lab Report" className="Grade 11 Physics" count="28 / 30 submitted" />
+                      <SubmissionItem title="Physics Quiz 2" className="Grade 9 Science" count="35 / 35 submitted" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Class Performance */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" style={{ color: '#003087' }} />
+                      Class Performance
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="h-64 flex items-end justify-between gap-4">
+                      <PerformanceBar label="Physics" percentage={85} />
+                      <PerformanceBar label="Math" percentage={78} />
+                      <PerformanceBar label="Chemistry" percentage={82} />
+                      <PerformanceBar label="Biology" percentage={88} />
+                      <PerformanceBar label="English" percentage={75} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - 1/3 */}
+              <div className="space-y-6">
+                {/* Quick Actions */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Settings className="w-5 h-5" style={{ color: '#003087' }} />
+                      Quick Actions
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="grid grid-cols-2 gap-3">
+                      <QuickActionButton 
+                        icon={Plus}
+                        label="Create Lesson"
+                        onClick={() => setShowCreateLesson(true)}
+                        color="#003087"
+                      />
+                      <QuickActionButton 
+                        icon={Video}
+                        label="Start Live Session"
+                        color="#003087"
+                      />
+                      <QuickActionButton 
+                        icon={FileText}
+                        label="Create Assignment"
+                        onClick={() => setShowCreateExam(true)}
+                        color="#003087"
+                      />
+                      <QuickActionButton 
+                        icon={Upload}
+                        label="Upload Resource"
+                        onClick={() => setShowUploadResource(true)}
+                        color="#003087"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Announcements */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Bell className="w-5 h-5" style={{ color: '#003087' }} />
+                      Announcements
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    <div className="space-y-3">
+                      <AnnouncementItem title="Midterm Exams Schedule" date="May 15, 2025" icon={Calendar} />
+                      <AnnouncementItem title="New Lesson Materials" date="May 12, 2025" icon={FileText} />
+                      <AnnouncementItem title="Staff Meeting" date="May 10, 2025" icon={Users} />
+                    </div>
+                    <Link 
+                      href="/teacher/announcements"
+                      className="inline-block mt-4 text-sm font-medium hover:opacity-80"
+                      style={{ color: '#003087' }}
+                    >
+                      View all announcements →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Close Mobile Menu on Overlay Click */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-30 lg:hidden bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+      )}
 
       {/* Modals */}
       {showCreateLesson && (
         <CreateLessonModal 
           classes={teacherClasses}
-          selectedClass={selectedClass}
+          selectedClass={teacherClasses[0]?.id}
           onClose={() => setShowCreateLesson(false)}
           onCreate={(lesson) => {
             setLessons([...lessons, lesson])
@@ -813,7 +724,7 @@ export default function TeacherDashboard() {
       {showCreateExam && (
         <CreateExamModal 
           classes={teacherClasses}
-          selectedClass={selectedClass}
+          selectedClass={teacherClasses[0]?.id}
           onClose={() => setShowCreateExam(false)}
           onCreate={(exam) => {
             setExams([...exams, exam])
@@ -825,7 +736,7 @@ export default function TeacherDashboard() {
       {showUploadResource && (
         <UploadResourceModal 
           classes={teacherClasses}
-          selectedClass={selectedClass}
+          selectedClass={teacherClasses[0]?.id}
           onClose={() => setShowUploadResource(false)}
           onUpload={(resource) => {
             setResources([...resources, resource])
@@ -837,35 +748,126 @@ export default function TeacherDashboard() {
       {showGradeSubmission && (
         <GradeSubmissionModal 
           examId={gradingExamId}
-          studentId={selectedStudent}
-          studentName={selectedStudentData ? `${selectedStudentData.firstName} ${selectedStudentData.lastName}` : 'Student'}
           onClose={() => setShowGradeSubmission(false)}
           onGrade={(submission) => {
             setShowGradeSubmission(false)
-            // optionally trigger a refresh; dashboard polling will pick up changes
           }}
         />
       )}
     </div>
   )
 }
-
 // Component Definitions
 
-function StatCard({ icon: Icon, label, value, subtitle }: any) {
+function StatCardNew({ icon: Icon, label, value, subtitle, color }: any) {
+  const colorMap: any = {
+    blue: { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-600', icon: 'text-blue-600' },
+    green: { bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-600', icon: 'text-green-600' },
+    purple: { bg: 'bg-purple-50', border: 'border-purple-100', text: 'text-purple-600', icon: 'text-purple-600' },
+    orange: { bg: 'bg-orange-50', border: 'border-orange-100', text: 'text-orange-600', icon: 'text-orange-600' }
+  }
+  const c = colorMap[color] || colorMap.blue
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#00308710' }}>
-          <Icon className="w-5 h-5" style={{ color: '#003087' }} />
+    <div className={`${c.bg} ${c.border} border rounded-xl p-4 sm:p-5`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className={`w-10 h-10 rounded-lg ${c.bg} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${c.icon}`} />
         </div>
-        <span className="text-2xl font-bold" style={{ color: '#003087' }}>{value}</span>
       </div>
-      <p className="font-semibold text-gray-900">{label}</p>
-      <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+      <p className={`text-2xl sm:text-3xl font-bold ${c.text} mt-1`}>{value}</p>
+      <p className="text-xs text-gray-500 mt-2">{subtitle}</p>
     </div>
   )
 }
+
+function ScheduleItemNew({ time, className, duration, status }: any) {
+  const isLive = status === 'LIVE'
+  const statusColor = isLive ? 'bg-red-500' : 'bg-blue-500'
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white`} style={{ backgroundColor: '#003087' }}>
+          <Clock className="w-4 h-4" />
+        </div>
+        <div>
+          <p className="font-medium text-gray-900">{time}</p>
+          <p className="text-sm text-gray-500">{className}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-gray-500">{duration}</p>
+        <span className={`${statusColor} text-white text-xs font-semibold px-2 py-1 rounded mt-1 inline-block`}>
+          {status}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function SubmissionItem({ title, className, count }: any) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+      <div>
+        <p className="font-medium text-gray-900">{title}</p>
+        <p className="text-sm text-gray-500">{className}</p>
+      </div>
+      <div className="text-right">
+        <p className="font-semibold text-gray-900">{count}</p>
+      </div>
+    </div>
+  )
+}
+
+function PerformanceBar({ label, percentage }: any) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="w-12 rounded-lg overflow-hidden bg-gray-100 h-48 flex flex-col-reverse">
+        <div 
+          className="bg-gradient-to-t from-blue-500 to-blue-400 transition-all"
+          style={{ height: `${percentage}%` }}
+        />
+      </div>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+      <p className="text-xs text-gray-500">{percentage}%</p>
+    </div>
+  )
+}
+
+function QuickActionButton({ icon: Icon, label, onClick, color }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-gray-50 transition-colors text-center"
+    >
+      <div 
+        className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+        style={{ backgroundColor: color }}
+      >
+        <Icon className="w-5 h-5" />
+      </div>
+      <span className="text-sm font-medium text-gray-700">{label}</span>
+    </button>
+  )
+}
+
+function AnnouncementItem({ title, date, icon: Icon }: any) {
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="w-8 h-8 rounded-lg mt-0.5 flex items-center justify-center" style={{ backgroundColor: '#00308715' }}>
+        <Icon className="w-4 h-4" style={{ color: '#003087' }} />
+      </div>
+      <div className="flex-1">
+        <p className="font-medium text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500">{date}</p>
+      </div>
+    </div>
+  )
+}
+
+// Old component definitions
 
 function DashboardCard({ title, icon: Icon, children, action }: any) {
   return (

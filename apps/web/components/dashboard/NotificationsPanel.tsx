@@ -91,9 +91,9 @@ export default function NotificationsPanel({ notifications, onMarkAsRead, onMark
   if (!notifications || notifications.length === 0) {
     return (
       <div className="text-center py-12">
-        <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500">No new notifications</p>
-        <p className="text-sm text-gray-400 mt-1">You're all caught up!</p>
+        <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-600">No new notifications</p>
+        <p className="text-sm text-slate-400 mt-1">You're all caught up!</p>
       </div>
     )
   }
@@ -120,16 +120,14 @@ export default function NotificationsPanel({ notifications, onMarkAsRead, onMark
         {notifications.map((notification) => (
           <div 
             key={notification.id} 
-            className={`p-4 rounded-lg transition-all cursor-pointer ${
-              !notification.read ? 'bg-gray-50' : 'hover:bg-gray-50'
-            }`}
+            className={`p-3 rounded-xl transition-all cursor-pointer border ${!notification.read ? 'border-transparent shadow-sm' : 'border-gray-100'} bg-white`}
             onClick={() => !notification.read && handleMarkAsRead(notification.id)}
           >
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-start">
               {/* Icon */}
               <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${getNotificationColor(notification.type)}15` }}
+                className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${getNotificationColor(notification.type)}20` }}
               >
                 <div style={{ color: getNotificationColor(notification.type) }}>
                   {getNotificationIcon(notification.type)}
@@ -139,33 +137,33 @@ export default function NotificationsPanel({ notifications, onMarkAsRead, onMark
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-semibold text-gray-900 text-sm">
+                  <h4 className="font-semibold text-slate-900 text-sm flex items-center gap-2">
                     {notification.title}
                     {!notification.read && (
                       <span 
-                        className="inline-block w-2 h-2 rounded-full ml-2"
-                        style={{ backgroundColor: '#0EF117' }}
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ backgroundColor: '#10b981' }}
                       />
                     )}
                   </h4>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
+                  <span className="text-xs text-slate-400 flex-shrink-0">
                     {getTimeAgo(notification.createdAt)}
                   </span>
                 </div>
                 
-                <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                <p className="text-sm text-slate-600 mt-1 leading-relaxed">
                   {notification.body}
                 </p>
                 
                 {/* Metadata if present */}
                 {notification.metadata && (
-                  <div className="mt-2 text-xs text-gray-400 bg-gray-100 p-2 rounded">
+                  <div className="mt-2 text-xs text-slate-500 bg-slate-50 p-2 rounded">
                     {notification.metadata}
                   </div>
                 )}
                 
                 {/* Action buttons */}
-                <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-3 mt-3">
                   {notification.link && (
                     <Link 
                       href={notification.link}
@@ -183,7 +181,7 @@ export default function NotificationsPanel({ notifications, onMarkAsRead, onMark
                         e.stopPropagation()
                         handleMarkAsRead(notification.id)
                       }}
-                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
                     >
                       Mark as read
                     </button>

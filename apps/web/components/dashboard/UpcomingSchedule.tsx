@@ -42,11 +42,11 @@ export default function UpcomingSchedule({ lessons }: UpcomingScheduleProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {lessons.map((lesson, index) => (
         <div 
           key={lesson.id} 
-          className="flex items-start justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+          className="flex items-start justify-between p-4 rounded-xl bg-white hover:shadow-sm transition-all border border-gray-100"
         >
           <div className="flex items-start gap-4">
             <div 
@@ -63,16 +63,16 @@ export default function UpcomingSchedule({ lessons }: UpcomingScheduleProps) {
             
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-gray-900">{lesson.title}</h3>
+                <h3 className="font-semibold text-slate-900">{lesson.title}</h3>
                 {lesson.type && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                     {getLessonTypeIcon(lesson.type)}
                     <span>{lesson.type}</span>
                   </span>
                 )}
               </div>
               <p className="text-sm text-gray-600 mb-1">{lesson.class?.name}</p>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {new Date(lesson.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

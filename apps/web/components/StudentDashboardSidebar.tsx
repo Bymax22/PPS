@@ -2,9 +2,25 @@
 
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
-import { ArrowRight, BarChart2, Calendar, LogOut, ShieldCheck, User } from 'lucide-react'
+import {
+  Home,
+  BookOpen,
+  PlayCircle,
+  Video,
+  FileText,
+  Award,
+  BarChart2,
+  Calendar,
+  MessageSquare,
+  Bell,
+  CreditCard,
+  User,
+  HelpCircle,
+  LogOut
+} from 'lucide-react'
 
 interface StudentDashboardSidebarProps {
+  collapsed?: boolean
   studentName: string
   grade?: string | null
   schoolYear?: string | null
@@ -14,6 +30,7 @@ interface StudentDashboardSidebarProps {
 }
 
 export default function StudentDashboardSidebar({
+  collapsed = false,
   studentName,
   grade,
   schoolYear,
@@ -22,69 +39,89 @@ export default function StudentDashboardSidebar({
   nextLessonTitle
 }: StudentDashboardSidebarProps) {
   return (
-    <aside className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#003087] to-[#047857] text-2xl font-semibold text-white shadow-lg shadow-[#003087]/20">
-          {studentName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
-        </div>
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Current user</p>
-          <p className="mt-2 text-lg font-semibold text-slate-900">{studentName}</p>
-        </div>
+    <aside className={`sticky top-6 h-[calc(100vh-48px)] ${collapsed ? 'w-20' : 'w-64'} overflow-auto rounded-2xl bg-gradient-to-b from-[#062b75] to-[#003087] p-3 text-white shadow-lg`}>
+      <div className="flex items-center gap-3 px-2 py-3">
+        <div className={`h-10 ${collapsed ? 'w-10' : 'w-10'} rounded-lg bg-white/10 flex items-center justify-center text-lg font-bold`}>PPS</div>
+        {!collapsed && (
+          <div>
+            <p className="text-xs opacity-80">PPS LMS</p>
+            <p className="font-semibold text-sm">Student</p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-6 grid gap-3">
-        <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Next lesson</p>
-          <p className="mt-2 font-semibold text-slate-900">{nextLessonTitle}</p>
-        </div>
+      <nav className="mt-6 space-y-1 px-2">
+        <Link href="/student" className={`flex items-center gap-3 rounded-lg px-3 py-2 ${collapsed ? 'justify-center' : 'justify-start'} bg-white/10 hover:bg-white/20`}>
+          <Home className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Dashboard</span>}
+        </Link>
+        <Link href="/student/classes" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <BookOpen className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">My Classes</span>}
+        </Link>
+        <Link href="/student/live" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <PlayCircle className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Live Lessons</span>}
+        </Link>
+        <Link href="/student/recordings" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <Video className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Recordings</span>}
+        </Link>
+        <Link href="/student/assignments" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <FileText className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Assignments</span>}
+        </Link>
+        <Link href="/student/exams" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <Award className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Exams</span>}
+        </Link>
+        <Link href="/student/resources" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <BarChart2 className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Progress</span>}
+        </Link>
+        <Link href="/student/calendar" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <Calendar className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Calendar</span>}
+        </Link>
+        <Link href="/student/messages" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <MessageSquare className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Messages</span>}
+        </Link>
+        <Link href="/student/notifications" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <Bell className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Notifications</span>}
+        </Link>
+        <Link href="/student/payments" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <CreditCard className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Payments</span>}
+        </Link>
+        <Link href="/student/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <User className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Profile</span>}
+        </Link>
+        <Link href="/support" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
+          <HelpCircle className="w-5 h-5" />
+          {!collapsed && <span className="text-sm">Help & Support</span>}
+        </Link>
+      </nav>
 
-        <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Active classes</p>
-          <p className="mt-2 font-semibold text-slate-900">{activeClasses}</p>
-        </div>
+      <div className="mt-6 px-2">
+        {!collapsed && (
+          <div className="rounded-lg bg-white/6 p-3 text-xs">
+            <p className="font-semibold">{studentName}</p>
+            <p className="text-[11px] opacity-80">Grade {grade ?? 'N/A'}</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className={`mt-4 flex ${collapsed ? 'justify-center' : 'w-full items-center justify-center gap-2'} rounded-lg bg-white text-[#003087] py-2 font-semibold`}
+        >
+          <LogOut className="w-4 h-4" />
+          {!collapsed && 'Logout'}
+        </button>
       </div>
-
-      <div className="mt-6 space-y-3 text-sm text-slate-600">
-        <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-slate-700 font-semibold">Grade</p>
-          <p className="mt-1">{grade ?? 'N/A'}</p>
-        </div>
-        <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-slate-700 font-semibold">School year</p>
-          <p className="mt-1">{schoolYear ?? 'N/A'}</p>
-        </div>
-        <div className="rounded-3xl bg-slate-50 p-4">
-          <p className="text-slate-700 font-semibold">Parent contact</p>
-          <p className="mt-1">{parentName}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 text-sm">
-        <p className="text-slate-500">Quick actions</p>
-        <div className="mt-3 space-y-3">
-          <Link href="#schedule" className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 text-slate-700 hover:border-blue-500 hover:text-blue-700 transition">
-            <span className="flex items-center gap-2"><Calendar className="h-4 w-4 text-slate-500" /> View schedule</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link href="#progress" className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 text-slate-700 hover:border-emerald-500 hover:text-emerald-700 transition">
-            <span className="flex items-center gap-2"><BarChart2 className="h-4 w-4 text-slate-500" /> Track progress</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link href="#resources" className="flex items-center justify-between rounded-3xl border border-slate-200 bg-white px-4 py-3 text-slate-700 hover:border-sky-500 hover:text-sky-700 transition">
-            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-slate-500" /> Learning resources</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => signOut({ callbackUrl: '/' })}
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-[#003087] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#001f5b]"
-      >
-        <LogOut className="h-4 w-4" /> Logout
-      </button>
     </aside>
   )
 }

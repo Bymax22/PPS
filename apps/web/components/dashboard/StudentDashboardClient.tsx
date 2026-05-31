@@ -36,6 +36,7 @@ import ResourcesWidget from '@/components/dashboard/ResourcesWidget'
 import NotificationsPanel from '@/components/dashboard/NotificationsPanel'
 import SubscriptionStatus from '@/components/dashboard/SubscriptionStatus'
 import PerformanceChart from '@/components/dashboard/PerformanceChart'
+import StudentDashboardSidebar from '@/components/StudentDashboardSidebar'
 
 export default function StudentDashboardClient({ 
   user, 
@@ -50,6 +51,7 @@ export default function StudentDashboardClient({
   stats
 }: any) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [scrolled, setScrolled] = useState(false)
 
@@ -137,6 +139,13 @@ export default function StudentDashboardClient({
               >
                 <Menu className="w-5 h-5 text-gray-600" />
               </button>
+              <button
+                onClick={() => setSidebarCollapsed((s) => !s)}
+                className="hidden lg:inline-flex p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Toggle sidebar"
+              >
+                {sidebarCollapsed ? <Menu className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
+              </button>
               <div className="flex items-center gap-3">
                 <div 
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold"
@@ -200,9 +209,46 @@ export default function StudentDashboardClient({
       </header>
 
       {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="lg:grid lg:gap-6" style={{ gridTemplateColumns: sidebarCollapsed ? '72px 1fr' : '280px 1fr' }}>
+          <aside className={`hidden lg:block pt-2 ${sidebarCollapsed ? 'w-20' : 'w-72'}`}>
+            <StudentDashboardSidebar
+              collapsed={sidebarCollapsed}
+              studentName={`${user.firstName} ${user.lastName}`}
+              grade={user.studentProfile?.grade}
+              schoolYear={null}
+              parentName={user.studentProfile?.parent ? `${user.studentProfile.parent.firstName} ${user.studentProfile.parent.lastName}` : 'N/A'}
+              activeClasses={stats?.activeClasses ?? 0}
+              nextLessonTitle={upcomingLessons?.[0]?.class?.name ?? upcomingLessons?.[0]?.title ?? 'No upcoming lessons'}
+            />
+          </aside>
+
+          <main className="lg:col-start-2">
+            {/* Pastel top summary cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="rounded-xl p-4" style={{ background: 'linear-gradient(90deg,#e6f0ff,#f3fbff)' }}>
+                <p className="text-xs text-slate-600 uppercase tracking-wider">Active Subscriptions</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">{subscriptions?.length ?? 0}</p>
+                <p className="text-sm text-slate-500 mt-1">View details</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: 'linear-gradient(90deg,#e9fbe9,#f7fff7)' }}>
+                <p className="text-xs text-slate-600 uppercase tracking-wider">Classes Enrolled</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">{stats?.activeClasses ?? 0}</p>
+                <p className="text-sm text-slate-500 mt-1">View classes</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: 'linear-gradient(90deg,#fff7e6,#fffbf0)' }}>
+                <p className="text-xs text-slate-600 uppercase tracking-wider">Lessons Completed</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">{stats?.completedLessons ?? 0}</p>
+                <p className="text-sm text-slate-500 mt-1">This month</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ background: 'linear-gradient(90deg,#f0f7ff,#fff)' }}>
+                <p className="text-xs text-slate-600 uppercase tracking-wider">Next Lesson</p>
+                <p className="mt-2 text-xl font-semibold text-slate-900">{upcomingLessons?.[0]?.title ?? '—'}</p>
+                <p className="text-sm text-slate-500 mt-1">{upcomingLessons?.[0] ? new Date(upcomingLessons[0].scheduledAt).toLocaleString() : ''}</p>
+              </div>
+            </div>
         {/* Welcome Banner */}
-        <div className="mb-8 p-6 rounded-xl" style={{ backgroundColor: '#003087' }}>
+        <div className="mb-8 p-6 rounded-xl shadow-sm bg-gradient-to-r from-[#003087] to-[#0a4fb6]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-white/80">Welcome back,</p>
@@ -442,40 +488,63 @@ export default function StudentDashboardClient({
             )}
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
+  </div>
   )
 }
 
 // Component Definitions
 
 function StatCard({ icon: Icon, label, value, subtitle }: any) {
+  const bgMap: any = {
+    'Active Classes': 'from-blue-100 to-blue-50',
+    'Completed Lessons': 'from-emerald-100 to-emerald-50',
+    'Exams Passed': 'from-violet-100 to-violet-50',
+    'Next Class': 'from-yellow-100 to-yellow-50'
+  }
+  const colorMap: any = {
+    'Active Classes': '#0b61d6',
+    'Completed Lessons': '#059669',
+    'Exams Passed': '#6d28d9',
+    'Next Class': '#b45309'
+  }
+
+  const bgClass = bgMap[label] || 'from-slate-100 to-white'
+  const iconColor = colorMap[label] || '#003087'
+
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#00308710' }}>
-          <Icon className="w-5 h-5" style={{ color: '#003087' }} />
+    <div className={`rounded-2xl p-4 shadow-sm`}>
+      <div className={`flex items-center justify-between gap-4 bg-gradient-to-r ${bgClass} p-4 rounded-xl`}>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white/70">
+            <Icon className="w-6 h-6" style={{ color: iconColor }} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700">{label}</p>
+            <p className="text-lg font-bold text-slate-900">{value}</p>
+          </div>
         </div>
-        <span className="text-2xl font-bold" style={{ color: '#003087' }}>{value}</span>
+        {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
       </div>
-      <p className="font-semibold text-gray-900">{label}</p>
-      <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
     </div>
   )
 }
 
 function DashboardCard({ title, icon: Icon, children }: any) {
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="p-5 border-b border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#00308710' }}>
-            <Icon className="w-4 h-4" style={{ color: '#003087' }} />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-slate-50">
+            <Icon className="w-4 h-4 text-slate-700" />
           </div>
           <h3 className="font-semibold text-gray-900">{title}</h3>
         </div>
+        <div className="text-sm text-slate-500">{''}</div>
       </div>
-      <div className="p-5">
+      <div className="p-4">
         {children}
       </div>
     </div>
@@ -486,26 +555,27 @@ function QuickActionCard({ href, label, icon: Icon }: any) {
   return (
     <Link 
       href={href}
-      className="flex flex-col items-center gap-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-center group"
+      className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white hover:shadow-md transition-shadow text-center"
     >
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors group-hover:bg-opacity-100" style={{ backgroundColor: '#00308715' }}>
-        <Icon className="w-5 h-5" style={{ color: '#003087' }} />
+      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#00308710]">
+        <Icon className="w-5 h-5 text-[#003087]" />
       </div>
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className="text-sm font-medium text-slate-700">{label}</span>
     </Link>
   )
 }
 
 function EmptyState({ message, action }: any) {
   return (
-    <div className="text-center py-8">
-      <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-      <p className="text-gray-500 text-sm">{message}</p>
+    <div className="text-center py-6">
+      <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center bg-gray-50">
+        <AlertCircle className="w-8 h-8 text-slate-400" />
+      </div>
+      <p className="text-gray-600 text-sm font-medium">{message}</p>
       {action && (
         <Link 
           href={action.href}
-          className="inline-block mt-3 text-sm font-medium hover:opacity-80"
-          style={{ color: '#003087' }}
+          className="inline-block mt-3 text-sm font-medium text-[#003087] hover:opacity-90"
         >
           {action.label} →
         </Link>

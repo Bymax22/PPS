@@ -137,13 +137,13 @@
 
   /* Card Styles */
   .card {
-    @apply bg-white rounded-lg border border-gray-100 shadow-sm 
-           transition-all duration-500 hover:shadow-2xl hover:-translate-y-2;
+      @apply bg-white rounded-2xl border border-gray-100 shadow-md
+        transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
   }
   
   .card-glass {
-    @apply bg-white/80 backdrop-blur-lg rounded-lg border border-white/20 
-           shadow-sm transition-all duration-500 hover:shadow-xl;
+      @apply bg-white/75 backdrop-blur-lg rounded-2xl border border-white/20 
+        shadow-md transition-all duration-300 hover:shadow-xl;
   }
   
   /* Form Styles */
