@@ -7,6 +7,16 @@ function formatUserName(user: { firstName?: string; lastName?: string }) {
   return [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || 'Unknown'
 }
 
+function getInitials(user: { firstName?: string; lastName?: string }) {
+  const names = [user.firstName, user.lastName].filter(Boolean)
+  if (!names.length) return 'T'
+  return names
+    .map((name) => name?.charAt(0).toUpperCase())
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(await getAuthOptions())
@@ -169,7 +179,15 @@ export async function GET(req: NextRequest) {
       type: notification.type
     }))
 
-    return NextResponse.json({ classes, lessons, exams, resources, messages, notifications })
+    const teacherDetails = {
+      id: teacher.id,
+      name: formatUserName(teacher),
+      initials: getInitials(teacher),
+      email: teacher.email,
+      role: teacher.role ?? 'TEACHER'
+    }
+
+    return NextResponse.json({ teacher: teacherDetails, classes, lessons, exams, resources, messages, notifications })
   } catch (error) {
     console.error('Dashboard error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

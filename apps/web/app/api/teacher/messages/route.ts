@@ -45,11 +45,27 @@ export async function GET(req: NextRequest) {
 
     const messages = await prisma.communication.findMany({
       where: { receiverId: session.user.id },
+      include: { sender: true },
       orderBy: { createdAt: 'desc' },
       take: 50
     })
 
-    return NextResponse.json(messages)
+    const formatted = messages.map((message) => ({
+      id: message.id,
+      sender: {
+        id: message.sender.id,
+        firstName: message.sender.firstName,
+        lastName: message.sender.lastName,
+        email: message.sender.email
+      },
+      subject: message.subject,
+      body: message.body,
+      type: message.type,
+      read: message.read,
+      createdAt: message.createdAt.toISOString()
+    }))
+
+    return NextResponse.json(formatted)
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

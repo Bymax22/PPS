@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { formatZMW } from '@/lib/currency'
 import { 
@@ -86,6 +87,7 @@ interface PaymentMethod {
 }
 
 export default function ParentDashboard() {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [selectedChild, setSelectedChild] = useState<string | null>(null)
   const [showAddChild, setShowAddChild] = useState(false)
@@ -266,16 +268,19 @@ export default function ParentDashboard() {
             </div>
           </div>
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1">
-            {sidebarItems.map(item => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            ))}
+            {sidebarItems.map(item => {
+              const isActive = pathname === item.href || (item.href !== '/parent' && pathname?.startsWith(item.href))
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive ? 'bg-white/20 text-white' : 'text-slate-200 hover:bg-white/10 hover:text-white'}`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              )
+            })}
           </nav>
           <button className="mt-4 flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20">
             <LogOut className="h-5 w-5" />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Bell, 
@@ -50,6 +51,7 @@ export default function StudentDashboardClient({
   notifications,
   stats
 }: any) {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
@@ -109,12 +111,12 @@ export default function StudentDashboardClient({
               </div>
               
               <nav className="space-y-2">
-                <MobileNavItem href="/student" icon={Home} label="Dashboard" active />
-                <MobileNavItem href="/student/classes" icon={BookOpen} label="My Classes" />
-                <MobileNavItem href="/student/exams" icon={Award} label="Exams" />
-                <MobileNavItem href="/student/resources" icon={FileText} label="Resources" />
-                <MobileNavItem href="/student/messages" icon={MessageCircle} label="Messages" />
-                <MobileNavItem href="/student/settings" icon={Settings} label="Settings" />
+                <MobileNavItem href="/student" icon={Home} label="Dashboard" active={pathname === '/student'} />
+                <MobileNavItem href="/student/classes" icon={BookOpen} label="My Classes" active={pathname === '/student/classes'} />
+                <MobileNavItem href="/student/exams" icon={Award} label="Exams" active={pathname === '/student/exams'} />
+                <MobileNavItem href="/student/resources" icon={FileText} label="Resources" active={pathname === '/student/resources'} />
+                <MobileNavItem href="/student/messages" icon={MessageCircle} label="Messages" active={pathname === '/student/messages'} />
+                <MobileNavItem href="/student/settings" icon={Settings} label="Settings" active={pathname === '/student/settings'} />
               </nav>
               
               <div className="absolute bottom-8 left-0 right-0 px-6">
