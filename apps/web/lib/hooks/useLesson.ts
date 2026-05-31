@@ -20,7 +20,17 @@ export function useLesson(lessonId: string) {
       const res = await fetch(`/api/lessons/${lessonId}/attendees`)
       if (!res.ok) throw new Error('Failed to fetch attendees')
       const data = await res.json()
-      setParticipants(data.activeAttendees || [])
+      const participants = (data.activeAttendees || []).map((attendee: any) => ({
+        id: attendee.id,
+        name:
+          attendee.user?.firstName || attendee.user?.lastName
+            ? `${attendee.user?.firstName || ''} ${attendee.user?.lastName || ''}`.trim()
+            : attendee.user?.role || attendee.id,
+        role: attendee.user?.role || 'STUDENT',
+        isActive: attendee.leftAt === null,
+        participationScore: attendee.durationSeconds || 0,
+      }))
+      setParticipants(participants)
     } catch (err) {
       console.error('Error fetching participants:', err)
     }

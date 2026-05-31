@@ -47,7 +47,7 @@ export default function LiveRoom({
 
     async function initRoom() {
       try {
-        const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher ? 'true' : undefined)
+        const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher)
 
         const r = new Room({
           audioCaptureDefaults: {
