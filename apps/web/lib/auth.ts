@@ -38,6 +38,8 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       }),
     ],
     session: { strategy: 'jwt' },
+    trustHost: true,
+    useSecureCookies: process.env.NODE_ENV === 'production',
     callbacks: {
       async jwt({ token, user }) {
         if (user) {
@@ -46,6 +48,20 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           token.email = (user as any).email ?? token.email
           token.name = (user as any).name ?? token.name
         }
+
+        if (!token.email && token.sub) {
+          const persistedUser = await prisma.user.findUnique({
+            where: { id: token.sub },
+            select: { id: true, email: true, firstName: true, lastName: true, role: true },
+          })
+
+          if (persistedUser) {
+            token.email = persistedUser.email
+            token.role = persistedUser.role as any
+            token.name = `${persistedUser.firstName ?? ''} ${persistedUser.lastName ?? ''}`.trim()
+          }
+        }
+
         return token
       },
       async session({ session, token }) {

@@ -54,7 +54,12 @@ export async function POST(req: Request) {
       console.error('Verification email failed', error)
     }
 
-    return NextResponse.json({ id: user.id, email: user.email, verificationSent })
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      verificationSent,
+      verificationToken,
+    })
   } catch (err: any) {
     console.error('register error', err)
     // Handle Prisma unique constraint failures with friendly messages

@@ -53,8 +53,12 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         throw new Error(data.error || 'Registration failed')
       }
 
-      // Redirect to verify-email page instead of logging in immediately
-      router.push(`/portal/verify-email?email=${encodeURIComponent(form.email)}`)
+      const verificationParams = new URLSearchParams({ email: form.email })
+      if (data.verificationToken) {
+        verificationParams.set('token', data.verificationToken)
+      }
+
+      router.push(`/portal/verify-email?${verificationParams.toString()}`)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed')
