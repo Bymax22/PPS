@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
 interface VerifyEmailClientProps {
@@ -11,9 +11,8 @@ interface VerifyEmailClientProps {
 
 export default function VerifyEmailClient({ token: initialToken, email: initialEmail }: VerifyEmailClientProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = initialToken || searchParams.get('token')
-  const email = initialEmail || searchParams.get('email')
+  const token = initialToken
+  const email = initialEmail
   
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'waiting'>('loading')
   const [message, setMessage] = useState('Verifying your email...')
