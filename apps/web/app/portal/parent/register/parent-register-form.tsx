@@ -56,8 +56,12 @@ export function ParentRegisterForm() {
         throw new Error(data.error || 'Registration failed. Please try again.')
       }
 
-      // Redirect to verify-email page instead of logging in immediately
-      router.push(`/portal/verify-email?email=${encodeURIComponent(formData.email)}`)
+      const verificationParams = new URLSearchParams({ email: formData.email })
+      if (data.verificationToken) {
+        verificationParams.set('token', data.verificationToken)
+      }
+
+      router.push(`/portal/verify-email?${verificationParams.toString()}`)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed. Please try again.')

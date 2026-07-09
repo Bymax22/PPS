@@ -38,8 +38,6 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       }),
     ],
     session: { strategy: 'jwt' },
-    trustHost: true,
-    useSecureCookies: process.env.NODE_ENV === 'production',
     callbacks: {
       async jwt({ token, user }) {
         if (user) {
