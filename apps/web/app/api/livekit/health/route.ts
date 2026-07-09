@@ -41,7 +41,7 @@ export async function GET() {
         canSubscribe: true,
       })
 
-      const token = at.toJwt()
+      const token = await at.toJwt()
 
       return NextResponse.json({
         status: 'healthy',
