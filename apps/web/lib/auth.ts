@@ -41,16 +41,25 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     callbacks: {
       async jwt({ token, user }) {
         if (user) {
+          token.sub = user.id as string
           token.role = (user as any).role
+          token.email = (user as any).email ?? token.email
+          token.name = (user as any).name ?? token.name
         }
         return token
       },
       async session({ session, token }) {
+        if (token.sub) {
+          session.user.id = token.sub
+        }
+        if (token.email) {
+          session.user.email = token.email
+        }
+        if (token.name) {
+          session.user.name = token.name
+        }
         if (token.role) {
-          session.user = {
-            ...session.user,
-            role: token.role as 'STUDENT' | 'PARENT' | 'TEACHER' | 'ADMIN',
-          }
+          session.user.role = token.role as 'STUDENT' | 'PARENT' | 'TEACHER' | 'ADMIN'
         }
         return session
       },
