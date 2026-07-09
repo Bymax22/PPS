@@ -20,6 +20,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
           if (!credentials || !credentials.email || !credentials.password || !credentials.role) return null
           const user = await prisma.user.findUnique({ where: { email: credentials.email } })
           if (!user || !user.password) return null
+          if (!user.emailVerified) {
+            throw new Error('Please verify your email before signing in. Check your inbox for a verification link.')
+          }
           const isValid = await bcrypt.compare(credentials.password, user.password)
           if (!isValid) return null
           if (user.role !== credentials.role) {

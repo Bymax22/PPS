@@ -53,20 +53,8 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         throw new Error(data.error || 'Registration failed')
       }
 
-      const target = getDestination(role)
-      const signInResult = await signIn('credentials', {
-        redirect: false,
-        email: form.email,
-        password: form.password,
-        role,
-        callbackUrl: target,
-      })
-
-      if (signInResult?.error) {
-        throw new Error(getFriendlyAuthError(signInResult.error, role))
-      }
-
-      router.push(signInResult?.url || target)
+      // Redirect to verify-email page instead of logging in immediately
+      router.push(`/portal/verify-email?email=${encodeURIComponent(form.email)}`)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed')

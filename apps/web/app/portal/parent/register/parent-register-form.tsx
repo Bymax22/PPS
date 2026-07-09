@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Laptop, User, Mail, Lock, Phone, Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { getFriendlyAuthError } from '@/lib/authErrors'
 
 export function ParentRegisterForm() {
@@ -57,19 +56,8 @@ export function ParentRegisterForm() {
         throw new Error(data.error || 'Registration failed. Please try again.')
       }
 
-      const signInResult = await signIn('credentials', {
-        redirect: false,
-        email: formData.email,
-        password: formData.password,
-        role: 'PARENT',
-        callbackUrl: '/parent'
-      })
-
-      if (signInResult?.error) {
-        throw new Error(getFriendlyAuthError(signInResult.error, 'PARENT'))
-      }
-
-      router.push(signInResult?.url || '/parent')
+      // Redirect to verify-email page instead of logging in immediately
+      router.push(`/portal/verify-email?email=${encodeURIComponent(formData.email)}`)
     } catch (err: any) {
       console.error(err)
       setError(err?.message || 'Registration failed. Please try again.')

@@ -1,25 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
 interface VerifyEmailClientProps {
   token: string | null
+  email: string | null
 }
 
-export default function VerifyEmailClient({ token }: VerifyEmailClientProps) {
+export default function VerifyEmailClient({ token: initialToken, email: initialEmail }: VerifyEmailClientProps) {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const searchParams = useSearchParams()
+  const token = initialToken || searchParams.get('token')
+  const email = initialEmail || searchParams.get('email')
+  
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'waiting'>('loading')
   const [message, setMessage] = useState('Verifying your email...')
 
   useEffect(() => {
-    async function verify() {
-      if (!token) {
+    if (!token) {
+      if (email) {
+        setStatus('waiting')
+        setMessage(`A verification email has been sent to ${email}. Please check your inbox.`)
+      } else {
         setStatus('error')
-        setMessage('Missing verification token.')
-        return
+        setMessage('Missing verification information. Please try registering again.')
       }
+      return
+    }
 
+    async function verify() {
       try {
         const res = await fetch('/api/auth/verify-email', {
           method: 'POST',
@@ -31,28 +42,76 @@ export default function VerifyEmailClient({ token }: VerifyEmailClientProps) {
           throw new Error(data.error || 'Verification failed')
         }
         setStatus('success')
-        setMessage('Your email has been verified. You can now sign in.')
+        setMessage('Your email has been verified successfully. You can now sign in.')
       } catch (err: any) {
         setStatus('error')
-        setMessage(err?.message || 'Unable to verify email.')
+        setMessage(err?.message || 'Unable to verify email. The link may have expired.')
       }
     }
 
     verify()
-  }, [token])
+  }, [token, email])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
-        <h1 className="text-2xl font-semibold mb-4">Email Verification</h1>
-        <p className={`mb-6 ${status === 'success' ? 'text-green-600' : 'text-rose-600'}`}>{message}</p>
-        {status === 'success' ? (
-          <button onClick={() => router.push('/portal')} className="px-4 py-2 rounded bg-[#003087] text-white">
-            Go to portal
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
+      <div className="max-w-md w-full bg-white border border-gray-200 rounded-2xl shadow-lg p-8 text-center">
+        {/* Icon */}
+        <div className="mb-6 flex justify-center">
+          {status === 'loading' && (
+            <Loader className="w-12 h-12 text-blue-600 animate-spin" />
+          )}
+          {status === 'success' && (
+            <CheckCircle className="w-12 h-12 text-green-600" />
+          )}
+          {status === 'error' && (
+            <AlertCircle className="w-12 h-12 text-red-600" />
+          )}
+          {status === 'waiting' && (
+            <Mail className="w-12 h-12 text-blue-600" />
+          )}
+        </div>
+
+        <h1 className="text-2xl font-bold mb-2 text-gray-900">Email Verification</h1>
+        
+        {email && status === 'waiting' && (
+          <p className="text-sm text-gray-600 mb-2">Verifying: <span className="font-semibold text-gray-900">{email}</span></p>
+        )}
+        
+        <p className={`mb-6 text-sm leading-relaxed ${
+          status === 'success' ? 'text-green-700' : 
+          status === 'error' ? 'text-red-700' : 
+          'text-gray-700'
+        }`}>
+          {message}
+        </p>
+
+        {status === 'waiting' && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">Didn't receive the email?</p>
+            <button 
+              onClick={() => router.push('/portal/parent/register')}
+              className="w-full px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
+            >
+              Register with different email
+            </button>
+          </div>
+        )}
+
+        {status === 'success' && (
+          <button 
+            onClick={() => router.push('/portal')}
+            className="w-full px-4 py-3 bg-[#003087] hover:bg-[#001f5b] text-white rounded-lg font-medium transition-colors"
+          >
+            Go to Portal
           </button>
-        ) : (
-          <button onClick={() => router.refresh()} className="px-4 py-2 rounded bg-gray-100 text-gray-800">
-            Try again
+        )}
+
+        {status === 'error' && (
+          <button 
+            onClick={() => router.refresh()}
+            className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
+          >
+            Try Again
           </button>
         )}
       </div>
