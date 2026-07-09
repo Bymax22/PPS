@@ -7,6 +7,18 @@ import { useLesson } from '@/lib/hooks/useLesson'
 
 type TabType = 'classroom' | 'exercises' | 'polls' | 'students'
 
+async function readApiErrorMessage(res: Response, fallback: string) {
+  try {
+    const data = await res.json()
+    if (typeof data?.error === 'string' && data.error.trim()) return data.error
+    if (typeof data?.message === 'string' && data.message.trim()) return data.message
+  } catch {
+    // Ignore JSON parse failures and fall back to the generic message
+  }
+
+  return fallback
+}
+
 export default function TeacherLessonPage() {
   const params = useParams()
   const router = useRouter()
@@ -34,6 +46,8 @@ export default function TeacherLessonPage() {
   const handleStartLesson = useCallback(async () => {
     try {
       setLoading(true)
+      setError('')
+
       const res = await fetch('/api/lessons/live/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,8 +57,16 @@ export default function TeacherLessonPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Failed to start lesson')
+      if (!res.ok) {
+        const message = await readApiErrorMessage(res, 'Failed to start lesson')
+        throw new Error(message)
+      }
+
+      const data = await res.json().catch(() => null)
       setLessonStarted(true)
+      if (data?.alreadyLive) {
+        setError('')
+      }
     } catch (err) {
       setError(String(err))
       console.error('Error starting lesson:', err)
@@ -57,13 +79,19 @@ export default function TeacherLessonPage() {
   const handleEndLesson = useCallback(async () => {
     try {
       setLoading(true)
+      setError('')
+
       const res = await fetch('/api/lessons/live/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lessonId }),
       })
 
-      if (!res.ok) throw new Error('Failed to end lesson')
+      if (!res.ok) {
+        const message = await readApiErrorMessage(res, 'Failed to end lesson')
+        throw new Error(message)
+      }
+
       setLessonStarted(false)
     } catch (err) {
       setError(String(err))

@@ -34,7 +34,12 @@ export async function POST(req: NextRequest) {
     })
 
     if (liveSession && liveSession.status === 'LIVE') {
-      return NextResponse.json({ error: 'Lesson already live' }, { status: 400 })
+      return NextResponse.json({
+        success: true,
+        session: liveSession,
+        alreadyLive: true,
+        message: 'Lesson is already live'
+      }, { status: 200 })
     }
 
     const roomId = uuidv4()

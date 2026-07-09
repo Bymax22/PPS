@@ -1,13 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, type ReactNode } from 'react'
+import { use, useEffect, useState, type ReactNode } from 'react'
 import { BookOpen, Video, Monitor } from 'lucide-react'
 
 interface TeacherSubpageProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }> | { slug: string }
 }
 
 interface TeacherClass {
@@ -30,12 +28,16 @@ interface Lesson {
 }
 
 export default function TeacherSubpage({ params }: TeacherSubpageProps) {
-  const slug = params.slug
+  const resolvedParams = use(
+    params instanceof Promise ? params : Promise.resolve(params)
+  ) as { slug?: string }
+
+  const slug = resolvedParams?.slug ?? ''
   const [payload, setPayload] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const title = slug
+  const title = (slug || 'dashboard')
     .split('-')
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ')

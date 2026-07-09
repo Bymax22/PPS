@@ -1,13 +1,16 @@
 import Link from 'next/link'
+import { use } from 'react'
 
 interface ParentSubpageProps {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }> | { slug: string }
 }
 
 export default function ParentSubpage({ params }: ParentSubpageProps) {
-  const title = params.slug
+  const resolvedParams = use(
+    params instanceof Promise ? params : Promise.resolve(params)
+  ) as { slug?: string }
+
+  const title = (resolvedParams?.slug || 'dashboard')
     .split('-')
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ')
