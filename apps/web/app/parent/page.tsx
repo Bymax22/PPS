@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
 import { formatZMW } from '@/lib/currency'
 import { 
   Bell, 
@@ -94,6 +95,8 @@ export default function ParentDashboard() {
   const [showMakePayment, setShowMakePayment] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [scrolled, setScrolled] = useState(false)
+  const [parentName, setParentName] = useState('Parent')
+  const [parentInitials, setParentInitials] = useState('P')
 
   // Mock data - replace with actual API calls
   const [children, setChildren] = useState<Child[]>([
@@ -198,12 +201,24 @@ export default function ParentDashboard() {
   useEffect(() => {
     let mounted = true
 
+    const formatName = (firstName?: string, lastName?: string) => [firstName, lastName].filter(Boolean).join(' ').trim() || 'Parent'
+    const getInitials = (firstName?: string, lastName?: string) => {
+      const names = [firstName, lastName].filter(Boolean)
+      if (!names.length) return 'P'
+      return names.map((name) => name?.charAt(0).toUpperCase()).filter(Boolean).join('').slice(0, 2)
+    }
+
     async function fetchData() {
       try {
         const res = await fetch('/api/parent/dashboard')
         if (!res.ok) return
         const data = await res.json()
         if (!mounted) return
+
+        if (data.firstName || data.lastName) {
+          setParentName(formatName(data.firstName, data.lastName))
+          setParentInitials(getInitials(data.firstName, data.lastName))
+        }
 
         if (data.children) setChildren(data.children)
 
@@ -264,7 +279,7 @@ export default function ParentDashboard() {
             <div className="h-12 w-12 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-bold">P</div>
             <div>
               <p className="text-sm text-slate-200">Parent Portal</p>
-              <p className="font-semibold text-white">Sarah Johnson</p>
+              <p className="font-semibold text-white">{parentName}</p>
             </div>
           </div>
           <nav className="space-y-2 flex-1 overflow-y-auto pr-1">
@@ -282,7 +297,11 @@ export default function ParentDashboard() {
               )
             })}
           </nav>
-          <button className="mt-4 flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20">
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="mt-4 flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20"
+          >
             <LogOut className="h-5 w-5" />
             Logout
           </button>
@@ -307,9 +326,9 @@ export default function ParentDashboard() {
                 {notifications.filter(n => !n.read).length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400" />}
               </button>
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#003087] text-white font-semibold">SJ</div>
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#003087] text-white font-semibold">{parentInitials}</div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-slate-900">Sarah Johnson</p>
+                  <p className="text-sm font-medium text-slate-900">{parentName}</p>
                   <p className="text-xs text-slate-500">Parent</p>
                 </div>
               </div>
@@ -323,7 +342,7 @@ export default function ParentDashboard() {
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <p className="text-sm uppercase tracking-[0.16em] text-slate-200">Parent Portal</p>
-                  <h2 className="mt-3 text-3xl font-semibold">Good to see you, Sarah</h2>
+                  <h2 className="mt-3 text-3xl font-semibold">Good to see you, {parentName}</h2>
                   <p className="mt-3 max-w-2xl text-sm text-slate-200/90">
                     You’re supporting {children.length} student{children.length !== 1 ? 's' : ''}. {totalOutstanding > 0 ? `${formatZMW(totalOutstanding)} outstanding balance` : 'All accounts are current.'}
                   </p>

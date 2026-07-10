@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { signOut } from 'next-auth/react'
 import { 
   Bell, 
   Menu, 
@@ -120,7 +121,11 @@ export default function StudentDashboardClient({
               </nav>
               
               <div className="absolute bottom-8 left-0 right-0 px-6">
-                <button className="flex items-center gap-3 text-gray-600 hover:text-gray-900 transition-colors w-full p-3">
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="flex items-center gap-3 text-gray-600 hover:text-gray-900 transition-colors w-full p-3"
+                >
                   <LogOut className="w-5 h-5" />
                   <span>Logout</span>
                 </button>
