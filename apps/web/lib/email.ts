@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY
-const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || process.env.EMAIL_FROM_ADDRESS || 'noreply@progresspreparatoryschools.com'
+const BREVO_FROM_EMAIL = process.env.BREVO_SENDER_EMAIL || process.env.BREVO_FROM_EMAIL || process.env.EMAIL_FROM_ADDRESS || 'noreply@progresspreparatoryschools.com'
 const BREVO_FROM_NAME = process.env.BREVO_FROM_NAME || process.env.EMAIL_FROM_NAME || 'Progress Prep Schools'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:2000'
 const SECRET = process.env.NEXTAUTH_SECRET || process.env.SECRET || 'dev_secret'
@@ -96,7 +96,8 @@ export function verifySignedToken(token: string) {
 }
 
 export async function sendVerificationEmail(email: string, fullName: string, token: string) {
-  const verificationUrl = `${APP_URL}/portal/verify-email?token=${encodeURIComponent(token)}`
+  const baseUrl = (APP_URL || 'https://progresspreparatoryschools.com').replace(/\/$/, '')
+  const verificationUrl = `${baseUrl}/portal/verify-email?token=${encodeURIComponent(token)}`
 
   return sendBrevoEmail({
     to: email,

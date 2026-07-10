@@ -21,7 +21,7 @@ export default function VerifyEmailClient({ token: initialToken, email: initialE
     if (!token) {
       if (email) {
         setStatus('waiting')
-        setMessage(`A verification email has been sent to ${email}. Please check your inbox.`)
+        setMessage(`A verification email has been sent to ${email}. Please check your inbox or spam folder.`)
       } else {
         setStatus('error')
         setMessage('Missing verification information. Please try registering again.')
