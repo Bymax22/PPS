@@ -50,8 +50,15 @@ export async function POST(req: Request) {
     try {
       await sendVerificationEmail(email, `${firstName} ${lastName}`, verificationToken)
       verificationSent = true
-    } catch (error) {
+    } catch (error: any) {
       console.error('Verification email failed', error)
+      const message = error?.message || ''
+      if (message.includes('unauthorized') || message.includes('unrecognised IP') || message.includes('authorised IP')) {
+        return NextResponse.json({
+          error: 'Verification email could not be sent because Brevo rejected the request. Please authorize this server IP in your Brevo account and try again.',
+        }, { status: 500 })
+      }
+
       return NextResponse.json({
         error: 'We could not send the verification email. Please try again later.',
       }, { status: 500 })

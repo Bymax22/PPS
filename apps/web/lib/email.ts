@@ -125,6 +125,21 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
   })
 }
 
+export async function sendLoginOtpEmail(email: string, fullName: string, otp: string) {
+  return sendBrevoEmail({
+    to: email,
+    name: fullName,
+    subject: 'Your Progress Preparatory Schools sign-in code',
+    htmlContent: `
+      <p>Hi ${fullName},</p>
+      <p>Your sign-in verification code is:</p>
+      <p style="font-size:24px;font-weight:bold;letter-spacing:4px;">${otp}</p>
+      <p>This code will expire in 10 minutes.</p>
+      <p>If you did not try to sign in, you can ignore this email.</p>
+    `,
+  })
+}
+
 export async function sendWelcomeEmail(email: string, fullName: string) {
   return sendBrevoEmail({
     to: email,

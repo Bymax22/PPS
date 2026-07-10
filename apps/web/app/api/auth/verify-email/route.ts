@@ -14,12 +14,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 })
     }
 
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: verified.id },
       data: { emailVerified: new Date() },
     })
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, role: user.role })
   } catch (error: any) {
     console.error('Email verification error', error)
     return NextResponse.json({ error: error?.message || 'Verification failed' }, { status: 500 })

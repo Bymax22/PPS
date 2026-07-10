@@ -23,6 +23,8 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
   const [isRegister, setIsRegister] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loginStep, setLoginStep] = useState<'credentials' | 'otp'>('credentials')
+  const [otp, setOtp] = useState('')
   const [form, setForm] = useState({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '', phone: '' })
 
   async function handleRegister(e: React.FormEvent) {
@@ -74,11 +76,32 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
 
     try {
       const target = getDestination(role)
+
+      if (loginStep === 'credentials') {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email, password: form.password, role }),
+        })
+        const data = await res.json()
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Login failed')
+        }
+
+        if (data.requiresOtp) {
+          setLoginStep('otp')
+          setOtp('')
+          return
+        }
+      }
+
       const signInResult = await signIn('credentials', {
         redirect: false,
         email: form.email,
         password: form.password,
         role,
+        otp,
         callbackUrl: target,
       })
 
@@ -125,14 +148,29 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           className="w-full p-2 border rounded"
         />
-        <input
-          required
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="w-full p-2 border rounded"
-        />
+        {!isRegister && (
+          <>
+            <input
+              required
+              type="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full p-2 border rounded"
+            />
+            {loginStep === 'otp' && (
+              <input
+                required
+                type="text"
+                inputMode="numeric"
+                placeholder="Enter 6-digit verification code"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full p-2 border rounded"
+              />
+            )}
+          </>
+        )}
         {isRegister && (
           <input
             required
@@ -145,7 +183,7 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
         )}
         {error && <p className="text-sm text-rose-600">{error}</p>}
         <div className="flex items-center justify-between">
-          <button disabled={loading} className="px-4 py-2 bg-[var(--campus-gold)] rounded font-semibold">{isRegister ? 'Register' : 'Sign in'}</button>
+          <button disabled={loading} className="px-4 py-2 bg-[var(--campus-gold)] rounded font-semibold">{isRegister ? 'Register' : loginStep === 'otp' ? 'Verify code' : 'Sign in'}</button>
           <button type="button" onClick={() => setIsRegister(!isRegister)} className="text-sm text-gray-600">{isRegister ? 'Have an account? Sign in' : "Don't have an account? Register"}</button>
         </div>
       </form>

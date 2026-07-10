@@ -4,6 +4,19 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Mail, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
+function getDashboardPath(role?: string | null) {
+  switch (role) {
+    case 'TEACHER':
+      return '/teacher'
+    case 'PARENT':
+      return '/parent'
+    case 'ADMIN':
+      return '/admin'
+    default:
+      return '/student'
+  }
+}
+
 interface VerifyEmailClientProps {
   token: string | null
   email: string | null
@@ -41,7 +54,9 @@ export default function VerifyEmailClient({ token: initialToken, email: initialE
           throw new Error(data.error || 'Verification failed')
         }
         setStatus('success')
-        setMessage('Your email has been verified successfully. You can now sign in.')
+        setMessage('Your email has been verified successfully. You can now continue to your dashboard.')
+        const destination = getDashboardPath(data.role)
+        setTimeout(() => router.push(destination), 1200)
       } catch (err: any) {
         setStatus('error')
         setMessage(err?.message || 'Unable to verify email. The link may have expired.')
