@@ -20,12 +20,15 @@ export async function GET() {
     prisma.class.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        program: true,
+        program: { select: { id: true, name: true } },
         enrollments: { select: { id: true } },
         teachers: { include: { teacher: { select: { firstName: true, lastName: true } } } }
       }
     })
-  ])
+  ]).catch((error) => {
+    console.error('Failed to load admin classes data', error)
+    return [[], [], []] as const
+  })
 
   return NextResponse.json({
     programs,
@@ -36,9 +39,14 @@ export async function GET() {
       grade: classItem.grade,
       subject: classItem.subject,
       capacity: classItem.capacity,
-      programName: classItem.program.name,
+      programName: classItem.program?.name ?? 'Unassigned',
       enrolledCount: classItem.enrollments.length,
-      teachers: classItem.teachers.map((link) => `${link.teacher.firstName} ${link.teacher.lastName}`)
+      teachers: classItem.teachers
+        .map((link) => {
+          const fullName = `${link.teacher?.firstName ?? ''} ${link.teacher?.lastName ?? ''}`.trim()
+          return fullName || null
+        })
+        .filter((value): value is string => Boolean(value))
     }))
   })
 }
