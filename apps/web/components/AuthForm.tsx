@@ -56,8 +56,11 @@ export default function AuthForm({ role = 'STUDENT' }: { role?: string }) {
       }
 
       const verificationParams = new URLSearchParams({ email: form.email })
-      if (data.verificationToken) {
-        verificationParams.set('token', data.verificationToken)
+      if (form.firstName) {
+        verificationParams.set('firstName', form.firstName)
+      }
+      if (form.lastName) {
+        verificationParams.set('lastName', form.lastName)
       }
 
       router.push(`/portal/verify-email?${verificationParams.toString()}`)
