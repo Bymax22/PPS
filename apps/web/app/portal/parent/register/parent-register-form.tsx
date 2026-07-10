@@ -57,8 +57,11 @@ export function ParentRegisterForm() {
       }
 
       const verificationParams = new URLSearchParams({ email: formData.email })
-      if (data.verificationToken) {
-        verificationParams.set('token', data.verificationToken)
+      if (formData.firstName) {
+        verificationParams.set('firstName', formData.firstName)
+      }
+      if (formData.lastName) {
+        verificationParams.set('lastName', formData.lastName)
       }
 
       router.push(`/portal/verify-email?${verificationParams.toString()}`)
