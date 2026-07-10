@@ -43,34 +43,37 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
             throw new Error('User does not have access to this role')
           }
 
-          const metadata = (user.metadata as Record<string, any> | null) || {}
-          const otp = credentials.otp as string | undefined
-          const savedOtp = metadata.loginOtp as string | undefined
-          const expiresAt = metadata.loginOtpExpiresAt as string | undefined
+          const isAdminLogin = credentials.role === 'ADMIN'
+          if (!isAdminLogin) {
+            const metadata = (user.metadata as Record<string, any> | null) || {}
+            const otp = credentials.otp as string | undefined
+            const savedOtp = metadata.loginOtp as string | undefined
+            const expiresAt = metadata.loginOtpExpiresAt as string | undefined
 
-          if (!otp || !savedOtp || !expiresAt) {
-            throw new Error('A verification code is required to sign in.')
-          }
+            if (!otp || !savedOtp || !expiresAt) {
+              throw new Error('A verification code is required to sign in.')
+            }
 
-          const expiry = new Date(expiresAt)
-          if (Number.isNaN(expiry.getTime()) || expiry.getTime() < Date.now()) {
-            throw new Error('Your sign-in code has expired. Please request a new one.')
-          }
+            const expiry = new Date(expiresAt)
+            if (Number.isNaN(expiry.getTime()) || expiry.getTime() < Date.now()) {
+              throw new Error('Your sign-in code has expired. Please request a new one.')
+            }
 
-          if (savedOtp !== otp) {
-            throw new Error('The sign-in code is invalid.')
-          }
+            if (savedOtp !== otp) {
+              throw new Error('The sign-in code is invalid.')
+            }
 
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              metadata: {
-                ...metadata,
-                loginOtp: null,
-                loginOtpExpiresAt: null,
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                metadata: {
+                  ...metadata,
+                  loginOtp: null,
+                  loginOtpExpiresAt: null,
+                },
               },
-            },
-          })
+            })
+          }
 
           return {
             id: user.id,

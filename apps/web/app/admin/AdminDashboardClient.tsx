@@ -100,6 +100,7 @@ export default function AdminDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
 
   const refresh = async () => {
     setIsLoading(true)
@@ -107,6 +108,7 @@ export default function AdminDashboardClient() {
     try {
       const payload = await fetchDashboardData()
       setData(payload)
+      setLastUpdated(new Date().toLocaleTimeString())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -115,9 +117,19 @@ export default function AdminDashboardClient() {
   }
 
   useEffect(() => {
-    refresh()
-    const interval = window.setInterval(refresh, 5000)
-    return () => window.clearInterval(interval)
+    void refresh()
+    const interval = window.setInterval(() => {
+      void refresh()
+    }, 5000)
+    const onFocus = () => {
+      void refresh()
+    }
+
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const summaryCards = useMemo(
@@ -139,6 +151,13 @@ export default function AdminDashboardClient() {
       <div className="rounded-xl bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <h2 className="text-2xl font-semibold text-slate-900">Admin dashboard error</h2>
         <p className="mt-4 text-slate-600">{error}</p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="mt-6 rounded-xl bg-[#003087] px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+        >
+          Retry connection
+        </button>
       </div>
     )
   }
@@ -155,6 +174,7 @@ export default function AdminDashboardClient() {
           <div className="rounded-xl bg-[#e8eefb] px-5 py-4 text-slate-700">
             <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Status</p>
             <p className="mt-2 text-lg font-semibold">{isLoading ? 'Refreshing…' : 'Live'}</p>
+            <p className="mt-1 text-sm text-slate-500">{lastUpdated ? `Updated ${lastUpdated}` : 'Waiting for first refresh'}</p>
           </div>
         </div>
       </section>

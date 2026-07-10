@@ -17,11 +17,18 @@ export async function POST(req: NextRequest) {
         description,
         type,
         classId,
-        cloudinaryUrl: cloudinaryUrl || '',
-        cloudinaryPublicId: cloudinaryPublicId || '',
         fileSize: fileSize || 0,
         accessLevel: 'PUBLIC',
-        author: session.user.id
+        authorId: session.user.id,
+        media: cloudinaryUrl || cloudinaryPublicId ? {
+          create: {
+            originalUrl: cloudinaryUrl || '',
+            fileName: title,
+            mimeType: 'application/octet-stream',
+            sizeBytes: fileSize || 0,
+            uploaderId: session.user.id,
+          }
+        } : undefined
       }
     })
 

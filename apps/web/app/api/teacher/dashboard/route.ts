@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
                 },
                 resources: {
                   where: { isDeleted: false },
-                  include: { media: true },
                   orderBy: { createdAt: 'desc' }
                 }
               }
@@ -153,7 +152,7 @@ export async function GET(req: NextRequest) {
         title: resource.title,
         description: resource.description ?? '',
         type: resource.type,
-        fileUrl: resource.media?.cloudinaryUrl ?? '',
+        fileUrl: resource.media?.originalUrl ?? '',
         fileSize: resource.fileSize ?? 0,
         downloadCount: resource.downloadCount,
         createdAt: resource.createdAt.toISOString()

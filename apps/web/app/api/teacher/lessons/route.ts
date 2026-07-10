@@ -12,7 +12,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, description, type, classId, scheduledAt, duration, content } = body
+    const { title, description, type, classId, scheduledAt, duration, content, studentIds = [], assignToClass = false } = body
+
+    if (!title || !classId) {
+      return NextResponse.json({ error: 'Lesson title and class are required' }, { status: 400 })
+    }
 
     const lesson = await prisma.lesson.create({
       data: {
@@ -28,7 +32,28 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Notify students in the class
+    const selectedStudentIds = Array.isArray(studentIds) && studentIds.length > 0
+      ? studentIds
+      : assignToClass
+        ? (await prisma.enrollment.findMany({ where: { classId, status: 'ACTIVE' }, select: { userId: true } })).map((item) => item.userId)
+        : []
+
+    for (const userId of selectedStudentIds) {
+      const existingAttendance = await prisma.sessionAttendee.findFirst({
+        where: { lessonId: lesson.id, userId },
+      })
+
+      if (!existingAttendance) {
+        await prisma.sessionAttendee.create({
+          data: {
+            lessonId: lesson.id,
+            userId,
+            attended: true,
+          },
+        })
+      }
+    }
+
     const enrollments = await prisma.enrollment.findMany({
       where: { classId },
       include: { user: true }
@@ -46,8 +71,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    return NextResponse.json(lesson)
+    return NextResponse.json({ ...lesson, assignedStudentCount: selectedStudentIds.length })
   } catch (error) {
+    console.error('Create lesson error', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

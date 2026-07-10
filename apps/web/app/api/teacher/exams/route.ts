@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { title, description, type, classId, scheduledAt, duration, totalMarks, passingMarks, questions } = body
 
+    const normalizedQuestions = Array.isArray(questions) ? questions : []
+
     const exam = await prisma.exam.create({
       data: {
         title,
@@ -25,12 +27,12 @@ export async function POST(req: NextRequest) {
         totalMarks,
         passingMarks,
         questions: {
-          create: questions.map((q: any, index: number) => ({
+          create: normalizedQuestions.map((q: any, index: number) => ({
             type: q.type,
             text: q.text,
             marks: q.marks,
             orderIndex: index,
-            options: q.options ? JSON.stringify(q.options) : null,
+            options: q.options ?? null,
             correctAnswer: q.correctAnswer
           }))
         }

@@ -31,24 +31,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User does not have access to this role' }, { status: 403 })
     }
 
-    const otp = `${Math.floor(100000 + Math.random() * 900000)}`
-    const metadata = (user.metadata as Record<string, any> | null) || {}
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+    if (role !== 'ADMIN') {
+      const otp = `${Math.floor(100000 + Math.random() * 900000)}`
+      const metadata = (user.metadata as Record<string, any> | null) || {}
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        metadata: {
-          ...metadata,
-          loginOtp: otp,
-          loginOtpExpiresAt: expiresAt,
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          metadata: {
+            ...metadata,
+            loginOtp: otp,
+            loginOtpExpiresAt: expiresAt,
+          },
         },
-      },
-    })
+      })
 
-    await sendLoginOtpEmail(email, `${user.firstName} ${user.lastName}`, otp)
+      await sendLoginOtpEmail(email, `${user.firstName} ${user.lastName}`, otp)
 
-    return NextResponse.json({ requiresOtp: true, email: user.email })
+      return NextResponse.json({ requiresOtp: true, email: user.email })
+    }
+
+    return NextResponse.json({ requiresOtp: false, email: user.email })
   } catch (error: any) {
     console.error('login otp error', error)
     return NextResponse.json({ error: error?.message || 'Unable to start login' }, { status: 500 })

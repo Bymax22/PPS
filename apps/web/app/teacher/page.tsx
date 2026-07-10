@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { 
   Bell, 
@@ -172,10 +172,12 @@ export default function TeacherDashboard() {
   const [showCreateLesson, setShowCreateLesson] = useState(false)
   const [showCreateExam, setShowCreateExam] = useState(false)
   const [showUploadResource, setShowUploadResource] = useState(false)
+  const [showStartLiveSession, setShowStartLiveSession] = useState(false)
   const [showGradeSubmission, setShowGradeSubmission] = useState(false)
   const [gradingExamId, setGradingExamId] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -185,13 +187,12 @@ export default function TeacherDashboard() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Poll teacher dashboard for realtime mockup data
   useEffect(() => {
     let mounted = true
 
     async function fetchData() {
       try {
-        const res = await fetch('/api/teacher/dashboard')
+        const res = await fetch('/api/teacher/dashboard', { cache: 'no-store' })
         if (!res.ok) return
         const data = await res.json()
         if (!mounted) return
@@ -202,31 +203,35 @@ export default function TeacherDashboard() {
           setTeacherInitials(data.teacher.initials || 'T')
         }
 
-        if (data.classes) setTeacherClasses(data.classes.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          grade: c.grade,
-          subject: c.subject,
-          program: c.program,
-          schedule: c.schedule || [],
-          students: c.students || []
-        })))
+        if (Array.isArray(data.classes)) {
+          setTeacherClasses(data.classes.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            grade: c.grade ?? 0,
+            subject: c.subject ?? 'General',
+            program: c.program ?? { name: 'General', type: 'ONLINE_FULL_TIME' },
+            schedule: c.schedule || [],
+            students: c.students || []
+          })))
+        }
 
-        if (data.lessons) setLessons(data.lessons)
-        if (data.exams) setExams(data.exams)
-        if (data.resources) setResources(data.resources)
-        if (data.messages) setMessages(data.messages)
-        if (data.notifications) setNotifications(data.notifications)
+        if (Array.isArray(data.lessons)) setLessons(data.lessons)
+        if (Array.isArray(data.exams)) setExams(data.exams)
+        if (Array.isArray(data.resources)) setResources(data.resources)
+        if (Array.isArray(data.messages)) setMessages(data.messages)
+        if (Array.isArray(data.notifications)) setNotifications(data.notifications)
       } catch (err) {
         console.error('Teacher dashboard fetch error', err)
       }
     }
 
-    fetchData()
-    const id = setInterval(fetchData, 5000)
+    void fetchData()
+    const id = window.setInterval(() => {
+      void fetchData()
+    }, 5000)
     return () => {
       mounted = false
-      clearInterval(id)
+      window.clearInterval(id)
     }
   }, [])
 
@@ -508,6 +513,7 @@ export default function TeacherDashboard() {
                       <QuickActionButton 
                         icon={Video}
                         label="Start Live Session"
+                        onClick={() => setShowStartLiveSession(true)}
                         color="#003087"
                       />
                       <QuickActionButton 
@@ -581,6 +587,18 @@ export default function TeacherDashboard() {
           onCreate={(exam) => {
             setExams([...exams, exam])
             setShowCreateExam(false)
+          }}
+        />
+      )}
+
+      {showStartLiveSession && (
+        <StartLiveSessionModal
+          lessons={lessons}
+          onClose={() => setShowStartLiveSession(false)}
+          onStart={(lessonId: string) => {
+            setLessons((prev) => prev.map((lesson) => lesson.id === lessonId ? { ...lesson, status: 'LIVE' } : lesson))
+            setShowStartLiveSession(false)
+            router.push(`/teacher/lessons/${lessonId}`)
           }}
         />
       )}
@@ -958,6 +976,17 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
     duration: 45,
     content: ''
   })
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
+  const [assignAllStudents, setAssignAllStudents] = useState(true)
+  const selectedClassData = classes.find((cls: TeacherClass) => cls.id === formData.classId)
+
+  useEffect(() => {
+    if (assignAllStudents && selectedClassData?.students?.length) {
+      setSelectedStudentIds(selectedClassData.students.map((student: Student) => student.id))
+    } else if (!assignAllStudents) {
+      setSelectedStudentIds([])
+    }
+  }, [assignAllStudents, selectedClassData])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1044,6 +1073,44 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
             </div>
           )}
 
+          <div className="rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-medium text-gray-700">Assign pupils</label>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input
+                  type="checkbox"
+                  checked={assignAllStudents}
+                  onChange={(e) => setAssignAllStudents(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-[#003087] focus:ring-[#003087]"
+                />
+                All class pupils
+              </label>
+            </div>
+            {!assignAllStudents && selectedClassData?.students?.length ? (
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {selectedClassData.students.map((student: Student) => (
+                  <label key={student.id} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudentIds.includes(student.id)}
+                      onChange={() => {
+                        setSelectedStudentIds((prev) =>
+                          prev.includes(student.id) ? prev.filter((id) => id !== student.id) : [...prev, student.id]
+                        )
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-[#003087] focus:ring-[#003087]"
+                    />
+                    {student.firstName} {student.lastName}
+                  </label>
+                ))}
+              </div>
+            ) : !assignAllStudents ? (
+              <p className="text-sm text-gray-500">No pupils available for this class yet.</p>
+            ) : (
+              <p className="text-sm text-gray-500">All active pupils in this class will be assigned to the lesson.</p>
+            )}
+          </div>
+
           {formData.type === 'RECORDED' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Video Content</label>
@@ -1070,7 +1137,11 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
                   const res = await fetch('/api/teacher/lessons', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                      ...formData,
+                      studentIds: assignAllStudents ? [] : selectedStudentIds,
+                      assignToClass: assignAllStudents,
+                    })
                   })
                   const data = await res.json()
                   onCreate(data)
@@ -1082,6 +1153,79 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
               style={{ backgroundColor: '#003087' }}
             >
               Create Lesson
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StartLiveSessionModal({ lessons, onClose, onStart }: any) {
+  const [selectedLessonId, setSelectedLessonId] = useState(lessons[0]?.id || '')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-900">Start Live Session</h2>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Choose lesson</label>
+              <select
+                value={selectedLessonId}
+                onChange={(e) => setSelectedLessonId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                {lessons.map((lesson: Lesson) => (
+                  <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                ))}
+              </select>
+            </div>
+            {error && <p className="text-sm text-rose-600">{error}</p>}
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!selectedLessonId) return
+                setLoading(true)
+                setError(null)
+                try {
+                  const res = await fetch('/api/lessons/live/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lessonId: selectedLessonId, title: 'Live Lesson' }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data?.error || 'Unable to start live lesson')
+                  onStart(selectedLessonId)
+                } catch (err: any) {
+                  setError(err?.message || 'Unable to start live lesson')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-lg text-white font-medium"
+              style={{ backgroundColor: '#003087' }}
+            >
+              {loading ? 'Starting…' : 'Go Live'}
             </button>
           </div>
         </div>

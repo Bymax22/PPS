@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       await prisma.notification.create({
         data: {
           userId: enrollment.userId,
-          type: 'LESSON_STARTED',
+          type: 'LESSON_STARTING',
           title: `${title || lesson.title} - Live Now!`,
           body: `Your ${lesson.class.name} class is now live. Click to join!`,
           link: `/student/lessons/${lessonId}/join`
