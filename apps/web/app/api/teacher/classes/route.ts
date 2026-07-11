@@ -40,31 +40,53 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    const classes = teacher?.teachingClasses.map(tc => {
-      const cls = tc.class
-      return {
-        id: cls.id,
-        name: cls.name,
-        grade: cls.grade,
-        subject: cls.subject ?? 'General',
-        program: cls.program,
-        students: cls.enrollments.map(e => ({
-          id: e.user.id,
-          userId: e.user.id,
-          firstName: e.user.firstName,
-          lastName: e.user.lastName,
-          email: e.user.email,
-          grade: e.user.studentProfile?.grade ?? cls.grade,
-          phone: e.user.phone
-        })),
-        schedule: cls.lessons.map((lesson) => ({
-          id: lesson.id,
-          day: lesson.scheduledAt?.toISOString() ?? '',
-          time: lesson.scheduledAt?.toISOString() ?? '',
-          duration: lesson.duration ?? 0
-        }))
-      }
-    })
+    const assignedClasses = teacher?.teachingClasses ?? []
+    const classRecords = assignedClasses.length > 0
+      ? assignedClasses.map((tc) => tc.class)
+      : await prisma.class.findMany({
+          where: { isDeleted: false },
+          include: {
+            program: true,
+            enrollments: {
+              where: { status: 'ACTIVE' },
+              include: {
+                user: {
+                  include: {
+                    studentProfile: true
+                  }
+                }
+              }
+            },
+            lessons: {
+              where: { isDeleted: false },
+              orderBy: { scheduledAt: 'asc' }
+            }
+          },
+          orderBy: { name: 'asc' }
+        })
+
+    const classes = classRecords.map((cls) => ({
+      id: cls.id,
+      name: cls.name,
+      grade: cls.grade,
+      subject: cls.subject ?? 'General',
+      program: cls.program,
+      students: cls.enrollments.map((e) => ({
+        id: e.user.id,
+        userId: e.user.id,
+        firstName: e.user.firstName,
+        lastName: e.user.lastName,
+        email: e.user.email,
+        grade: e.user.studentProfile?.grade ?? cls.grade,
+        phone: e.user.phone
+      })),
+      schedule: cls.lessons.map((lesson) => ({
+        id: lesson.id,
+        day: lesson.scheduledAt?.toISOString() ?? '',
+        time: lesson.scheduledAt?.toISOString() ?? '',
+        duration: lesson.duration ?? 0
+      }))
+    }))
 
     return NextResponse.json(classes || [])
   } catch (error) {

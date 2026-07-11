@@ -80,36 +80,72 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
     }
 
-    const classes = teacher.teachingClasses.map((tc) => {
-      const cls = tc.class
-      return {
-        id: cls.id,
-        name: cls.name,
-        grade: cls.grade ?? 0,
-        subject: cls.subject ?? 'General',
-        program: cls.program ? { name: cls.program.name, type: cls.program.type } : { name: 'General', type: 'ONLINE_FULL_TIME' },
-        students: cls.enrollments.map((enrollment) => ({
-          id: enrollment.user.id,
-          userId: enrollment.user.id,
-          firstName: enrollment.user.firstName,
-          lastName: enrollment.user.lastName,
-          email: enrollment.user.email,
-          grade: enrollment.user.studentProfile?.grade ?? cls.grade ?? 0,
-          phone: enrollment.user.phone ?? undefined,
-          attendance: [],
-          progress: []
-        })),
-        schedule: cls.lessons.map((lesson) => ({
-          id: lesson.id,
-          day: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
-          time: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
-          duration: lesson.duration ?? 0
-        }))
-      }
-    })
+    const assignedTeachingClasses = teacher.teachingClasses ?? []
+    const classRecords = assignedTeachingClasses.length > 0
+      ? assignedTeachingClasses.map((tc) => tc.class)
+      : await prisma.class.findMany({
+          where: { isDeleted: false },
+          include: {
+            program: true,
+            enrollments: {
+              where: { status: 'ACTIVE' },
+              include: {
+                user: {
+                  include: {
+                    studentProfile: true
+                  }
+                }
+              }
+            },
+            lessons: {
+              where: { isDeleted: false },
+              orderBy: { scheduledAt: 'desc' }
+            },
+            exams: {
+              where: { isDeleted: false },
+              include: {
+                attempts: {
+                  include: { user: true },
+                  orderBy: { submittedAt: 'desc' }
+                }
+              },
+              orderBy: { scheduledAt: 'desc' }
+            },
+            resources: {
+              where: { isDeleted: false },
+              orderBy: { createdAt: 'desc' }
+            }
+          },
+          orderBy: { name: 'asc' }
+        })
 
-    const lessons = teacher.teachingClasses
-      .flatMap((tc) => tc.class.lessons)
+    const classes = classRecords.map((cls) => ({
+      id: cls.id,
+      name: cls.name,
+      grade: cls.grade ?? 0,
+      subject: cls.subject ?? 'General',
+      program: cls.program ? { name: cls.program.name, type: cls.program.type } : { name: 'General', type: 'ONLINE_FULL_TIME' },
+      students: cls.enrollments.map((enrollment) => ({
+        id: enrollment.user.id,
+        userId: enrollment.user.id,
+        firstName: enrollment.user.firstName,
+        lastName: enrollment.user.lastName,
+        email: enrollment.user.email,
+        grade: enrollment.user.studentProfile?.grade ?? cls.grade ?? 0,
+        phone: enrollment.user.phone ?? undefined,
+        attendance: [],
+        progress: []
+      })),
+      schedule: cls.lessons.map((lesson) => ({
+        id: lesson.id,
+        day: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
+        time: lesson.scheduledAt ? lesson.scheduledAt.toISOString() : '',
+        duration: lesson.duration ?? 0
+      }))
+    }))
+
+    const lessons = classRecords
+      .flatMap((cls) => cls.lessons)
       .map((lesson) => ({
         id: lesson.id,
         title: lesson.title,
@@ -122,8 +158,8 @@ export async function GET(req: NextRequest) {
         createdAt: lesson.createdAt.toISOString()
       }))
 
-    const exams = teacher.teachingClasses
-      .flatMap((tc) => tc.class.exams)
+    const exams = classRecords
+      .flatMap((cls) => cls.exams)
       .map((exam) => ({
         id: exam.id,
         title: exam.title,
@@ -145,8 +181,8 @@ export async function GET(req: NextRequest) {
         }))
       }))
 
-    const resources = teacher.teachingClasses
-      .flatMap((tc) => tc.class.resources)
+    const resources = classRecords
+      .flatMap((cls) => cls.resources)
       .map((resource) => ({
         id: resource.id,
         title: resource.title,
