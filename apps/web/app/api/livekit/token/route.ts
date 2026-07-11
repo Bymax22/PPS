@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     at.addGrant(grant)
 
-    const token = at.toJwt()
+    const token = await at.toJwt()
     return NextResponse.json({ token, identity, displayName, isHost, role: user.role })
   } catch (err) {
     console.error('Error generating LiveKit token', err)
