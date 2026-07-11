@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 
 import CampusLayout from "@/campus/layout";
 
@@ -94,10 +95,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
           <head />
           <body className={`antialiased bg-background text-foreground`}> 
-        <CampusLayout>
-          
-          {children}
-        </CampusLayout>
+        <SessionProviderWrapper>
+          <CampusLayout>
+            {children}
+          </CampusLayout>
+        </SessionProviderWrapper>
         <Toaster />
       </body>
     </html>
