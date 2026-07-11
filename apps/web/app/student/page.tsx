@@ -40,16 +40,7 @@ export default async function StudentDashboardPage() {
         include: {
           class: {
             include: {
-              program: true,
-              teachers: {
-                include: {
-                  teacher: {
-                    include: {
-                      teacherProfile: true
-                    }
-                  }
-                }
-              }
+              program: true
             }
           }
         }
