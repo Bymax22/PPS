@@ -46,7 +46,7 @@ export default async function StudentDashboardPage() {
         }
       },
       subscriptions: {
-        where: { isActive: true },
+        where: { status: 'ACTIVE' },
         include: {
           plan: {
             include: { program: true }
