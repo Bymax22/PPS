@@ -58,19 +58,26 @@ export function useLesson(lessonId: string) {
     }
   }, [lessonId])
 
-  // Poll for updates every 2 seconds
+  // Poll for updates less aggressively to avoid exhausting the database pool
   useEffect(() => {
-    fetchParticipants()
-    fetchExercises()
-    fetchPolls()
+    let active = true
 
-    const interval = setInterval(() => {
-      fetchParticipants()
-      fetchPolls()
-    }, 2000)
+    const refresh = async () => {
+      if (!active) return
+      await Promise.allSettled([fetchParticipants(), fetchExercises(), fetchPolls()])
+    }
 
-    return () => clearInterval(interval)
-  }, [lessonId, fetchParticipants, fetchPolls])
+    void refresh()
+
+    const interval = window.setInterval(() => {
+      void refresh()
+    }, 10000)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
+  }, [lessonId, fetchParticipants, fetchExercises, fetchPolls])
 
   return { participants, exercises, polls, loading, refetch: fetchParticipants }
 }
