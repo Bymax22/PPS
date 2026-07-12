@@ -141,6 +141,7 @@ interface Resource {
   title: string
   description: string
   type: string
+  status?: 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED'
   fileUrl: string
   fileSize: number
   downloadCount: number
@@ -222,6 +223,8 @@ export default function TeacherDashboard() {
         if (Array.isArray(data.notifications)) setNotifications(data.notifications)
       } catch (err) {
         console.error('Teacher dashboard fetch error', err)
+      } finally {
+        setResourceLoading(false)
       }
     }
 
@@ -250,6 +253,7 @@ export default function TeacherDashboard() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [exams, setExams] = useState<Exam[]>([])
   const [resources, setResources] = useState<Resource[]>([])
+  const [resourceLoading, setResourceLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
 
@@ -469,6 +473,29 @@ export default function TeacherDashboard() {
                       <SubmissionItem title="Lab Report" className="Grade 11 Physics" count="28 / 30 submitted" />
                       <SubmissionItem title="Physics Quiz 2" className="Grade 9 Science" count="35 / 35 submitted" />
                     </div>
+                  </div>
+                </div>
+
+                {/* Resources */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5" style={{ color: '#003087' }} />
+                      Recent Resources
+                    </h3>
+                  </div>
+                  <div className="p-5">
+                    {resourceLoading ? (
+                      <p className="text-sm text-gray-500">Loading resources…</p>
+                    ) : resources.length ? (
+                      <div className="space-y-3">
+                        {resources.map((resource) => (
+                          <ResourceItem key={resource.id} resource={resource} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No resources uploaded yet.</p>
+                    )}
                   </div>
                 </div>
 
@@ -855,20 +882,37 @@ function ExamItem({ exam, onGrade }: any) {
 }
 
 function ResourceItem({ resource }: any) {
+  const isReady = resource.status === 'READY' || !resource.status
+  const badgeLabel = resource.status ? resource.status.replace('_', ' ') : 'Ready'
+  const badgeColor = resource.status === 'PROCESSING' ? 'bg-yellow-100 text-amber-700' : resource.status === 'FAILED' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+
+  const handleDownload = () => {
+    if (!isReady || !resource.fileUrl) return
+    window.open(resource.fileUrl, '_blank')
+  }
+
   return (
     <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#00308715' }}>
           <FileText className="w-4 h-4" style={{ color: '#003087' }} />
         </div>
         <div>
-          <p className="font-medium text-gray-900">{resource.title}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-gray-900">{resource.title}</p>
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badgeColor}`}>{badgeLabel}</span>
+          </div>
           <p className="text-xs text-gray-500">
             {(resource.fileSize / 1024).toFixed(1)} KB • {resource.downloadCount} downloads
           </p>
         </div>
       </div>
-      <button className="p-2 hover:bg-gray-100 rounded-lg">
+      <button
+        onClick={handleDownload}
+        className={`p-2 rounded-lg ${isReady ? 'hover:bg-gray-100' : 'opacity-50 cursor-not-allowed'}`}
+        disabled={!isReady}
+        title={isReady ? 'Download resource' : 'Resource not ready yet'}
+      >
         <Download className="w-4 h-4 text-gray-500" />
       </button>
     </div>
@@ -1480,6 +1524,7 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
   })
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   return (
@@ -1550,9 +1595,9 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
             >
               <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-sm text-gray-600">Click to choose a file</p>
-              <p className="text-xs text-gray-500 mt-1">PDF, DOC, MP4 up to 50MB</p>
+              <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, PPT, PPTX, MP4 up to 50MB</p>
               {formData.file && (
-                <p className="text-sm text-gray-700 mt-3">Selected file: {formData.file.name}</p>
+                <p className="text-sm text-gray-700 mt-3">Selected file: {formData.file.name}{selectedFileSize ? ` · ${(selectedFileSize / 1024 / 1024).toFixed(1)} MB` : ''}</p>
               )}
             </div>
             <input
@@ -1562,7 +1607,14 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
               accept=".pdf,.doc,.docx,.mp4,.ppt,.pptx"
               onChange={(e) => {
                 const file = e.target.files?.[0] ?? null
+                if (file && file.size > 50 * 1024 * 1024) {
+                  setUploadError('File must be 50MB or smaller.')
+                  setFormData((prev) => ({ ...prev, file: null }))
+                  setSelectedFileSize(null)
+                  return
+                }
                 setFormData((prev) => ({ ...prev, file }))
+                setSelectedFileSize(file?.size ?? null)
                 setUploadError(null)
               }}
             />
@@ -1580,6 +1632,11 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
               onClick={async () => {
                 if (!formData.file) {
                   setUploadError('Please choose a file to upload.')
+                  return
+                }
+
+                if (!formData.title.trim()) {
+                  setUploadError('Please enter a resource title.')
                   return
                 }
 
@@ -1602,8 +1659,8 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                   }
 
                   const payload = {
-                    title: formData.title,
-                    description: formData.description,
+                    title: formData.title.trim(),
+                    description: formData.description.trim(),
                     type: formData.type,
                     classId: formData.classId,
                     cloudinaryUrl: uploadData.url,
@@ -1617,7 +1674,29 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                     body: JSON.stringify(payload),
                   })
                   const data = await res.json()
+                  if (!res.ok) {
+                    throw new Error(data.error || 'Failed to save resource metadata')
+                  }
+
                   onUpload(data)
+
+                  if (formData.type === 'VIDEO_TUTORIAL' && data?.id) {
+                    const transcodeRes = await fetch('/api/videos/transcode', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        videoUrl: uploadData.url,
+                        title: formData.title.trim(),
+                        description: formData.description.trim(),
+                        lessonId: formData.classId,
+                        resourceId: data.id,
+                      }),
+                    })
+                    const transcodeData = await transcodeRes.json()
+                    if (!transcodeRes.ok) {
+                      console.warn('Video transcoding start failed', transcodeData)
+                    }
+                  }
                 } catch (err: any) {
                   console.error('Upload error', err)
                   setUploadError(err?.message || 'Unable to upload file')

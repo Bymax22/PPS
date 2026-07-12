@@ -172,6 +172,7 @@ export async function GET(req: NextRequest) {
         title: resource.title,
         description: resource.description ?? '',
         type: resource.type,
+        status: resource.status,
         fileUrl: resource.media?.originalUrl ?? '',
         fileSize: resource.fileSize ?? 0,
         downloadCount: resource.downloadCount,

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { handleTranscodingWebhook } from '@/lib/videoTranscoding'
 import { prisma } from '@/lib/prisma'
 import { publishLessonEvent } from '@/lib/redis'
+import { sendNotificationHooks } from '@/lib/notifications'
+import { logAuditAction } from '@/lib/audit'
 
 /**
  * POST /api/webhooks/video-transcoding
@@ -50,6 +52,47 @@ export async function POST(req: NextRequest) {
           include: { class: { include: { lessons: true } } },
         })
 
+        if (resource) {
+        await prisma.resource.update({
+          where: { id: resource.id },
+          data: {
+            status: 'READY',
+            isPublished: true,
+            publishedAt: resource.publishedAt ?? new Date(),
+          },
+        })
+
+        await logAuditAction({
+          userId: resource.authorId,
+          action: `Resource ${resource.title} became ready`,
+          entity: 'Resource',
+          entityId: resource.id,
+          newValue: {
+            status: 'READY',
+            isPublished: true,
+          },
+        })
+
+        if (resource.classId) {
+          const enrollments = await prisma.enrollment.findMany({
+            where: { classId: resource.classId, status: 'ACTIVE' },
+            select: { userId: true },
+          })
+
+          await Promise.allSettled(
+            enrollments.map((enrollment) =>
+              sendNotificationHooks({
+                userId: enrollment.userId,
+                type: 'ANNOUNCEMENT',
+                title: `New video resource is ready: ${resource.title}`,
+                body: `Your teacher has uploaded a new video tutorial for your class.`,
+                link: `/student/resources`,
+                metadata: { resourceId: resource.id, classId: resource.classId },
+              })
+            )
+          )
+        }
+
         if (resource?.class?.lessons) {
           for (const lesson of resource.class.lessons) {
             await publishLessonEvent(lesson.id, 'video:ready', {
@@ -88,6 +131,25 @@ export async function POST(req: NextRequest) {
             },
           },
         })
+
+        const resource = await prisma.resource.findFirst({
+          where: { mediaId: mediaAsset.id },
+        })
+
+        if (resource) {
+          await prisma.resource.update({
+            where: { id: resource.id },
+            data: { status: 'FAILED' },
+          })
+
+          await logAuditAction({
+            userId: resource.authorId,
+            action: `Resource ${resource.title} failed processing`,
+            entity: 'Resource',
+            entityId: resource.id,
+            newValue: { status: 'FAILED' },
+          })
+        }
       }
 
       await handleTranscodingWebhook('video.asset.errored', body)

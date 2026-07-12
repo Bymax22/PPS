@@ -18,6 +18,8 @@ interface ResourceItem {
   author?: string | null
   createdAt: Date
   cloudinaryUrl?: string | null
+  fileUrl?: string | null
+  status?: 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED'
   downloadCount?: number | null
 }
 
@@ -70,47 +72,71 @@ export default function ResourcesWidget({ resources }: ResourcesWidgetProps) {
 
   return (
     <div className="space-y-3">
-      {resources.map((resource) => (
-        <div key={resource.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 text-slate-700">
-              {getResourceIcon(resource.type)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold text-slate-900">{resource.title}</h3>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                    {resource.description ?? 'No description available.'}
-                  </p>
+      {resources.map((resource) => {
+        const isVideo = resource.type === 'VIDEO_TUTORIAL'
+        const isReady = resource.status === 'READY' || !resource.status
+        const sourceUrl = resource.fileUrl ?? resource.cloudinaryUrl
+
+        return (
+          <div key={resource.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-50 text-slate-700">
+                {getResourceIcon(resource.type)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-slate-900">{resource.title}</h3>
+                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                      {resource.description ?? 'No description available.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-600">
+                      {getResourceTypeLabel(resource.type)}
+                    </span>
+                    {resource.status && (
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-600">
+                        {resource.status.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-600">
-                  {getResourceTypeLabel(resource.type)}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
-                {resource.subject && <span>{resource.subject}</span>}
-                {resource.author && <span>• {resource.author}</span>}
-                <span>• {new Date(resource.createdAt).toLocaleDateString()}</span>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-slate-500">
+                  {resource.subject && <span>{resource.subject}</span>}
+                  {resource.author && <span>• {resource.author}</span>}
+                  <span>• {new Date(resource.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
+            {sourceUrl ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#003087] px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
+                >
+                  <DownloadCloud className="w-4 h-4" />
+                  {isVideo ? 'Watch video' : 'Open resource'}
+                </a>
+                {isReady && resource.cloudinaryUrl && (
+                  <a
+                    href={resource.cloudinaryUrl}
+                    download
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Download
+                  </a>
+                )}
+                <span className="text-[12px] text-slate-400">{resource.downloadCount ?? 0} downloads</span>
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-slate-500">Resource link unavailable.</p>
+            )}
           </div>
-          {resource.cloudinaryUrl && (
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <a
-                href={resource.cloudinaryUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#003087] px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
-              >
-                <DownloadCloud className="w-4 h-4" />
-                Open resource
-              </a>
-              <span className="text-[12px] text-slate-400">{resource.downloadCount ?? 0} downloads</span>
-            </div>
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

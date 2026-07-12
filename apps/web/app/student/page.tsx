@@ -111,10 +111,16 @@ export default async function StudentDashboardPage() {
   const recentResources = await prisma.resource.findMany({
     where: {
       classId: { in: user.enrollments.map(e => e.classId) },
-      isPublished: true
+      isPublished: true,
+      status: 'READY',
+      isDeleted: false,
     },
     orderBy: { createdAt: 'desc' },
-    take: 4
+    take: 4,
+    include: {
+      media: true,
+      author: true,
+    },
   })
 
   // Calculate overall stats
@@ -136,7 +142,18 @@ export default async function StudentDashboardPage() {
       user={user}
       upcomingLessons={upcomingLessons}
       recentProgress={recentProgress}
-      recentResources={recentResources}
+      recentResources={recentResources.map((resource) => ({
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        type: resource.type,
+        subject: resource.subject ?? undefined,
+        author: resource.author ? `${resource.author.firstName ?? ''} ${resource.author.lastName ?? ''}`.trim() : undefined,
+        createdAt: resource.createdAt,
+        cloudinaryUrl: resource.media?.originalUrl ?? null,
+        downloadCount: resource.downloadCount ?? 0,
+        status: resource.status,
+      }))}
       enrollments={user.enrollments}
       examAttempts={user.examAttempts}
       subscriptions={user.subscriptions}

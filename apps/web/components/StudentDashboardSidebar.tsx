@@ -44,6 +44,7 @@ export default function StudentDashboardSidebar({
   const navItems = [
     { href: '/student', label: 'Dashboard', icon: Home },
     { href: '/student/classes', label: 'My Classes', icon: BookOpen },
+    { href: '/student/resources', label: 'Resources', icon: FileText },
     { href: '/student/live', label: 'Live Lessons', icon: PlayCircle },
     { href: '/student/recordings', label: 'Recordings', icon: Video },
     { href: '/student/assignments', label: 'Assignments', icon: FileText },

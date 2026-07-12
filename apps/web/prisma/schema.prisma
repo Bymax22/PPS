@@ -552,7 +552,9 @@ model Resource {
   description      String?
   type             ResourceType
   subject          String?
+  status           ResourceStatus @default(READY)
   isPublished      Boolean  @default(true)
+  publishedAt      DateTime?
   accessLevel      String
   mediaId          String?
   media            MediaAsset? @relation("ResourceMedia", fields: [mediaId], references: [id])
@@ -577,6 +579,13 @@ enum ResourceType {
   FLASHCARD_SET
   VIDEO_TUTORIAL
   STUDY_GUIDE
+}
+
+enum ResourceStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
 }
 
 model Notification {
