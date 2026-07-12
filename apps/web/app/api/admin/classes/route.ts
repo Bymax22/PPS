@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const [programs, subjects, classes] = await prisma.$transaction([
+  const [programs, subjects, classes, teachers] = await prisma.$transaction([
     prisma.program.findMany({ orderBy: { name: 'asc' } }),
     prisma.subject.findMany({ orderBy: { name: 'asc' } }),
     prisma.class.findMany({
@@ -25,15 +25,25 @@ export async function GET() {
         enrollments: { select: { id: true } },
         teachers: { include: { teacher: { select: { firstName: true, lastName: true } } } }
       }
+    }),
+    prisma.user.findMany({
+      where: { role: 'TEACHER' },
+      orderBy: { lastName: 'asc' },
+      select: { id: true, firstName: true, lastName: true, email: true }
     })
   ]).catch((error) => {
     console.error('Failed to load admin classes data', error)
-    return [[], [], []] as const
+    return [[], [], [], []] as const
   })
 
   return NextResponse.json({
     programs,
     subjects,
+    teachers: teachers.map((teacher) => ({
+      id: teacher.id,
+      name: `${teacher.firstName} ${teacher.lastName}`.trim(),
+      email: teacher.email
+    })),
     classes: classes.map((classItem) => ({
       id: classItem.id,
       name: classItem.name,
@@ -107,4 +117,43 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ class: { id: created.id, name: created.name } }, { status: 201 })
+}
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(await getAuthOptions())
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!admin || admin.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { classId, teacherIds } = body
+
+  if (!classId) {
+    return NextResponse.json({ error: 'Missing class id' }, { status: 400 })
+  }
+
+  const targetClass = await prisma.class.findUnique({ where: { id: classId } })
+  if (!targetClass) {
+    return NextResponse.json({ error: 'Class not found' }, { status: 400 })
+  }
+
+  const resolvedTeacherIds = Array.isArray(teacherIds)
+    ? teacherIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+    : []
+
+  await prisma.teacherClass.deleteMany({ where: { classId: targetClass.id } })
+
+  if (resolvedTeacherIds.length) {
+    await prisma.teacherClass.createMany({
+      data: resolvedTeacherIds.map((teacherId) => ({ teacherId, classId: targetClass.id, isPrimary: true })),
+      skipDuplicates: true
+    })
+  }
+
+  return NextResponse.json({ ok: true })
 }

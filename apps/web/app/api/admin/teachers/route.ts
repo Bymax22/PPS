@@ -16,17 +16,25 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const teachers = await prisma.user.findMany({
-    take: 50,
-    where: { role: 'TEACHER' },
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      teacherProfile: true,
-      teachingClasses: { include: { class: { select: { name: true } } } }
-    }
-  })
+  const [teachers, classes] = await prisma.$transaction([
+    prisma.user.findMany({
+      take: 50,
+      where: { role: 'TEACHER' },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        teacherProfile: true,
+        teachingClasses: { include: { class: { select: { name: true } } } }
+      }
+    }),
+    prisma.class.findMany({
+      where: { isDeleted: false },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true }
+    })
+  ])
 
   return NextResponse.json({
+    classes,
     teachers: teachers.map((teacher) => ({
       id: teacher.id,
       name: `${teacher.firstName} ${teacher.lastName}`,
@@ -111,4 +119,50 @@ export async function POST(req: Request) {
   })
 
   return NextResponse.json({ id: teacher.id, email: teacher.email }, { status: 201 })
+}
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(await getAuthOptions())
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!admin || admin.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { teacherId, classIds } = body
+
+  if (!teacherId) {
+    return NextResponse.json({ error: 'Missing teacher id' }, { status: 400 })
+  }
+
+  const existingTeacher = await prisma.user.findFirst({ where: { id: teacherId, role: 'TEACHER' } })
+  if (!existingTeacher) {
+    return NextResponse.json({ error: 'Teacher not found' }, { status: 400 })
+  }
+
+  const resolvedClassIds = Array.isArray(classIds)
+    ? classIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+    : []
+
+  await prisma.teacherClass.deleteMany({ where: { teacherId } })
+
+  if (resolvedClassIds.length) {
+    const validClasses = await prisma.class.findMany({
+      where: { id: { in: resolvedClassIds }, isDeleted: false },
+      select: { id: true }
+    })
+
+    if (validClasses.length) {
+      await prisma.teacherClass.createMany({
+        data: validClasses.map((classItem) => ({ teacherId, classId: classItem.id, isPrimary: true })),
+        skipDuplicates: true
+      })
+    }
+  }
+
+  return NextResponse.json({ ok: true })
 }

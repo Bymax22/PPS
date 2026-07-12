@@ -97,3 +97,36 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ id: created.id, title: created.title }, { status: 201 })
 }
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(await getAuthOptions())
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!admin || admin.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const body = await req.json()
+  const { lessonId, classId } = body
+
+  if (!lessonId || !classId) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  const targetLesson = await prisma.lesson.findUnique({ where: { id: lessonId } })
+  if (!targetLesson) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 400 })
+  }
+
+  const targetClass = await prisma.class.findUnique({ where: { id: classId, isDeleted: false } })
+  if (!targetClass) {
+    return NextResponse.json({ error: 'Class not found' }, { status: 400 })
+  }
+
+  await prisma.lesson.update({ where: { id: lessonId }, data: { classId } })
+
+  return NextResponse.json({ ok: true })
+}
