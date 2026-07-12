@@ -13,6 +13,11 @@ type SessionRow = {
   attendees: number
 }
 
+type ClassOption = {
+  id: string
+  name: string
+}
+
 function csvEscape(value: string | number | null | undefined) {
   if (value === null || value === undefined) return ''
   const formatted = String(value)
@@ -24,6 +29,7 @@ function csvEscape(value: string | number | null | undefined) {
 export default function AdminSessionsPage() {
   const [rows, setRows] = useState<SessionRow[]>([])
   const [query, setQuery] = useState('')
+  const [classOptions, setClassOptions] = useState<ClassOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([])
@@ -37,6 +43,9 @@ export default function AdminSessionsPage() {
   const [scheduledAt, setScheduledAt] = useState('')
   const [duration, setDuration] = useState('')
   const [roomId, setRoomId] = useState('')
+  const [assignLessonId, setAssignLessonId] = useState('')
+  const [assignClassId, setAssignClassId] = useState('')
+  const [assigningLesson, setAssigningLesson] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -47,6 +56,7 @@ export default function AdminSessionsPage() {
       const json = await res.json()
       setRows(json.sessions ?? [])
       setClasses(json.classes ?? [])
+      setClassOptions(json.classes ?? [])
       if (!classId && json.classes?.[0]?.id) setClassId(json.classes[0].id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed')
@@ -125,6 +135,31 @@ export default function AdminSessionsPage() {
     a.download = 'sessions.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleAssignLesson = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAssigningLesson(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId: assignLessonId, classId: assignClassId })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Assignment failed')
+      setMessage('Session class updated successfully.')
+      setAssignLessonId('')
+      setAssignClassId('')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Assignment failed')
+    } finally {
+      setAssigningLesson(false)
+    }
   }
 
   useEffect(() => {
@@ -214,6 +249,37 @@ export default function AdminSessionsPage() {
       </div>
 
       {error ? <div className="rounded-[2rem] bg-rose-50 p-8 text-rose-700 shadow-[0_24px_60px_rgba(248,113,113,0.15)]">{error}</div> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="mb-4">
+          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Existing sessions</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Move sessions to another class</h2>
+          <p className="mt-2 text-sm text-slate-600">Reassign an existing lesson or session to a different class when the timetable changes.</p>
+        </div>
+        <form onSubmit={handleAssignLesson} className="grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+          <label className="space-y-2 text-sm text-slate-700">
+            Session
+            <select value={assignLessonId} onChange={(event) => setAssignLessonId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="">Select session</option>
+              {rows.map((sessionItem) => (
+                <option key={sessionItem.id} value={sessionItem.id}>{sessionItem.title}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 text-sm text-slate-700">
+            Class
+            <select value={assignClassId} onChange={(event) => setAssignClassId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="">Select class</option>
+              {classOptions.map((classItem) => (
+                <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={assigningLesson || !assignLessonId || !assignClassId} className="rounded-3xl bg-[#003087] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+            {assigningLesson ? 'Saving…' : 'Move session'}
+          </button>
+        </form>
+      </section>
 
       <div className="rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">

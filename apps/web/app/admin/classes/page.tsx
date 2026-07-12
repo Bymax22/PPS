@@ -23,6 +23,12 @@ type SubjectOption = {
   name: string
 }
 
+type TeacherOption = {
+  id: string
+  name: string
+  email: string
+}
+
 function csvEscape(value: string | number | null | undefined) {
   if (value === null || value === undefined) return ''
   const formatted = String(value)
@@ -35,6 +41,7 @@ export default function AdminClassesPage() {
   const [classes, setClasses] = useState<ClassRow[]>([])
   const [programs, setPrograms] = useState<ProgramOption[]>([])
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
+  const [teachers, setTeachers] = useState<TeacherOption[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -46,6 +53,12 @@ export default function AdminClassesPage() {
   const [grade, setGrade] = useState('')
   const [subject, setSubject] = useState('')
   const [capacity, setCapacity] = useState('30')
+  const [assignClassId, setAssignClassId] = useState('')
+  const [assignTeacherIds, setAssignTeacherIds] = useState<string[]>([])
+  const [assignGrade, setAssignGrade] = useState('')
+  const [assignSubject, setAssignSubject] = useState('')
+  const [assignCapacity, setAssignCapacity] = useState('30')
+  const [assigningClass, setAssigningClass] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -57,6 +70,7 @@ export default function AdminClassesPage() {
       setClasses(json.classes ?? [])
       setPrograms(json.programs ?? [])
       setSubjects(json.subjects ?? [])
+      setTeachers(json.teachers ?? [])
       if (!programId && json.programs?.[0]?.id) setProgramId(json.programs[0].id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed')
@@ -120,6 +134,40 @@ export default function AdminClassesPage() {
       setError(err instanceof Error ? err.message : 'Create failed')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAssignClass = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAssigningClass(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/classes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId: assignClassId,
+          teacherIds: assignTeacherIds,
+          grade: assignGrade ? Number(assignGrade) : undefined,
+          subject: assignSubject || undefined,
+          capacity: assignCapacity ? Number(assignCapacity) : undefined
+        })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Assignment failed')
+      setMessage('Class updated successfully.')
+      setAssignClassId('')
+      setAssignTeacherIds([])
+      setAssignGrade('')
+      setAssignSubject('')
+      setAssignCapacity('30')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Assignment failed')
+    } finally {
+      setAssigningClass(false)
     }
   }
 
@@ -195,6 +243,50 @@ export default function AdminClassesPage() {
       </div>
 
       {error ? <div className="rounded-[2rem] bg-rose-50 p-8 text-rose-700 shadow-[0_24px_60px_rgba(248,113,113,0.15)]">{error}</div> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="mb-4">
+          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Existing classes</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Assign teachers and update class details</h2>
+          <p className="mt-2 text-sm text-slate-600">Pick an existing class, change its grade or capacity, and assign teachers directly from here.</p>
+        </div>
+        <form onSubmit={handleAssignClass} className="grid gap-4 lg:grid-cols-[1.1fr_1fr_auto]">
+          <label className="space-y-2 text-sm text-slate-700">
+            Class
+            <select value={assignClassId} onChange={(event) => setAssignClassId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="">Select class</option>
+              {classes.map((classItem) => (
+                <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 text-sm text-slate-700">
+            Teachers
+            <select multiple value={assignTeacherIds} onChange={(event) => setAssignTeacherIds(Array.from(event.target.selectedOptions, (option) => option.value))} className="min-h-[120px] w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              {teachers.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>{teacher.name} • {teacher.email}</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-col gap-3">
+            <label className="space-y-2 text-sm text-slate-700">
+              Grade
+              <input value={assignGrade} onChange={(event) => setAssignGrade(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-700">
+              Subject
+              <input value={assignSubject} onChange={(event) => setAssignSubject(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-700">
+              Capacity
+              <input value={assignCapacity} onChange={(event) => setAssignCapacity(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+            </label>
+            <button type="submit" disabled={assigningClass || !assignClassId} className="rounded-3xl bg-[#003087] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+              {assigningClass ? 'Saving…' : 'Save class'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <div className="rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">

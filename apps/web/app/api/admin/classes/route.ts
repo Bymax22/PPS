@@ -131,7 +131,7 @@ export async function PATCH(req: Request) {
   }
 
   const body = await req.json()
-  const { classId, teacherIds } = body
+  const { classId, teacherIds, grade, subject, capacity } = body
 
   if (!classId) {
     return NextResponse.json({ error: 'Missing class id' }, { status: 400 })
@@ -142,17 +142,28 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Class not found' }, { status: 400 })
   }
 
+  const updatePayload: Record<string, unknown> = {}
+  if (grade !== undefined) updatePayload.grade = Number(grade)
+  if (subject !== undefined) updatePayload.subject = subject || null
+  if (capacity !== undefined) updatePayload.capacity = Number(capacity)
+
+  if (Object.keys(updatePayload).length) {
+    await prisma.class.update({ where: { id: classId }, data: updatePayload })
+  }
+
   const resolvedTeacherIds = Array.isArray(teacherIds)
     ? teacherIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
     : []
 
-  await prisma.teacherClass.deleteMany({ where: { classId: targetClass.id } })
+  if (resolvedTeacherIds.length || teacherIds !== undefined) {
+    await prisma.teacherClass.deleteMany({ where: { classId: targetClass.id } })
 
-  if (resolvedTeacherIds.length) {
-    await prisma.teacherClass.createMany({
-      data: resolvedTeacherIds.map((teacherId) => ({ teacherId, classId: targetClass.id, isPrimary: true })),
-      skipDuplicates: true
-    })
+    if (resolvedTeacherIds.length) {
+      await prisma.teacherClass.createMany({
+        data: resolvedTeacherIds.map((teacherId) => ({ teacherId, classId: targetClass.id, isPrimary: true })),
+        skipDuplicates: true
+      })
+    }
   }
 
   return NextResponse.json({ ok: true })

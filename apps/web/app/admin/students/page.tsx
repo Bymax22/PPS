@@ -9,6 +9,11 @@ type ParentOption = {
   email: string
 }
 
+type ClassOption = {
+  id: string
+  name: string
+}
+
 type StudentRow = {
   id: string
   firstName: string
@@ -32,6 +37,7 @@ function csvEscape(value: string | number | null | undefined) {
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<StudentRow[]>([])
   const [parents, setParents] = useState<ParentOption[]>([])
+  const [classes, setClasses] = useState<ClassOption[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -46,6 +52,9 @@ export default function AdminStudentsPage() {
   const [grade, setGrade] = useState('')
   const [schoolYear, setSchoolYear] = useState('')
   const [parentEmail, setParentEmail] = useState('')
+  const [assignStudentId, setAssignStudentId] = useState('')
+  const [assignClassIds, setAssignClassIds] = useState<string[]>([])
+  const [assigningStudent, setAssigningStudent] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -56,6 +65,7 @@ export default function AdminStudentsPage() {
       const json = await res.json()
       setStudents(json.students ?? [])
       setParents(json.parents ?? [])
+      setClasses(json.classes ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed')
     } finally {
@@ -131,6 +141,31 @@ export default function AdminStudentsPage() {
       setError(err instanceof Error ? err.message : 'Create failed')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAssignStudent = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAssigningStudent(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: assignStudentId, classIds: assignClassIds })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Assignment failed')
+      setMessage('Student classes updated successfully.')
+      setAssignStudentId('')
+      setAssignClassIds([])
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Assignment failed')
+    } finally {
+      setAssigningStudent(false)
     }
   }
 
@@ -219,6 +254,36 @@ export default function AdminStudentsPage() {
             </div>
           </aside>
         </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="mb-4">
+          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Existing students</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Assign students to classes</h2>
+          <p className="mt-2 text-sm text-slate-600">Choose an existing student and assign them to one or more classes.</p>
+        </div>
+        <form onSubmit={handleAssignStudent} className="grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+          <label className="space-y-2 text-sm text-slate-700">
+            Student
+            <select value={assignStudentId} onChange={(event) => setAssignStudentId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="">Select student</option>
+              {students.map((student) => (
+                <option key={student.id} value={student.id}>{student.firstName} {student.lastName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 text-sm text-slate-700">
+            Classes
+            <select multiple value={assignClassIds} onChange={(event) => setAssignClassIds(Array.from(event.target.selectedOptions, (option) => option.value))} className="min-h-[120px] w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              {classes.map((classItem) => (
+                <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={assigningStudent || !assignStudentId} className="rounded-3xl bg-[#003087] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+            {assigningStudent ? 'Saving…' : 'Save classes'}
+          </button>
+        </form>
       </section>
 
       <section className="rounded-[2rem] overflow-hidden border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">

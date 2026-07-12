@@ -12,6 +12,11 @@ type TeacherRow = {
   lastUpdated: string
 }
 
+type ClassOption = {
+  id: string
+  name: string
+}
+
 function csvEscape(value: string | number | null | undefined) {
   if (value === null || value === undefined) return ''
   const formatted = String(value)
@@ -22,6 +27,7 @@ function csvEscape(value: string | number | null | undefined) {
 
 export default function AdminTeachersPage() {
   const [rows, setRows] = useState<TeacherRow[]>([])
+  const [classes, setClasses] = useState<ClassOption[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +41,9 @@ export default function AdminTeachersPage() {
   const [qualifications, setQualifications] = useState('')
   const [specialties, setSpecialties] = useState('')
   const [hourlyRate, setHourlyRate] = useState('')
+  const [assignTeacherId, setAssignTeacherId] = useState('')
+  const [assignClassIds, setAssignClassIds] = useState<string[]>([])
+  const [assigningTeacher, setAssigningTeacher] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -44,6 +53,7 @@ export default function AdminTeachersPage() {
       if (!res.ok) throw new Error('Unable to load teachers')
       const json = await res.json()
       setRows(json.teachers ?? [])
+      setClasses(json.classes ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed')
     } finally {
@@ -123,6 +133,31 @@ export default function AdminTeachersPage() {
     }
   }
 
+  const handleAssignTeacher = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAssigningTeacher(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/teachers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherId: assignTeacherId, classIds: assignClassIds })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Assignment failed')
+      setMessage('Teacher classes updated successfully.')
+      setAssignTeacherId('')
+      setAssignClassIds([])
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Assignment failed')
+    } finally {
+      setAssigningTeacher(false)
+    }
+  }
+
   useEffect(() => {
     void load()
   }, [])
@@ -195,6 +230,36 @@ export default function AdminTeachersPage() {
       </div>
 
       {error ? <div className="rounded-[2rem] bg-rose-50 p-8 text-rose-700 shadow-[0_24px_60px_rgba(248,113,113,0.15)]">{error}</div> : null}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="mb-4">
+          <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Existing teachers</p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Assign teachers to classes</h2>
+          <p className="mt-2 text-sm text-slate-600">Choose an existing teacher and attach them to one or more classes.</p>
+        </div>
+        <form onSubmit={handleAssignTeacher} className="grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+          <label className="space-y-2 text-sm text-slate-700">
+            Teacher
+            <select value={assignTeacherId} onChange={(event) => setAssignTeacherId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="">Select teacher</option>
+              {rows.map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2 text-sm text-slate-700">
+            Classes
+            <select multiple value={assignClassIds} onChange={(event) => setAssignClassIds(Array.from(event.target.selectedOptions, (option) => option.value))} className="min-h-[120px] w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              {classes.map((classItem) => (
+                <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={assigningTeacher || !assignTeacherId} className="rounded-3xl bg-[#003087] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+            {assigningTeacher ? 'Saving…' : 'Save classes'}
+          </button>
+        </form>
+      </section>
 
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
