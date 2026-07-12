@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationsForUsers } from '@/lib/adminNotifications'
 
 export async function GET() {
   const session = await getServerSession(await getAuthOptions())
@@ -78,6 +79,21 @@ export async function POST(req: Request) {
       createdBy: admin.id
     }
   })
+
+  const enrolledUsers = await prisma.enrollment.findMany({
+    where: { classId: targetClass.id, status: 'ACTIVE' },
+    select: { userId: true }
+  })
+
+  if (enrolledUsers.length) {
+    await createNotificationsForUsers(enrolledUsers.map((item) => item.userId), {
+      title: 'New session scheduled',
+      body: `A new ${type.toLowerCase()} session titled ${title} is now available for your class.`,
+      type: 'ANNOUNCEMENT',
+      link: '/student',
+      metadata: { lessonId: created.id, classId: targetClass.id }
+    })
+  }
 
   return NextResponse.json({ id: created.id, title: created.title }, { status: 201 })
 }

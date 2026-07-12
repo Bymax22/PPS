@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationsForUsers } from '@/lib/adminNotifications'
 
 export async function GET() {
   const session = await getServerSession(await getAuthOptions())
@@ -63,9 +64,9 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { name, programId, grade, subject, capacity } = body
+  const { name, programId, grade, subject, capacity, teacherIds } = body
 
-  if (!name || !programId || !capacity) {
+  if (!name || !programId) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
@@ -74,15 +75,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid program' }, { status: 400 })
   }
 
+  const resolvedTeacherIds = Array.isArray(teacherIds)
+    ? teacherIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+    : []
+
   const created = await prisma.class.create({
     data: {
       name,
       program: { connect: { id: program.id } },
       grade: grade ? Number(grade) : undefined,
       subject: subject || undefined,
-      capacity: Number(capacity)
+      capacity: Number(capacity ?? 30),
+      teachers: resolvedTeacherIds.length
+        ? {
+            create: resolvedTeacherIds.map((teacherId) => ({
+              teacher: { connect: { id: teacherId } }
+            }))
+          }
+        : undefined
     }
   })
+
+  if (resolvedTeacherIds.length) {
+    await createNotificationsForUsers(resolvedTeacherIds, {
+      title: 'New class assignment',
+      body: `You have been assigned to class ${created.name}.`,
+      type: 'ANNOUNCEMENT',
+      link: '/teacher',
+      metadata: { classId: created.id }
+    })
+  }
 
   return NextResponse.json({ class: { id: created.id, name: created.name } }, { status: 201 })
 }

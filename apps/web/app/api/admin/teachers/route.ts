@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationsForUsers } from '@/lib/adminNotifications'
 
 export async function GET() {
   const session = await getServerSession(await getAuthOptions())
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { firstName, lastName, email, phone, password, qualifications, specialties, hourlyRate } = body
+  const { firstName, lastName, email, phone, password, qualifications, specialties, hourlyRate, classIds } = body
 
   if (!firstName || !lastName || !email || !password) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -78,6 +79,35 @@ export async function POST(req: Request) {
         }
       }
     }
+  })
+
+  const resolvedClassIds = Array.isArray(classIds)
+    ? classIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+    : []
+
+  if (resolvedClassIds.length) {
+    const existingClasses = await prisma.class.findMany({
+      where: { id: { in: resolvedClassIds }, isDeleted: false },
+      select: { id: true }
+    })
+
+    for (const classItem of existingClasses) {
+      await prisma.teacherClass.create({
+        data: {
+          teacherId: teacher.id,
+          classId: classItem.id,
+          isPrimary: true
+        }
+      }).catch(() => undefined)
+    }
+  }
+
+  await createNotificationsForUsers([teacher.id], {
+    title: 'Teacher account created',
+    body: `Teacher account created for ${firstName} ${lastName}.`,
+    type: 'ANNOUNCEMENT',
+    link: '/teacher',
+    metadata: { teacherId: teacher.id }
   })
 
   return NextResponse.json({ id: teacher.id, email: teacher.email }, { status: 201 })

@@ -135,9 +135,7 @@ export default function AdminStudentsPage() {
   }
 
   useEffect(() => {
-    load()
-    const timer = window.setInterval(load, 5000)
-    return () => window.clearInterval(timer)
+    void load()
   }, [])
 
   return (

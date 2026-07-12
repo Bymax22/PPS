@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createNotificationsForUsers } from '@/lib/adminNotifications'
 
 export async function GET() {
   const session = await getServerSession(await getAuthOptions())
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { firstName, lastName, email, phone, password, grade, schoolYear, parentEmail } = body
+  const { firstName, lastName, email, phone, password, grade, schoolYear, parentEmail, classIds } = body
 
   if (!firstName || !lastName || !email || !password || !grade) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -73,6 +74,18 @@ export async function POST(req: Request) {
   const parent = parentEmail
     ? await prisma.user.findUnique({ where: { email: parentEmail, role: 'PARENT' } as any })
     : null
+
+  const resolvedClassIds = Array.isArray(classIds)
+    ? classIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+    : []
+
+  const existingClasses = resolvedClassIds.length
+    ? await prisma.class.findMany({
+        where: { id: { in: resolvedClassIds }, isDeleted: false },
+        select: { id: true }
+      })
+    : []
+  const validClassIds = existingClasses.map((classItem) => classItem.id)
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -92,6 +105,21 @@ export async function POST(req: Request) {
         }
       }
     }
+  })
+
+  if (validClassIds.length) {
+    await prisma.enrollment.createMany({
+      data: validClassIds.map((classId) => ({ userId: user.id, classId, status: 'ACTIVE' })),
+      skipDuplicates: true
+    })
+  }
+
+  await createNotificationsForUsers([user.id, ...(parent ? [parent.id] : [])], {
+    title: 'Student account created',
+    body: `A new student account has been created for ${firstName} ${lastName}.`,
+    type: 'ANNOUNCEMENT',
+    link: '/student',
+    metadata: { studentId: user.id }
   })
 
   return NextResponse.json({ id: user.id, email: user.email }, { status: 201 })
