@@ -103,9 +103,10 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-
-      await handleTranscodingWebhook('video.asset.ready', body)
     }
+
+    await handleTranscodingWebhook('video.asset.ready', body)
+  }
 
     if (eventType === 'video.asset.errored') {
       const muxAssetId = eventData.id
