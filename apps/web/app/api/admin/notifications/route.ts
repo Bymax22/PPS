@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendBrevoEmail } from '@/lib/email'
+import { requireAdmin } from '@/lib/adminAuth'
+import { adminNotificationPayloadSchema, parseValidation } from '@/lib/validation'
+import { captureError, logProductionEvent } from '@/lib/monitoring'
 
 const recipientLimit = 200
 
 export async function GET() {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const notifications = await prisma.notification.findMany({
@@ -37,28 +33,20 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const { admin } = context
 
   const body = await request.json()
-  const { subject, body: message, targetType, targetValue, sendEmail } = body as {
-    subject: string
-    body: string
-    targetType: string
-    targetValue: string
-    sendEmail: boolean
+  const validation = parseValidation(adminNotificationPayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
 
-  if (!subject || !message || !targetType) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
+  const { subject, body: message, targetType, targetValue, sendEmail } = validation.data
 
   let recipients = []
 
@@ -159,7 +147,12 @@ export async function POST(request: Request) {
     })
   )
 
-  await prisma.$transaction([...createNotifications, ...createCommunications])
+  try {
+    await prisma.$transaction([...createNotifications, ...createCommunications])
+  } catch (error) {
+    await captureError(error, { adminId: admin.id, targetType, targetValue })
+    return NextResponse.json({ error: 'Unable to send announcement' }, { status: 500 })
+  }
 
   if (sendEmail) {
     await Promise.allSettled(
@@ -174,6 +167,8 @@ export async function POST(request: Request) {
       )
     )
   }
+
+  logProductionEvent('notification_broadcast', { adminId: admin.id, recipientCount: recipients.length, targetType }, 'info')
 
   return NextResponse.json({ sentCount: recipients.length })
 }

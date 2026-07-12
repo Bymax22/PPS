@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import getAuthOptions from '@/lib/auth'
+import { requireAdmin } from '@/lib/adminAuth'
+import { logAuditAction } from '@/lib/audit'
 
 export async function POST(
   request: NextRequest,
@@ -8,33 +8,12 @@ export async function POST(
 ) {
   const { id: admissionId } = await params
 
-  const opts = await getAuthOptions()
-
-  const session = await getServerSession(
-    undefined,
-    undefined,
-    opts
-  )
-
-  if (!session || !session.user?.email) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    )
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const { prisma } = await import('@/lib/prisma')
-
-  const admin = await prisma.user.findUnique({
-    where: { email: session.user.email }
-  })
-
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: 'Forbidden' },
-      { status: 403 }
-    )
-  }
 
   const admission = await prisma.admissionForm.findUnique({
     where: { id: admissionId }
@@ -56,22 +35,16 @@ export async function POST(
     )
   }
 
-  // Create user if not exists using applicant email
   let user = await prisma.user.findUnique({
-    where: { email: admission.applicantEmail }
+    where: { email: admission.parentEmail || '' }
   })
 
   if (!user) {
     user = await prisma.user.create({
       data: {
-        email: admission.applicantEmail,
-        firstName:
-          admission.studentName.split(' ')[0] || 'Student',
-        lastName:
-          admission.studentName
-            .split(' ')
-            .slice(1)
-            .join(' ') || '',
+        email: admission.parentEmail || `${admission.studentName.replace(/\s+/g, '.').toLowerCase()}@pps.local`,
+        firstName: admission.studentName.split(' ')[0] || 'Student',
+        lastName: admission.studentName.split(' ').slice(1).join(' ') || '',
         role: 'STUDENT',
         status: 'ACTIVE',
         password: null
@@ -79,7 +52,6 @@ export async function POST(
     })
   }
 
-  // Determine class assignment: pick first class matching grade
   const targetClass = await prisma.class.findFirst({
     where: {
       grade: Number(admission.applyingForGrade)
@@ -102,10 +74,17 @@ export async function POST(
     }
   })
 
-  // Mark admission as ENROLLED
   await prisma.admissionForm.update({
     where: { id: admissionId },
     data: { status: 'ENROLLED' }
+  })
+
+  await logAuditAction({
+    userId: context.admin.id,
+    action: 'ADMISSION_ENROLLMENT_CREATED',
+    entity: 'Enrollment',
+    entityId: enrollment.id,
+    newValue: { admissionId, classId: targetClass.id, studentId: user.id }
   })
 
   return NextResponse.json({ enrollment })

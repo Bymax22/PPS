@@ -36,21 +36,35 @@ export async function GET(req: NextRequest) {
                   where: { status: 'ACTIVE' },
                   include: {
                     user: {
-                      include: {
-                        studentProfile: true
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                        phone: true,
+                        studentProfile: { select: { grade: true } }
                       }
                     }
                   }
                 },
                 lessons: {
                   where: { isDeleted: false },
-                  orderBy: { scheduledAt: 'desc' }
+                  orderBy: { scheduledAt: 'asc' }
                 },
                 exams: {
                   where: { isDeleted: false },
                   include: {
                     attempts: {
-                      include: { user: true },
+                      include: {
+                        user: {
+                          select: {
+                            id: true,
+                            firstName: true,
+                            lastName: true,
+                            email: true
+                          }
+                        }
+                      },
                       orderBy: { submittedAt: 'desc' }
                     }
                   },
@@ -58,14 +72,21 @@ export async function GET(req: NextRequest) {
                 },
                 resources: {
                   where: { isDeleted: false },
-                  orderBy: { createdAt: 'desc' }
+                  orderBy: { createdAt: 'desc' },
+                  include: {
+                    media: { select: { originalUrl: true } }
+                  }
                 }
               }
             }
           }
         },
         receivedMessages: {
-          include: { sender: true },
+          include: {
+            sender: {
+              select: { id: true, firstName: true, lastName: true, role: true }
+            }
+          },
           orderBy: { createdAt: 'desc' },
           take: 10
         },
@@ -80,44 +101,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
     }
 
-    const assignedTeachingClasses = teacher.teachingClasses ?? []
-    const classRecords = assignedTeachingClasses.length > 0
-      ? assignedTeachingClasses.map((tc) => tc.class)
-      : await prisma.class.findMany({
-          where: { isDeleted: false },
-          include: {
-            program: true,
-            enrollments: {
-              where: { status: 'ACTIVE' },
-              include: {
-                user: {
-                  include: {
-                    studentProfile: true
-                  }
-                }
-              }
-            },
-            lessons: {
-              where: { isDeleted: false },
-              orderBy: { scheduledAt: 'desc' }
-            },
-            exams: {
-              where: { isDeleted: false },
-              include: {
-                attempts: {
-                  include: { user: true },
-                  orderBy: { submittedAt: 'desc' }
-                }
-              },
-              orderBy: { scheduledAt: 'desc' }
-            },
-            resources: {
-              where: { isDeleted: false },
-              orderBy: { createdAt: 'desc' }
-            }
-          },
-          orderBy: { name: 'asc' }
-        })
+    const classRecords = (teacher.teachingClasses ?? []).map((link) => link.class)
 
     const classes = classRecords.map((cls) => ({
       id: cls.id,

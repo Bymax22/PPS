@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendNotificationHooks } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
         }
       })
       created.push(att)
+
+      await sendNotificationHooks({
+        userId: a.userId,
+        type: 'ATTENDANCE_LOW',
+        title: 'Attendance recorded',
+        body: `Your attendance for ${date ? new Date(date).toDateString() : 'today'} has been updated.`,
+        link: '/student'
+      })
     }
 
     return NextResponse.json({ created })
@@ -56,7 +65,9 @@ export async function GET(req: NextRequest) {
     if (endDate) where.date.lte = new Date(endDate)
 
     const records = await prisma.attendance.findMany({ where, orderBy: { date: 'desc' } })
-    return NextResponse.json(records)
+    const students = classId ? await prisma.enrollment.findMany({ where: { classId, status: 'ACTIVE' }, include: { user: { select: { id: true, firstName: true, lastName: true } } } }) : []
+
+    return NextResponse.json({ records, students })
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }

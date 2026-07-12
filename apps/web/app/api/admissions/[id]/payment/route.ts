@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
+import { logAuditAction } from '@/lib/audit'
 
 function feeForGrade(grade: string) {
-  // simple mapping; adjust as needed
   const mapping: Record<string, number> = {
     'Baby Class': 150,
     'Nursery': 150,
@@ -32,19 +32,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!admission) return NextResponse.json({ error: 'Admission not found' }, { status: 404 })
 
     const amount = feeForGrade(admission.applyingForGrade ? String(admission.applyingForGrade) : admission.studentName)
-
+    const paymentMethodValue = paymentMethod || 'BANK_TRANSFER'
     const payment = await prisma.payment.create({
       data: {
-        userId: admission.id, // tie to admission id in userId field as placeholder
-        amount: amount,
+        userId: session.user.id,
+        amount,
         currency: 'ZMW',
-        paymentMethod: paymentMethod || 'BANK_TRANSFER',
+        paymentMethod: paymentMethodValue,
         transactionRef: bankReference || null,
         status: 'PENDING'
       }
     })
 
-    return NextResponse.json({ payment })
+    await logAuditAction({
+      userId: session.user.id,
+      action: 'ADMISSION_PAYMENT_CREATED',
+      entity: 'Payment',
+      entityId: payment.id,
+      newValue: { admissionId: id, amount, paymentMethod: paymentMethodValue }
+    })
+
+    return NextResponse.json({ payment, invoiceNumber: payment.id.slice(0, 8).toUpperCase(), receiptUrl: `/api/receipts/${payment.id}` })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })

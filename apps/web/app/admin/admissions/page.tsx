@@ -1,23 +1,70 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 
+type AdmissionItem = {
+  id: string
+  studentName: string
+  parentName?: string
+  parentEmail?: string
+  parentPhone?: string
+  applyingForGrade?: number | string | null
+  status: string
+  notes?: string | null
+  documentsMediaIds?: string | null
+  documentsUrl?: string[] | null
+  consentSigned?: boolean
+  submittedAt?: string
+}
+
+function parseDocuments(value?: string | null) {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) return parsed.filter(Boolean)
+  } catch {
+    // fall back to comma-separated values
+  }
+  return value.split(',').map((item) => item.trim()).filter(Boolean)
+}
+
 export default function AdminAdmissionsPage() {
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<AdmissionItem[]>([])
   const [loading, setLoading] = useState(false)
-  const [selected, setSelected] = useState<any | null>(null)
+  const [selected, setSelected] = useState<AdmissionItem | null>(null)
+
+  const stats = useMemo(() => {
+    const counts = items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.status] = (acc[item.status] ?? 0) + 1
+      return acc
+    }, {})
+
+    return [
+      { label: 'Total', value: items.length },
+      { label: 'Under review', value: counts.UNDER_REVIEW ?? 0 },
+      { label: 'Approved', value: counts.APPROVED ?? 0 },
+      { label: 'Enrolled', value: counts.ENROLLED ?? 0 }
+    ]
+  }, [items])
 
   async function load() {
     try {
+      setLoading(true)
       const res = await fetch('/api/admin/admissions?take=50', { credentials: 'include' })
       if (!res.ok) return
       const data = await res.json()
-      setItems(data.items || [])
-    } catch (e) {}
+      const nextItems = (data.items || []) as AdmissionItem[]
+      setItems(nextItems)
+      if (!selected && nextItems[0]) setSelected(nextItems[0])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t) }, [])
+  useEffect(() => { void load(); const t = setInterval(() => { void load() }, 5000); return () => clearInterval(t) }, [])
 
   async function changeStatus(id: string, status: string) {
     setLoading(true)
@@ -38,17 +85,27 @@ export default function AdminAdmissionsPage() {
 
   return (
     <main className="p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto max-w-6xl">
         <header className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Admissions Review</h1>
-          <div className="flex gap-2">
-            <Link href="/admin" className="px-3 py-1 bg-white border rounded">Back</Link>
+          <div>
+            <h1 className="text-2xl font-semibold">Admissions Review</h1>
+            <p className="mt-1 text-sm text-gray-600">Monitor applications, review supporting documents, and convert approved applicants into enrollments.</p>
           </div>
+          <Link href="/admin" className="rounded border border-gray-200 bg-white px-3 py-2 text-sm">Back</Link>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="text-sm text-gray-500">{stat.label}</p>
+              <p className="mt-2 text-2xl font-semibold text-gray-900">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="bg-white rounded shadow overflow-hidden">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
               <table className="w-full text-left">
                 <thead className="bg-gray-50">
                   <tr>
@@ -60,17 +117,17 @@ export default function AdminAdmissionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map(a => (
-                    <tr key={a.id} className="border-t hover:bg-gray-50 cursor-pointer" onClick={() => setSelected(a)}>
-                      <td className="p-3">{a.id.slice(0,8)}</td>
-                      <td className="p-3">{a.studentName}</td>
-                      <td className="p-3">{a.applyingForGrade}</td>
-                      <td className="p-3">{a.status}</td>
+                  {items.map((application) => (
+                    <tr key={application.id} className="cursor-pointer border-t hover:bg-gray-50" onClick={() => setSelected(application)}>
+                      <td className="p-3">{application.id.slice(0, 8)}</td>
+                      <td className="p-3">{application.studentName}</td>
+                      <td className="p-3">{application.applyingForGrade ?? '—'}</td>
+                      <td className="p-3">{application.status}</td>
                       <td className="p-3">
-                        <div className="flex gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); changeStatus(a.id, 'UNDER_REVIEW') }} disabled={loading} className="px-2 py-1 bg-yellow-100 rounded">Review</button>
-                          <button onClick={(e) => { e.stopPropagation(); changeStatus(a.id, 'APPROVED') }} disabled={loading} className="px-2 py-1 bg-green-100 rounded">Approve</button>
-                          <button onClick={(e) => { e.stopPropagation(); changeStatus(a.id, 'REJECTED') }} disabled={loading} className="px-2 py-1 bg-red-100 rounded">Reject</button>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'UNDER_REVIEW') }} disabled={loading} className="rounded bg-yellow-100 px-2 py-1 text-sm">Review</button>
+                          <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'APPROVED') }} disabled={loading} className="rounded bg-green-100 px-2 py-1 text-sm">Approve</button>
+                          <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'REJECTED') }} disabled={loading} className="rounded bg-red-100 px-2 py-1 text-sm">Reject</button>
                         </div>
                       </td>
                     </tr>
@@ -81,24 +138,36 @@ export default function AdminAdmissionsPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-white rounded shadow p-4 min-h-[200px]">
+            <div className="min-h-[240px] rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               {!selected && <p className="text-sm text-gray-500">Select an application to preview details and documents.</p>}
               {selected && (
                 <div>
-                  <h3 className="font-semibold text-lg">{selected.studentName}</h3>
-                  <p className="text-sm text-gray-600">Grade: {selected.applyingForGrade}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">{selected.studentName}</h3>
+                  <p className="mt-1 text-sm text-gray-600">Grade: {selected.applyingForGrade ?? '—'}</p>
                   <p className="text-sm text-gray-600">Status: {selected.status}</p>
-                  <div className="mt-3">
-                    <h4 className="font-semibold">Documents</h4>
+                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    {selected.parentName ? <p>Parent: {selected.parentName}</p> : null}
+                    {selected.parentEmail ? <p>Email: {selected.parentEmail}</p> : null}
+                    {selected.parentPhone ? <p>Phone: {selected.parentPhone}</p> : null}
+                    {selected.notes ? <p>Notes: {selected.notes}</p> : null}
+                    <p>Consent signed: {selected.consentSigned ? 'Yes' : 'No'}</p>
+                  </div>
+                  <div className="mt-4">
+                    <h4 className="font-semibold text-gray-900">Documents</h4>
                     <ul className="mt-2 space-y-2">
-                      {(selected.documentsUrl || []).map((d: string, i: number) => (
-                        <li key={i}><a target="_blank" rel="noreferrer" href={d} className="text-blue-600 underline">{d.split('/').pop() || d}</a></li>
-                      ))}
+                      {(() => {
+                        const documents = parseDocuments(selected.documentsMediaIds || (selected.documentsUrl ? JSON.stringify(selected.documentsUrl) : null))
+                        return documents.length ? documents.map((document, index) => (
+                          <li key={`${document}-${index}`}>
+                            <a target="_blank" rel="noreferrer" href={document} className="text-sm text-blue-600 underline">{document.split('/').pop() || document}</a>
+                          </li>
+                        )) : <li className="text-sm text-gray-500">No documents attached yet.</li>
+                      })()}
                     </ul>
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    <button onClick={() => enroll(selected.id)} disabled={loading || selected.status !== 'APPROVED'} className="px-3 py-2 bg-indigo-600 text-white rounded">Create Enrollment</button>
-                    <button onClick={() => changeStatus(selected.id, 'REJECTED')} disabled={loading} className="px-3 py-2 bg-red-100 rounded">Reject</button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button onClick={() => void enroll(selected.id)} disabled={loading || selected.status !== 'APPROVED'} className="rounded bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">Create Enrollment</button>
+                    <button onClick={() => void changeStatus(selected.id, 'REJECTED')} disabled={loading} className="rounded bg-red-100 px-3 py-2 text-sm">Reject</button>
                   </div>
                 </div>
               )}

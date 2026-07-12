@@ -1,18 +1,14 @@
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/adminAuth'
+import { adminParentPayloadSchema, parseValidation } from '@/lib/validation'
+import { logProductionEvent } from '@/lib/monitoring'
 
 export async function GET() {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const parents = await prisma.user.findMany({
@@ -39,22 +35,18 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const body = await req.json()
-  const { firstName, lastName, email, phone, password } = body
-
-  if (!firstName || !lastName || !email || !password) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  const validation = parseValidation(adminParentPayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
+
+  const { firstName, lastName, email, phone, password } = validation.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
@@ -73,5 +65,6 @@ export async function POST(req: Request) {
     }
   })
 
+  logProductionEvent('parent_created', { adminId: context.admin.id, parentId: parent.id }, 'info')
   return NextResponse.json({ id: parent.id, email: parent.email }, { status: 201 })
 }

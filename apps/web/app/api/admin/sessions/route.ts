@@ -1,18 +1,14 @@
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotificationsForUsers } from '@/lib/adminNotifications'
+import { requireAdmin } from '@/lib/adminAuth'
+import { adminSessionPayloadSchema, adminSessionReassignPayloadSchema, parseValidation } from '@/lib/validation'
+import { logProductionEvent } from '@/lib/monitoring'
 
 export async function GET() {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const [sessions, classes] = await prisma.$transaction([
@@ -44,22 +40,20 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const { admin } = context
 
   const body = await req.json()
-  const { title, classId, description, type, status, scheduledAt, duration, roomId } = body
-
-  if (!title || !classId || !type || !status) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  const validation = parseValidation(adminSessionPayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
+
+  const { title, classId, description, type, status, scheduledAt, duration, roomId } = validation.data
 
   const targetClass = await prisma.class.findUnique({ where: { id: classId } })
   if (!targetClass) {
@@ -95,26 +89,24 @@ export async function POST(req: Request) {
     })
   }
 
+  logProductionEvent('session_created', { adminId: admin.id, lessonId: created.id, classId: targetClass.id }, 'info')
+
   return NextResponse.json({ id: created.id, title: created.title }, { status: 201 })
 }
 
 export async function PATCH(req: Request) {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const body = await req.json()
-  const { lessonId, classId } = body
-
-  if (!lessonId || !classId) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  const validation = parseValidation(adminSessionReassignPayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
+
+  const { lessonId, classId } = validation.data
 
   const targetLesson = await prisma.lesson.findUnique({ where: { id: lessonId } })
   if (!targetLesson) {
@@ -127,6 +119,8 @@ export async function PATCH(req: Request) {
   }
 
   await prisma.lesson.update({ where: { id: lessonId }, data: { classId } })
+
+  logProductionEvent('session_class_reassigned', { adminId: context.admin.id, lessonId, classId }, 'info')
 
   return NextResponse.json({ ok: true })
 }

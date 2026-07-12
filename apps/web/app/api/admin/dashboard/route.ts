@@ -1,18 +1,11 @@
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET() {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const resolveCount = (result: PromiseSettledResult<number>) => (result.status === 'fulfilled' ? result.value : 0)

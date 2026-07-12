@@ -37,6 +37,7 @@ export default function LiveRoom({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [error, setError] = useState<string>('')
+  const [isConnecting, setIsConnecting] = useState(true)
 
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const roster = useRef<Map<string, Participant>>(new Map())
@@ -47,6 +48,9 @@ export default function LiveRoom({
 
     async function initRoom() {
       try {
+        setError('')
+        setIsConnecting(true)
+
         const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher)
 
         const r = new Room({
@@ -125,7 +129,9 @@ export default function LiveRoom({
         onParticipantCountChange?.(r.numParticipants)
       } catch (err) {
         console.error('LiveRoom init failed', err)
-        setError(String(err))
+        setError(err instanceof Error ? err.message : 'Unable to start live session')
+      } finally {
+        if (mounted) setIsConnecting(false)
       }
     }
 
@@ -227,109 +233,115 @@ export default function LiveRoom({
         </div>
       )}
 
-      {/* Main video area */}
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        {/* Video grid */}
-        <div className="flex-1 bg-black rounded-lg overflow-hidden">
-          <div
-            ref={videoContainerRef}
-            className="w-full h-full grid grid-cols-2 gap-2 p-2 auto-rows-fr"
-            style={{ gridAutoFlow: 'dense' }}
-          >
-            {/* Videos will be rendered here */}
-          </div>
-        </div>
+      {isConnecting && !error && (
+        <div className="bg-gray-800 p-4 text-center text-sm text-gray-300">Connecting to the live session…</div>
+      )}
 
-        {/* Sidebar: Roster and Chat */}
-        <div className="w-80 flex flex-col gap-4">
-          {/* Roster */}
-          <div className="bg-gray-800 rounded-lg p-4 flex-1 overflow-y-auto">
-            <h3 className="font-bold mb-3">Participants ({participants.length + 1})</h3>
-            <div className="space-y-2">
-              {/* Local participant */}
-              <div className="bg-gray-700 rounded p-2 text-sm">
-                <div className="font-semibold">You</div>
-                <div className="text-xs text-gray-400">{isTeacher ? 'Instructor' : 'Student'}</div>
+      {!error && !isConnecting && (
+        <>
+          <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+            {/* Video grid */}
+            <div className="flex-1 bg-black rounded-lg overflow-hidden">
+              <div
+                ref={videoContainerRef}
+                className="w-full h-full grid grid-cols-2 gap-2 p-2 auto-rows-fr"
+                style={{ gridAutoFlow: 'dense' }}
+              >
+                {/* Videos will be rendered here */}
+              </div>
+            </div>
+
+            {/* Sidebar: Roster and Chat */}
+            <div className="w-80 flex flex-col gap-4">
+              {/* Roster */}
+              <div className="bg-gray-800 rounded-lg p-4 flex-1 overflow-y-auto">
+                <h3 className="font-bold mb-3">Participants ({participants.length + 1})</h3>
+                <div className="space-y-2">
+                  {/* Local participant */}
+                  <div className="bg-gray-700 rounded p-2 text-sm">
+                    <div className="font-semibold">You</div>
+                    <div className="text-xs text-gray-400">{isTeacher ? 'Instructor' : 'Student'}</div>
+                  </div>
+
+                  {/* Remote participants */}
+                  {participants.map((p) => (
+                    <div key={p.identity} className="bg-gray-700 rounded p-2 text-sm">
+                      <div className="font-semibold truncate">{p.name || p.identity}</div>
+                      <div className="text-xs text-gray-400">
+                        {p.getTrackPublications().length > 0 ? '🔴 Active' : '⚪ Listening'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Remote participants */}
-                  {participants.map((p) => (
-                <div key={p.identity} className="bg-gray-700 rounded p-2 text-sm">
-                  <div className="font-semibold truncate">{p.name || p.identity}</div>
-                  <div className="text-xs text-gray-400">
-                    {p.getTrackPublications().length > 0 ? '🔴 Active' : '⚪ Listening'}
-                  </div>
+              {/* Chat */}
+              <div className="bg-gray-800 rounded-lg p-4 flex flex-col h-80">
+                <h3 className="font-bold mb-3">Chat</h3>
+                <div className="flex-1 overflow-y-auto mb-3 space-y-2">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className="text-sm">
+                      <div className="font-semibold text-blue-300">{msg.from}</div>
+                      <div className="text-gray-300">{msg.text}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                    placeholder="Type message..."
+                    className="flex-1 bg-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
+                  />
+                  <button
+                    onClick={sendChatMessage}
+                    className="bg-blue-600 hover:bg-blue-700 rounded px-4 py-2 text-sm font-semibold"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Chat */}
-          <div className="bg-gray-800 rounded-lg p-4 flex flex-col h-80">
-            <h3 className="font-bold mb-3">Chat</h3>
-            <div className="flex-1 overflow-y-auto mb-3 space-y-2">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className="text-sm">
-                  <div className="font-semibold text-blue-300">{msg.from}</div>
-                  <div className="text-gray-300">{msg.text}</div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-                placeholder="Type message..."
-                className="flex-1 bg-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
-              />
+          <div className="bg-gray-800 border-t border-gray-700 p-4 flex items-center justify-center gap-4">
+            <button
+              onClick={toggleAudio}
+              className={`px-6 py-2 rounded font-semibold ${
+                audioEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              🎤 {audioEnabled ? 'Mute' : 'Unmute'}
+            </button>
+
+            <button
+              onClick={toggleVideo}
+              className={`px-6 py-2 rounded font-semibold ${
+                videoEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+              }`}
+            >
+              📹 {videoEnabled ? 'Stop Camera' : 'Start Camera'}
+            </button>
+
+            {isTeacher && (
               <button
-                onClick={sendChatMessage}
-                className="bg-blue-600 hover:bg-blue-700 rounded px-4 py-2 text-sm font-semibold"
+                onClick={toggleScreenShare}
+                className={`px-6 py-2 rounded font-semibold ${
+                  screenShareEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'
+                }`}
               >
-                Send
+                🖥️ {screenShareEnabled ? 'Stop Share' : 'Share Screen'}
               </button>
-            </div>
+            )}
+
+            <button className="px-6 py-2 rounded font-semibold bg-red-700 hover:bg-red-800 ml-auto">
+              📞 Leave
+            </button>
           </div>
-        </div>
-      </div>
-
-      {/* Controls bar */}
-      <div className="bg-gray-800 border-t border-gray-700 p-4 flex items-center justify-center gap-4">
-        <button
-          onClick={toggleAudio}
-          className={`px-6 py-2 rounded font-semibold ${
-            audioEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          🎤 {audioEnabled ? 'Mute' : 'Unmute'}
-        </button>
-
-        <button
-          onClick={toggleVideo}
-          className={`px-6 py-2 rounded font-semibold ${
-            videoEnabled ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
-          }`}
-        >
-          📹 {videoEnabled ? 'Stop Camera' : 'Start Camera'}
-        </button>
-
-        {isTeacher && (
-          <button
-            onClick={toggleScreenShare}
-            className={`px-6 py-2 rounded font-semibold ${
-              screenShareEnabled ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-600 hover:bg-gray-700'
-            }`}
-          >
-            🖥️ {screenShareEnabled ? 'Stop Share' : 'Share Screen'}
-          </button>
-        )}
-
-        <button className="px-6 py-2 rounded font-semibold bg-red-700 hover:bg-red-800 ml-auto">
-          📞 Leave
-        </button>
-      </div>
+        </>
+      )}
     </div>
   )
 }

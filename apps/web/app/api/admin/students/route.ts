@@ -1,19 +1,15 @@
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createNotificationsForUsers } from '@/lib/adminNotifications'
+import { requireAdmin } from '@/lib/adminAuth'
+import { adminStudentPayloadSchema, adminStudentUpdatePayloadSchema, parseValidation } from '@/lib/validation'
+import { captureError, logProductionEvent } from '@/lib/monitoring'
 
 export async function GET() {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const [students, parents, classes] = await prisma.$transaction([
@@ -55,25 +51,22 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const body = await req.json()
-  const { firstName, lastName, email, phone, password, grade, schoolYear, parentEmail, classIds } = body
-
-  if (!firstName || !lastName || !email || !password || !grade) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  const validation = parseValidation(adminStudentPayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
+
+  const { firstName, lastName, email, phone, password, grade, schoolYear, parentEmail, classIds } = validation.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
+    logProductionEvent('student_create_conflict', { email }, 'warn')
     return NextResponse.json({ error: 'User already exists' }, { status: 409 })
   }
 
@@ -128,26 +121,24 @@ export async function POST(req: Request) {
     metadata: { studentId: user.id }
   })
 
+  logProductionEvent('student_created', { adminId: context.admin.id, studentId: user.id }, 'info')
+
   return NextResponse.json({ id: user.id, email: user.email }, { status: 201 })
 }
 
 export async function PATCH(req: Request) {
-  const session = await getServerSession(await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
   const body = await req.json()
-  const { studentId, classIds } = body
-
-  if (!studentId) {
-    return NextResponse.json({ error: 'Missing student id' }, { status: 400 })
+  const validation = parseValidation(adminStudentUpdatePayloadSchema, body)
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
+
+  const { studentId, classIds } = validation.data
 
   const existingStudent = await prisma.student.findUnique({ where: { userId: studentId } })
   if (!existingStudent) {
@@ -173,6 +164,8 @@ export async function PATCH(req: Request) {
       })
     }
   }
+
+  logProductionEvent('student_class_update', { adminId: context.admin.id, studentId }, 'info')
 
   return NextResponse.json({ ok: true })
 }

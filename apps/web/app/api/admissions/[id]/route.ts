@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
+import { logAuditAction } from '@/lib/audit'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,12 +24,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json()
     const { prisma } = await import('@/lib/prisma')
 
+    const existing = await prisma.admissionForm.findUnique({ where: { id } })
+    if (!existing) return NextResponse.json({ error: 'Admission not found' }, { status: 404 })
+
     const update = await prisma.admissionForm.update({ where: { id }, data: body })
 
-    // Optional: create enrollment when status set to ENROLLED
-    if (body.status === 'ENROLLED') {
-      // create or find user by parentEmail if exists and enroll the student
-      // This is domain-specific; for now just update status
+    if (body.status) {
+      await logAuditAction({
+        userId: session.user.id,
+        action: 'ADMISSION_STATUS_CHANGED',
+        entity: 'AdmissionForm',
+        entityId: id,
+        oldValue: { status: existing.status },
+        newValue: { status: body.status }
+      })
     }
 
     return NextResponse.json(update)

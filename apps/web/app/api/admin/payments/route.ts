@@ -1,27 +1,28 @@
-import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
-import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET() {
-  const session = await getServerSession(undefined, undefined, await getAuthOptions())
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const context = await requireAdmin()
+  if ('error' in context) {
+    return context.error
   }
 
-  const admin = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!admin || admin.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const [payments, summary, outstanding, subscriptions] = await Promise.all([
+    prisma.payment.findMany({
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+        subscription: { select: { plan: true } }
+      }
+    }),
+    prisma.payment.aggregate({ _sum: { amount: true } }),
+    prisma.payment.findMany({ where: { status: { notIn: ['SUCCEEDED', 'REFUNDED'] } }, select: { amount: true } }),
+    prisma.subscription.findMany({ where: { status: 'ACTIVE' }, include: { plan: true }, take: 20 })
+  ])
 
-  const payments = await prisma.payment.findMany({
-    take: 50,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: { select: { firstName: true, lastName: true, email: true } },
-      subscription: { select: { plan: true } }
-    }
-  })
+  const outstandingBalance = outstanding.reduce((sum, item) => sum + Number(item.amount ?? 0), 0)
 
   return NextResponse.json({
     payments: payments.map((payment) => ({
@@ -32,7 +33,21 @@ export async function GET() {
       amount: payment.amount,
       currency: payment.currency,
       status: payment.status,
-      subscription: payment.subscription?.plan?.name ?? null
+      subscription: payment.subscription?.plan?.name ?? null,
+      invoiceNumber: payment.invoiceNumber ?? payment.id.slice(0, 8).toUpperCase(),
+      receiptUrl: `/api/receipts/${payment.id}`
+    })),
+    summary: {
+      totalRevenue: Number(summary._sum.amount ?? 0),
+      outstandingBalance,
+      activeSubscriptions: subscriptions.length
+    },
+    subscriptions: subscriptions.map((subscription) => ({
+      id: subscription.id,
+      plan: subscription.plan?.name ?? null,
+      status: subscription.status,
+      startDate: subscription.startDate.toISOString(),
+      endDate: subscription.endDate?.toISOString() ?? null
     }))
   })
 }

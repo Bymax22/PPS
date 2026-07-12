@@ -80,10 +80,10 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
               <div className="bg-white rounded shadow p-4">
                 <h4 className="font-semibold">Comments</h4>
                 <div className="mt-3 space-y-3 max-h-64 overflow-auto">
-                  {comments.map(c => (
+                  {comments.map((c) => (
                     <div key={c.id} className="border rounded p-2">
                       <div className="text-xs text-gray-500">{new Date(c.createdAt).toLocaleString()}</div>
-                      <div className="mt-1 text-sm">{c.text}</div>
+                      <div className="mt-1 text-sm">{c.body ?? c.message ?? c.text ?? 'Comment'}</div>
                     </div>
                   ))}
                 </div>

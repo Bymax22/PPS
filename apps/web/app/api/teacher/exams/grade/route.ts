@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendNotificationHooks } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,15 +41,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // notify student
-    await prisma.notification.create({
-      data: {
-        userId: studentId,
-        type: 'GRADE_PUBLISHED',
-        title: `Your exam results: ${exam.title}`,
-        body: `You scored ${score} (${percentage}%)`,
-        link: `/student/exams/${examId}`
-      }
+    await sendNotificationHooks({
+      userId: studentId,
+      type: 'GRADE_PUBLISHED',
+      title: `Your exam results: ${exam.title}`,
+      body: `You scored ${score} (${percentage}%)`,
+      link: `/student/exams/${examId}`
     })
 
     return NextResponse.json(attempt)
