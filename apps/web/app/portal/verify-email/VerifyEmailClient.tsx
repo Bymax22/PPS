@@ -32,6 +32,7 @@ export default function VerifyEmailClient({ token: initialToken, email: initialE
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'waiting'>('loading')
   const [message, setMessage] = useState('Verifying your email...')
   const [resending, setResending] = useState(false)
+  const [destination, setDestination] = useState('/student')
   const displayName = [firstName, lastName].filter(Boolean).join(' ').trim()
 
   async function handleResend() {
@@ -85,8 +86,9 @@ export default function VerifyEmailClient({ token: initialToken, email: initialE
         }
         setStatus('success')
         setMessage('Your email has been verified successfully. You can now continue to your dashboard.')
-        const destination = getDashboardPath(data.role)
-        setTimeout(() => router.push(destination), 1200)
+        const nextDestination = getDashboardPath(data.role)
+        setDestination(nextDestination)
+        setTimeout(() => router.push(nextDestination), 1200)
       } catch (err: any) {
         setStatus('error')
         setMessage(err?.message || 'Unable to verify email. The link may have expired.')
@@ -152,10 +154,10 @@ export default function VerifyEmailClient({ token: initialToken, email: initialE
 
         {status === 'success' && (
           <button 
-            onClick={() => router.push('/portal')}
+            onClick={() => router.push(destination)}
             className="w-full px-4 py-3 bg-[#003087] hover:bg-[#001f5b] text-white rounded-lg font-medium transition-colors"
           >
-            Go to Portal
+            Go to Dashboard
           </button>
         )}
 
