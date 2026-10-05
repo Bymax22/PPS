@@ -36,7 +36,7 @@ export async function GET() {
       name: `${teacher.firstName} ${teacher.lastName}`,
       email: teacher.email,
       phone: teacher.phone,
-      subject: teacher.teacherProfile?.specialties?.split(',')[0].trim() ?? null,
+      subject: teacher.teacherProfile?.specialties?.split(',')[0]?.trim() ?? null,
       classes: teacher.teachingClasses.map((item) => item.class.name).join(', '),
       lastUpdated: teacher.updatedAt.toISOString()
     }))
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
       phone,
       password: hashedPassword,
       role: 'TEACHER',
+      emailVerified: new Date(),
       teacherProfile: {
         create: {
           qualifications: qualifications || undefined,
@@ -92,14 +93,15 @@ export async function POST(req: Request) {
       select: { id: true }
     })
 
-    for (const classItem of existingClasses) {
-      await prisma.teacherClass.create({
-        data: {
+    if (existingClasses.length) {
+      await prisma.teacherClass.createMany({
+        data: existingClasses.map((classItem) => ({
           teacherId: teacher.id,
           classId: classItem.id,
           isPrimary: true
-        }
-      }).catch(() => undefined)
+        })),
+        skipDuplicates: true,
+      })
     }
   }
 

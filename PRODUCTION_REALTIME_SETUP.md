@@ -1,115 +1,31 @@
 # Production Real-Time Infrastructure Setup
 
-This guide covers setting up Redis pub/sub, WebSocket server, and video transcoding for production deployment.
+The Vercel deployment uses Ably Channels for cross-instance realtime invalidation.
+The app publishes metadata-only change events after persisted writes; authenticated
+clients receive these events and refresh their authorized API/RSC data. Live audio
+and video continue to use LiveKit.
 
-## 1. Redis Setup
+## 1. Ably Setup
 
-### Local Development (Mac/Linux)
-```bash
-# Install Redis
-brew install redis  # Mac
-# or
-sudo apt-get install redis-server  # Linux
+1. Create an Ably app and an API key with publish and subscribe capabilities.
+2. Configure `ABLY_API_KEY` in local environment and in Vercel Project Settings.
+   Keep the key server-only; do not prefix it with `NEXT_PUBLIC_`.
+3. Configure `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, and `DATABASE_URL` in the same
+   deployment environment. For local dev, the app runs on port `2000`.
+4. Deploy the app. Authenticated clients obtain restricted subscribe-only tokens
+   through `/api/realtime/token`; server-side database writes publish to
+   `school-updates`.
+5. Confirm the authenticated browser console has no connection errors, then
+   create or update a class/subject and confirm open management screens refresh.
 
-# Start Redis server
-redis-server
-# Default: redis://localhost:6379
-```
+If `ABLY_API_KEY` is absent or Ably is temporarily unavailable, data writes remain
+available and the dashboard polling fallback continues to refresh periodically.
+The realtime health check is available at `/api/realtime/token` (requires an
+authenticated session; a `503` indicates missing provider configuration).
 
-### Docker Compose
-```yaml
-# Add to docker-compose.yml
-services:
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: redis-server --appendonly yes
-
-volumes:
-  redis-data:
-```
-
-### Production (Cloud)
-- **AWS ElastiCache**: https://aws.amazon.com/elasticache/
-  - Managed Redis service
-  - Multi-AZ for high availability
-  - Automatic backups
-  
-- **Redis Cloud**: https://redis.com/try-free/
-  - Hosted Redis with free tier
-  - Auto-scaling, high availability
-  - Global distribution
-
-### Environment Configuration
-```env
-# .env.local (development)
-REDIS_URL=redis://localhost:6379
-
-# .env.production (cloud)
-REDIS_URL=redis://:password@host:port
-```
-
-## 2. WebSocket Server Setup
-
-### Installation
-```bash
-cd apps/web
-npm install socket.io
-npm install -D @types/socket.io
-```
-
-### Next.js API Route Configuration
-
-Create `app/api/socket/route.ts`:
-```typescript
-import { NextRequest } from 'next/server'
-import { Server as HTTPServer } from 'http'
-import { initializeWebSocketServer } from '@/lib/websocket'
-
-export async function GET(req: NextRequest) {
-  const { socket, res } = req as any
-  
-  if (!res.socket.server.io) {
-    const httpServer = res.socket.server as HTTPServer
-    res.socket.server.io = initializeWebSocketServer(httpServer)
-  }
-  
-  return new Response('WebSocket connected')
-}
-```
-
-### Alternative: Standalone Socket.io Server
-For production, run Socket.io on separate port:
-
-```typescript
-// server/socket-server.ts
-import { Server } from 'socket.io'
-import { createServer } from 'http'
-import { initializeWebSocketServer } from './websocket'
-
-const httpServer = createServer()
-const io = initializeWebSocketServer(httpServer)
-
-const PORT = process.env.SOCKET_IO_PORT || 3001
-
-httpServer.listen(PORT, () => {
-  console.log(`Socket.io server listening on port ${PORT}`)
-})
-```
-
-Run with: `npm run socket:server`
-
-### Configuration
-```env
-# For integrated approach (same server as Next.js)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# For separate server
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3001
-```
+Realtime authorization is limited to the single `school-updates` channel. Events
+contain only model/action/timestamp metadata—never record contents. All displayed
+data continues to be fetched through the app's role-authorized APIs.
 
 ## 3. Video Transcoding Setup
 

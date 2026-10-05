@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const context = await requireAdmin()
+    if ('error' in context) return context.error
+
     const { id } = await params
     const { prisma } = await import('@/lib/prisma')
     const admission = await prisma.admissionForm.findUnique({ where: { id } })
@@ -24,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     page.drawText(`Status: ${admission.status}`, { x: 40, y: height - 200, size: fontSize, font })
 
     page.drawText('Submitted data:', { x: 40, y: height - 230, size: 14, font })
-    const docJson = admission.documentsUrl ? JSON.stringify(admission.documentsUrl) : ''
+    const docJson = admission.documentsMediaIds ? JSON.stringify(admission.documentsMediaIds) : ''
     page.drawText(docJson, { x: 40, y: height - 250, size: 9, font, maxWidth: 520 })
 
     const pdfBytes = await pdfDoc.save()

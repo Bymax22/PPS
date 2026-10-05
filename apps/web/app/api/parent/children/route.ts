@@ -22,14 +22,17 @@ export async function GET(req: NextRequest) {
                 firstName: true,
                 lastName: true,
                 email: true,
-                phone: true,
-                profileImage: true
+                phone: true
               }
             }
           }
         }
       }
     })
+
+    if (parent?.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
+    }
 
     return NextResponse.json(parent?.children || [])
   } catch (error) {
@@ -46,13 +49,22 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { firstName, lastName, email, phone, grade, schoolYear } = body
+    const normalizedGrade = Number(grade)
+    if (
+      typeof firstName !== 'string' || !firstName.trim() ||
+      typeof lastName !== 'string' || !lastName.trim() ||
+      typeof email !== 'string' || !email.includes('@') ||
+      !Number.isInteger(normalizedGrade) || normalizedGrade < 0
+    ) {
+      return NextResponse.json({ error: 'Valid child name, email, and grade are required' }, { status: 400 })
+    }
 
     // Find parent
     const parent = await prisma.user.findUnique({
       where: { email: session.user.email }
     })
 
-    if (!parent) {
+    if (!parent || parent.role !== 'PARENT') {
       return NextResponse.json({ error: 'Parent not found' }, { status: 404 })
     }
 
@@ -60,6 +72,10 @@ export async function POST(req: NextRequest) {
     let student = await prisma.user.findUnique({
       where: { email }
     })
+
+    if (student && student.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'That email belongs to a non-student account' }, { status: 409 })
+    }
 
     if (!student) {
       student = await prisma.user.create({
@@ -74,20 +90,17 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Create student profile
+    const existingProfile = await prisma.student.findUnique({ where: { userId: student.id } })
+    if (existingProfile) {
+      return NextResponse.json({ error: 'This student is already linked to a parent account' }, { status: 409 })
+    }
+
     const studentProfile = await prisma.student.create({
-      data: {
-        userId: student.id,
-        grade: parseInt(grade),
-        schoolYear,
-        parentId: parent.id
-      },
-      include: {
-        user: true
-      }
+      data: { userId: student.id, grade: normalizedGrade, schoolYear, parentId: parent.id },
+      include: { user: true },
     })
 
-    return NextResponse.json(studentProfile)
+    return NextResponse.json(studentProfile, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
@@ -107,10 +120,19 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Child ID required' }, { status: 400 })
     }
 
-    // Update student profile to remove parent link
+    const parent = await prisma.user.findUnique({ where: { email: session.user.email } })
+    if (!parent || parent.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
+    }
+
+    const child = await prisma.student.findFirst({ where: { id: childId, parentId: parent.id } })
+    if (!child) {
+      return NextResponse.json({ error: 'Child not found for this parent' }, { status: 404 })
+    }
+
     await prisma.student.update({
-      where: { id: childId },
-      data: { parentId: null }
+      where: { id: child.id },
+      data: { parentId: null },
     })
 
     return NextResponse.json({ success: true })

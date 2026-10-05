@@ -10,6 +10,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
+    const allowedRoles = ['STUDENT', 'PARENT', 'TEACHER']
+    if (role && !allowedRoles.includes(role)) {
+      return NextResponse.json({ error: 'This account role cannot be self-registered' }, { status: 403 })
+    }
+
     if (role === 'STUDENT' && !grade) {
       return NextResponse.json({ error: 'Grade is required for student registration' }, { status: 400 })
     }

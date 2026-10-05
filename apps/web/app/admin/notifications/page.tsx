@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type NoticeLog = {
   id: string
@@ -46,6 +47,8 @@ export default function AdminNotificationsPage() {
       setRefreshing(false)
     }
   }
+
+  useRealtimeRefresh(loadLogs)
 
   useEffect(() => {
     loadLogs()

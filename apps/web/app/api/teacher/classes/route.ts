@@ -40,30 +40,10 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    const assignedClasses = teacher?.teachingClasses ?? []
-    const classRecords = assignedClasses.length > 0
-      ? assignedClasses.map((tc) => tc.class)
-      : await prisma.class.findMany({
-          where: { isDeleted: false },
-          include: {
-            program: true,
-            enrollments: {
-              where: { status: 'ACTIVE' },
-              include: {
-                user: {
-                  include: {
-                    studentProfile: true
-                  }
-                }
-              }
-            },
-            lessons: {
-              where: { isDeleted: false },
-              orderBy: { scheduledAt: 'asc' }
-            }
-          },
-          orderBy: { name: 'asc' }
-        })
+    if (!teacher || teacher.role !== 'TEACHER') {
+      return NextResponse.json({ error: 'Teacher account required' }, { status: 403 })
+    }
+    const classRecords = teacher.teachingClasses.map((link) => link.class)
 
     const classes = classRecords.map((cls) => ({
       id: cls.id,

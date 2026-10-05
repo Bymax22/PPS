@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    if (!parent) {
-      return NextResponse.json({ error: 'Parent not found' }, { status: 404 })
+    if (!parent || parent.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
     }
 
     // Get all payments for parent's children
@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(payments)
   } catch (error) {
+    console.error('Failed to load parent payments', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
@@ -57,15 +58,35 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { childId, amount, paymentMethod, subscriptionId, mobileProvider, mobileNumber, bankReference, card, cardId } = body
+    const numericAmount = Number(amount)
+    if (typeof childId !== 'string' || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return NextResponse.json({ error: 'A valid child and positive payment amount are required' }, { status: 400 })
+    }
 
-    // Get student
-    const student = await prisma.student.findUnique({
-      where: { id: childId },
-      include: { user: true }
+    const parent = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
     })
+    if (!parent || parent.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
+    }
 
+    const student = await prisma.student.findFirst({
+      where: { id: childId, parentId: parent.id },
+      select: { userId: true },
+    })
     if (!student) {
-      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Child not found for this parent' }, { status: 404 })
+    }
+
+    if (subscriptionId) {
+      const subscription = await prisma.subscription.findFirst({
+        where: { id: subscriptionId, userId: student.userId },
+        select: { id: true },
+      })
+      if (!subscription) {
+        return NextResponse.json({ error: 'Subscription not found for this child' }, { status: 404 })
+      }
     }
 
     // Create payment record
@@ -87,7 +108,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: student.userId,
         subscriptionId: subscriptionId || null,
-        amount: parseFloat(amount),
+        amount: numericAmount,
         currency: 'ZMW',
         paymentMethod: prismaMethod,
         status: 'PENDING',
@@ -97,6 +118,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(payment)
   } catch (error) {
+    console.error('Failed to create parent payment', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

@@ -14,6 +14,7 @@ export default function ApplicationFormPage() {
     // Student Information
     studentFirstName: '',
     studentLastName: '',
+    studentEmail: '',
     studentDob: '',
     studentGender: '',
     studentNationality: 'Zambian',
@@ -254,6 +255,20 @@ export default function ApplicationFormPage() {
                         required
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
                         placeholder="Enter last name"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Student Email (if available)
+                      </label>
+                      <input
+                        type="email"
+                        name="studentEmail"
+                        value={formData.studentEmail}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
+                        placeholder="Student's email address"
                       />
                     </div>
 
@@ -512,12 +527,13 @@ export default function ApplicationFormPage() {
                           Last Grade Completed
                         </label>
                         <input
-                          type="text"
+                          type="number"
                           name="previousGrade"
                           value={formData.previousGrade}
                           onChange={handleInputChange}
+                          min="0"
                           className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-[var(--campus-gold)] focus:outline-none"
-                          placeholder="e.g., Grade 3"
+                          placeholder="e.g., 3"
                         />
                       </div>
                     </div>

@@ -1,5 +1,10 @@
 # Real-Time Infrastructure Integration Guide
 
+> **Current architecture:** the Vercel deployment uses Ably Channels. The historical
+> Socket.IO/Redis examples below are not the runtime implementation. Follow
+> [PRODUCTION_REALTIME_SETUP.md](./PRODUCTION_REALTIME_SETUP.md) for the current
+> configuration, authenticated subscription, and verification steps.
+
 ## Overview
 
 This document guides you through integrating the new production-grade real-time infrastructure into your existing codebase:

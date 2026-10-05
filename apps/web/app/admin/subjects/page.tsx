@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type SubjectRow = {
   id: string
@@ -73,9 +74,11 @@ export default function AdminSubjectsPage() {
     }
   }
 
+  useRealtimeRefresh(load)
+
   useEffect(() => {
     load()
-    const timer = window.setInterval(load, 5000)
+    const timer = window.setInterval(load, 30000)
     return () => window.clearInterval(timer)
   }, [])
 

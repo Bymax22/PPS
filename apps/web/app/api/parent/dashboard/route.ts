@@ -49,6 +49,9 @@ export async function GET(req: NextRequest) {
     if (!parent) {
       return NextResponse.json({ error: 'Parent not found' }, { status: 404 })
     }
+    if (parent.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
+    }
 
     const childIds = parent.children.map((child) => child.userId)
     const [childEnrollments, childProgress, childAttendance, childPayments, childExams] = await Promise.all([

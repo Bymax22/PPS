@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type ClassRow = {
   id: string
@@ -16,6 +17,7 @@ type ClassRow = {
 type ProgramOption = {
   id: string
   name: string
+  type: string
 }
 
 type SubjectOption = {
@@ -45,10 +47,13 @@ export default function AdminClassesPage() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [creatingProgram, setCreatingProgram] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   const [name, setName] = useState('')
+  const [programName, setProgramName] = useState('')
+  const [programType, setProgramType] = useState('ON_CAMPUS')
   const [programId, setProgramId] = useState('')
   const [grade, setGrade] = useState('')
   const [subject, setSubject] = useState('')
@@ -137,6 +142,31 @@ export default function AdminClassesPage() {
     }
   }
 
+  const handleCreateProgram = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCreatingProgram(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const res = await fetch('/api/admin/programs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: programName, type: programType })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Program creation failed')
+      setProgramName('')
+      await load()
+      setProgramId(json.program.id)
+      setMessage('Program created successfully.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Program creation failed')
+    } finally {
+      setCreatingProgram(false)
+    }
+  }
+
   const handleAssignClass = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setAssigningClass(true)
@@ -171,12 +201,38 @@ export default function AdminClassesPage() {
     }
   }
 
+  useRealtimeRefresh(load)
+
   useEffect(() => {
     void load()
   }, [])
 
   return (
     <div className="space-y-8 py-10">
+      <section className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Programs</p>
+        <h2 className="mt-2 text-2xl font-semibold text-slate-900">Create a program</h2>
+        <p className="mt-2 text-sm text-slate-600">Programs are required before classes can be created.</p>
+        <form onSubmit={handleCreateProgram} className="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
+          <label className="space-y-2 text-sm text-slate-700">
+            Program name
+            <input required minLength={2} value={programName} onChange={(event) => setProgramName(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+          </label>
+          <label className="space-y-2 text-sm text-slate-700">
+            Program type
+            <select value={programType} onChange={(event) => setProgramType(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+              <option value="ON_CAMPUS">On campus</option>
+              <option value="ONLINE_FULL_TIME">Online full time</option>
+              <option value="HOME_TUITION">Home tuition</option>
+              <option value="HOLIDAY_TUITION">Holiday tuition</option>
+              <option value="RESOURCES_SHOP">Resources shop</option>
+            </select>
+          </label>
+          <button type="submit" disabled={creatingProgram} className="self-end rounded-3xl bg-[#003087] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+            {creatingProgram ? 'Creating…' : 'Create program'}
+          </button>
+        </form>
+      </section>
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-[2rem] bg-white p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <div className="mb-6">
@@ -219,7 +275,7 @@ export default function AdminClassesPage() {
               </div>
             ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button type="submit" disabled={saving} className="inline-flex items-center justify-center rounded-3xl bg-[#003087] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" disabled={saving || !programs.length} className="inline-flex items-center justify-center rounded-3xl bg-[#003087] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
                 {saving ? 'Creating…' : 'Create class'}
               </button>
               <div className="text-sm text-slate-500">New classes refresh automatically after creation.</div>

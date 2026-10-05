@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type TeacherRow = {
   id: string
@@ -157,6 +158,8 @@ export default function AdminTeachersPage() {
       setAssigningTeacher(false)
     }
   }
+
+  useRealtimeRefresh(load)
 
   useEffect(() => {
     void load()

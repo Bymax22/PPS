@@ -16,11 +16,37 @@ declare global {
 
 const datasourceUrl = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/pps'
 
+const realtimeModels = new Set([
+  'User', 'Student', 'Teacher', 'Program', 'Subject', 'Class', 'Enrollment',
+  'Lesson', 'LessonSession', 'SessionAttendee', 'Progress', 'Exam',
+  'ExamAttempt', 'Answer', 'Resource', 'Notification', 'Communication',
+  'AdmissionForm', 'Attendance', 'Payment', 'Subscription', 'Invoice',
+  'ClassExercise', 'ClassExerciseResponse', 'LivePoll', 'LivePollResponse',
+  'ChatMessage',
+])
+const writeOperations = new Set([
+  'create', 'createMany', 'createManyAndReturn', 'update', 'updateMany',
+  'updateManyAndReturn', 'upsert', 'delete', 'deleteMany',
+])
+
 let _prisma: any
 if (PrismaClient) {
   _prisma = global.prisma ?? new PrismaClient({
     datasources: {
       db: { url: datasourceUrl },
+    },
+  }).$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }: any) {
+          const result = await query(args)
+          if (realtimeModels.has(model) && writeOperations.has(operation)) {
+            const { publishDataChange } = await import('./realtime-server')
+            await publishDataChange(model, operation)
+          }
+          return result
+        },
+      },
     },
   })
   if (process.env.NODE_ENV !== 'production') global.prisma = _prisma

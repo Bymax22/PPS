@@ -98,96 +98,13 @@ export default function ParentDashboard() {
   const [parentName, setParentName] = useState('Parent')
   const [parentInitials, setParentInitials] = useState('P')
 
-  // Mock data - replace with actual API calls
-  const [children, setChildren] = useState<Child[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      grade: 10,
-      schoolYear: '2024',
-      user: {
-        firstName: 'parent',
-        lastName: 'parent',
-        email: 'parent@example.com',
-        phone: '+260XXXXXXXXX'
-      }
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      grade: 8,
-      schoolYear: '2024',
-      user: {
-        firstName: 'Emma',
-        lastName: 'Doe',
-        email: 'emma.doe@example.com'
-      }
-    }
-  ])
-
-  const [progressData, setProgressData] = useState<Record<string, ProgressSummary>>({
-    '1': {
-      averageScore: 85,
-      completedLessons: 24,
-      totalLessons: 30,
-      passedExams: 8,
-      totalExams: 10,
-      recentActivity: [
-        { id: '1', type: 'exam', title: 'Mathematics Final', date: new Date(), score: 88, status: 'passed' },
-        { id: '2', type: 'lesson', title: 'Physics - Chapter 5', date: new Date(), status: 'completed' },
-        { id: '3', type: 'assignment', title: 'Chemistry Lab Report', date: new Date(), score: 92, status: 'graded' }
-      ]
-    },
-    '2': {
-      averageScore: 78,
-      completedLessons: 18,
-      totalLessons: 25,
-      passedExams: 5,
-      totalExams: 8,
-      recentActivity: [
-        { id: '1', type: 'exam', title: 'English Literature', date: new Date(), score: 82, status: 'passed' },
-        { id: '2', type: 'lesson', title: 'History - World Wars', date: new Date(), status: 'completed' }
-      ]
-    }
-  })
-
-  const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceSummary>>({
-    '1': {
-      present: 28,
-      absent: 2,
-      late: 1,
-      excused: 1,
-      percentage: 89
-    },
-    '2': {
-      present: 25,
-      absent: 3,
-      late: 2,
-      excused: 1,
-      percentage: 81
-    }
-  })
-
-  const [notifications, setNotifications] = useState([
-    { id: '1', title: 'New Assignment', message: 'John has a new math assignment due tomorrow', date: new Date(), read: false, childId: '1' },
-    { id: '2', title: 'Payment Reminder', message: 'School fees payment due in 5 days', date: new Date(), read: false, childId: null },
-    { id: '3', title: 'Exam Results', message: 'Emma\'s science exam results are available', date: new Date(), read: true, childId: '2' }
-  ])
-
-  const [messages, setMessages] = useState([
-    { id: '1', from: 'Mr. Smith', fromRole: 'Teacher', message: 'John has been showing great improvement in mathematics.', date: new Date(), read: false, childId: '1' },
-    { id: '2', from: 'Ms. Johnson', fromRole: 'Teacher', message: 'Emma needs to complete her pending assignments.', date: new Date(), read: true, childId: '2' }
-  ])
-
-  const [payments, setPayments] = useState([
-    { id: '1', childId: '1', amount: 500, status: 'paid', date: new Date(), description: 'Term 1 Fees', method: 'Credit Card' },
-    { id: '2', childId: '2', amount: 500, status: 'pending', date: new Date(), description: 'Term 1 Fees', method: null }
-  ])
-
-  const [savedCards, setSavedCards] = useState<PaymentMethod[]>([
-    { id: '1', type: 'visa', last4: '4242', isDefault: true },
-    { id: '2', type: 'mastercard', last4: '5555', isDefault: false }
-  ])
+  const [children, setChildren] = useState<Child[]>([])
+  const [progressData, setProgressData] = useState<Record<string, ProgressSummary>>({})
+  const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceSummary>>({})
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [messages, setMessages] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
+  const [savedCards, setSavedCards] = useState<PaymentMethod[]>([])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -197,7 +114,7 @@ export default function ParentDashboard() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Poll parent dashboard for realtime mockup data
+  // Realtime invalidations refresh data immediately; polling remains as a fallback.
   useEffect(() => {
     let mounted = true
 
@@ -243,10 +160,13 @@ export default function ParentDashboard() {
     }
 
     fetchData()
-    const id = setInterval(fetchData, 5000)
+    const id = setInterval(fetchData, 30000)
+    const onDataChange = () => { void fetchData() }
+    window.addEventListener('pps:data-changed', onDataChange)
     return () => {
       mounted = false
       clearInterval(id)
+      window.removeEventListener('pps:data-changed', onDataChange)
     }
   }, [])
 
@@ -269,7 +189,9 @@ export default function ParentDashboard() {
     { icon: Settings, label: 'Settings', href: '/parent/settings' }
   ]
 
-  const totalOutstanding = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0)
+  const totalOutstanding = payments
+    .filter((payment) => payment.status !== 'SUCCEEDED')
+    .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0)
 
   return (
     <div className="min-h-screen flex overflow-hidden bg-slate-50">
@@ -674,6 +596,7 @@ function MessageItem({ message }: any) {
 }
 
 function PaymentStatusCard({ payment }: any) {
+  const isPaid = ['PAID', 'SUCCEEDED'].includes(String(payment.status).toUpperCase())
   return (
     <div className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
       <div>
@@ -685,9 +608,9 @@ function PaymentStatusCard({ payment }: any) {
       </div>
       <div 
         className="px-2 py-1 rounded-lg text-xs font-semibold text-white"
-        style={{ backgroundColor: payment.status === 'paid' ? '#0EF117' : '#f59e0b' }}
+        style={{ backgroundColor: isPaid ? '#0EF117' : '#f59e0b' }}
       >
-        {payment.status === 'paid' ? 'Paid' : 'Pending'}
+        {isPaid ? 'Paid' : 'Pending'}
       </div>
     </div>
   )

@@ -11,10 +11,11 @@ export async function GET() {
     return context.error
   }
 
-  const [programs, subjects, classes, teachers] = await prisma.$transaction([
-    prisma.program.findMany({ orderBy: { name: 'asc' } }),
+  const data = await prisma.$transaction([
+    prisma.program.findMany({ where: { isDeleted: false }, orderBy: { name: 'asc' } }),
     prisma.subject.findMany({ orderBy: { name: 'asc' } }),
     prisma.class.findMany({
+      where: { isDeleted: false },
       orderBy: { createdAt: 'desc' },
       include: {
         program: { select: { id: true, name: true } },
@@ -29,8 +30,13 @@ export async function GET() {
     })
   ]).catch((error) => {
     console.error('Failed to load admin classes data', error)
-    return [[], [], [], []] as const
+    return null
   })
+
+  if (!data) {
+    return NextResponse.json({ error: 'Unable to load class management data' }, { status: 500 })
+  }
+  const [programs, subjects, classes, teachers] = data
 
   return NextResponse.json({
     programs,
@@ -87,7 +93,7 @@ export async function POST(req: Request) {
     data: {
       name,
       program: { connect: { id: program.id } },
-      grade: grade ? Number(grade) : undefined,
+      grade: grade !== undefined ? Number(grade) : undefined,
       subject: subject || undefined,
       capacity: Number(capacity ?? 30),
       teachers: resolvedTeacherIds.length

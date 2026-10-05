@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type ParentRow = {
   id: string
@@ -114,9 +115,11 @@ export default function AdminParentsPage() {
     }
   }
 
+  useRealtimeRefresh(load)
+
   useEffect(() => {
     load()
-    const timer = window.setInterval(load, 5000)
+    const timer = window.setInterval(load, 30000)
     return () => window.clearInterval(timer)
   }, [])
 

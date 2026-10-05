@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendNotificationHooks } from '@/lib/notifications'
+import { getTeacherClassScope, teacherCanAccessClass } from '@/lib/teacherAccess'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,10 @@ export async function POST(req: NextRequest) {
 
     if (!title || !classId) {
       return NextResponse.json({ error: 'Exam title and class are required' }, { status: 400 })
+    }
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope || !teacherCanAccessClass(classScope, classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
     }
 
     const normalizedQuestions = Array.isArray(questions) ? questions : []
@@ -73,9 +78,17 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const classId = searchParams.get('classId')
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope) return NextResponse.json({ error: 'Teacher account required' }, { status: 403 })
+    if (classId && !teacherCanAccessClass(classScope, classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
+    }
+    const classFilter = classScope.role === 'ADMIN'
+      ? classId ?? undefined
+      : classId ?? { in: classScope.classIds ?? [] }
 
     const exams = await prisma.exam.findMany({
-      where: { classId: classId ?? undefined, isDeleted: false },
+      where: { classId: classFilter, isDeleted: false },
       include: {
         attempts: {
           include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } }

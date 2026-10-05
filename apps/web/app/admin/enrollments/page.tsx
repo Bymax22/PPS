@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type EnrollmentRow = {
   id: string
@@ -77,9 +78,11 @@ export default function AdminEnrollmentsPage() {
     URL.revokeObjectURL(url)
   }
 
+  useRealtimeRefresh(load)
+
   useEffect(() => {
     load()
-    const timer = window.setInterval(load, 5000)
+    const timer = window.setInterval(load, 30000)
     return () => window.clearInterval(timer)
   }, [])
 

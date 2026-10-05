@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type SessionRow = {
   id: string
@@ -161,6 +162,8 @@ export default function AdminSessionsPage() {
       setAssigningLesson(false)
     }
   }
+
+  useRealtimeRefresh(load)
 
   useEffect(() => {
     void load()

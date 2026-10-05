@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { getAuthOptions } from '@/lib/auth'
 import { logAuditAction } from '@/lib/audit'
+import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const context = await requireAdmin()
+    if ('error' in context) return context.error
+
     const { id } = await params
     const { prisma } = await import('@/lib/prisma')
     const admission = await prisma.admissionForm.findUnique({ where: { id } })
@@ -18,8 +20,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getServerSession(await getAuthOptions())
-    if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const context = await requireAdmin()
+    if ('error' in context) return context.error
+
     const { id } = await params
     const body = await req.json()
     const { prisma } = await import('@/lib/prisma')
@@ -31,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (body.status) {
       await logAuditAction({
-        userId: session.user.id,
+        userId: context.admin.id,
         action: 'ADMISSION_STATUS_CHANGED',
         entity: 'AdmissionForm',
         entityId: id,

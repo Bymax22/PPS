@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type AdmissionItem = {
   id: string
@@ -64,7 +65,9 @@ export default function AdminAdmissionsPage() {
     }
   }
 
-  useEffect(() => { void load(); const t = setInterval(() => { void load() }, 5000); return () => clearInterval(t) }, [])
+  useRealtimeRefresh(load)
+
+  useEffect(() => { void load(); const t = setInterval(() => { void load() }, 30000); return () => clearInterval(t) }, [])
 
   async function changeStatus(id: string, status: string) {
     setLoading(true)

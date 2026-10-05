@@ -79,5 +79,13 @@ export function useLesson(lessonId: string) {
     }
   }, [lessonId, fetchParticipants, fetchExercises, fetchPolls])
 
+  useEffect(() => {
+    const refresh = () => {
+      void Promise.allSettled([fetchParticipants(), fetchExercises(), fetchPolls()])
+    }
+    window.addEventListener('pps:data-changed', refresh)
+    return () => window.removeEventListener('pps:data-changed', refresh)
+  }, [fetchParticipants, fetchExercises, fetchPolls])
+
   return { participants, exercises, polls, loading, refetch: fetchParticipants }
 }

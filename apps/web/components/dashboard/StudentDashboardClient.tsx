@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { 
@@ -53,10 +53,17 @@ export default function StudentDashboardClient({
   stats
 }: any) {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onDataChange = () => router.refresh()
+    window.addEventListener('pps:data-changed', onDataChange)
+    return () => window.removeEventListener('pps:data-changed', onDataChange)
+  }, [router])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,7 +75,8 @@ export default function StudentDashboardClient({
 
   const handleMarkNotificationAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+      const response = await fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}`)
     } catch (error) {
       console.error('Failed to mark notification as read', error)
     }
@@ -76,7 +84,8 @@ export default function StudentDashboardClient({
 
   const handleMarkAllNotificationsAsRead = async () => {
     try {
-      await fetch('/api/notifications/mark-all-read', { method: 'POST' })
+      const response = await fetch('/api/notifications/mark-all-read', { method: 'POST' })
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}`)
     } catch (error) {
       console.error('Failed to mark all notifications as read', error)
     }

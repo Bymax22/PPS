@@ -24,6 +24,14 @@ export async function GET() {
     prisma.payment.aggregate({ _sum: { amount: true } }),
     prisma.subscription.count({ where: { status: 'ACTIVE' } })
   ])
+  const summaryFailure = [
+    totalStudents, totalParents, totalTeachers, totalClasses, totalEnrollments,
+    totalPayments, revenue, activeSubscriptions
+  ].find((result) => result.status === 'rejected')
+  if (summaryFailure?.status === 'rejected') {
+    console.error('Failed to load admin dashboard summary', summaryFailure.reason)
+    return NextResponse.json({ error: 'Unable to load admin dashboard summary' }, { status: 503 })
+  }
 
   const [enrollmentsResult, parentsResult, teachersResult, classesResult, sessionsResult, paymentsResult] = await Promise.allSettled([
     prisma.enrollment.findMany({
@@ -99,6 +107,14 @@ export async function GET() {
       }
     })
   ])
+  const listFailure = [
+    enrollmentsResult, parentsResult, teachersResult,
+    classesResult, sessionsResult, paymentsResult
+  ].find((result) => result.status === 'rejected')
+  if (listFailure?.status === 'rejected') {
+    console.error('Failed to load admin dashboard records', listFailure.reason)
+    return NextResponse.json({ error: 'Unable to load admin dashboard records' }, { status: 503 })
+  }
 
   const enrollments = enrollmentsResult.status === 'fulfilled' ? enrollmentsResult.value : []
   const parents = parentsResult.status === 'fulfilled' ? parentsResult.value : []
@@ -148,14 +164,14 @@ export async function GET() {
         phone: child.user?.phone ?? null,
         grade: child.grade
       })),
-      activeSubscription: parent.subscriptions?.[0]?.isActive ? 'Active' : 'Inactive'
+      activeSubscription: parent.subscriptions?.[0]?.status === 'ACTIVE' ? 'Active' : 'Inactive'
     })),
     teachers: teachers.map((teacher) => ({
       id: teacher.id,
       name: formatName(teacher.firstName, teacher.lastName),
       email: teacher.email,
       phone: teacher.phone,
-      subject: teacher.teacherProfile?.subject ?? null,
+      subject: teacher.teacherProfile?.specialties?.split(',')[0]?.trim() ?? null,
       classes: (teacher.teachingClasses ?? []).map((teachingClass) => teachingClass.class?.name ?? 'Unnamed class'),
       lastUpdated: teacher.updatedAt.toISOString()
     })),

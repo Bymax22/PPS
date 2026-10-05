@@ -194,7 +194,10 @@ export default function TeacherDashboard() {
     async function fetchData() {
       try {
         const res = await fetch('/api/teacher/dashboard', { cache: 'no-store' })
-        if (!res.ok) return
+        if (!res.ok) {
+          console.error('Teacher dashboard request failed', res.status)
+          return
+        }
         const data = await res.json()
         if (!mounted) return
 
@@ -231,19 +234,14 @@ export default function TeacherDashboard() {
     void fetchData()
     const id = window.setInterval(() => {
       void fetchData()
-    }, 5000)
+    }, 30000)
+    const onDataChange = () => { void fetchData() }
+    window.addEventListener('pps:data-changed', onDataChange)
     return () => {
       mounted = false
       window.clearInterval(id)
+      window.removeEventListener('pps:data-changed', onDataChange)
     }
-  }, [])
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const [teacherName, setTeacherName] = useState('Teacher')
@@ -261,6 +259,39 @@ export default function TeacherDashboard() {
   const totalLessons = lessons.length
   const totalExams = exams.length
   const pendingGrading = exams.reduce((sum, e) => sum + (e.submissions?.filter(s => s.status === 'PENDING').length || 0), 0)
+  const weekStart = new Date()
+  weekStart.setHours(0, 0, 0, 0)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+  const lessonsThisWeek = lessons.filter((lesson) => {
+    if (!lesson.scheduledAt) return false
+    const scheduledAt = new Date(lesson.scheduledAt)
+    return scheduledAt >= weekStart && scheduledAt < weekEnd
+  })
+  const todaysLessons = lessonsThisWeek.filter((lesson) =>
+    lesson.scheduledAt && new Date(lesson.scheduledAt).toDateString() === new Date().toDateString()
+  )
+  const recentSubmissions = exams.flatMap((exam) =>
+    (exam.submissions ?? []).map((submission) => ({ exam, submission }))
+  ).sort((a, b) => new Date(b.submission.submittedAt).getTime() - new Date(a.submission.submittedAt).getTime()).slice(0, 5)
+  const classPerformance = exams.reduce<Map<string, { total: number; count: number }>>((performance, exam) => {
+    const className = teacherClasses.find((classItem) => classItem.id === exam.classId)?.name ?? 'Class'
+    const classResult = performance.get(className) ?? { total: 0, count: 0 }
+    for (const submission of exam.submissions ?? []) {
+      if (submission.status !== 'GRADED') continue
+      const percentage = submission.percentage ?? (exam.totalMarks > 0 ? (submission.score / exam.totalMarks) * 100 : null)
+      if (percentage === null || !Number.isFinite(percentage)) continue
+      classResult.total += percentage
+      classResult.count += 1
+    }
+    performance.set(className, classResult)
+    return performance
+  }, new Map<string, { total: number; count: number }>())
+  const performanceBars = [...classPerformance.entries()]
+    .filter(([, result]) => result.count > 0)
+    .map(([label, result]) => ({ label, percentage: Math.round(result.total / result.count) }))
+    .slice(0, 5)
 
   // Sidebar navigation items
   const sidebarItems = [
@@ -399,8 +430,8 @@ export default function TeacherDashboard() {
               <StatCardNew 
                 icon={Video}
                 label="Lessons This Week"
-                value="8"
-                subtitle="view schedule"
+                value={lessonsThisWeek.length}
+                subtitle="scheduled lessons"
                 color="purple"
               />
               <StatCardNew 
@@ -433,7 +464,9 @@ export default function TeacherDashboard() {
                             <p className="text-sm text-gray-500">{cls.students.length} students enrolled</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500">Live</span>
+                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold text-white ${lessons.some((lesson) => lesson.classId === cls.id && lesson.status === 'LIVE') ? 'bg-red-500' : 'bg-green-500'}`}>
+                              {lessons.some((lesson) => lesson.classId === cls.id && lesson.status === 'LIVE') ? 'Live session' : 'Assigned'}
+                            </span>
                             <ChevronRight className="w-4 h-4 text-gray-400" />
                           </div>
                         </div>
@@ -452,9 +485,19 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="p-5">
                     <div className="space-y-3">
-                      <ScheduleItemNew time="10:00 AM" className="Grade 10 Physics" duration="60 min" status="LIVE" />
-                      <ScheduleItemNew time="1:00 PM" className="Grade 11 Physics" duration="60 min" status="UPCOMING" />
-                      <ScheduleItemNew time="3:00 PM" className="Grade 9 Science" duration="60 min" status="UPCOMING" />
+                      {todaysLessons.length ? todaysLessons.map((lesson) => {
+                        const schedule = new Date(lesson.scheduledAt!)
+                        const className = teacherClasses.find((classItem) => classItem.id === lesson.classId)?.name ?? 'Class'
+                        return (
+                          <ScheduleItemNew
+                            key={lesson.id}
+                            time={schedule.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                            className={className}
+                            duration={`${lesson.duration} min`}
+                            status={lesson.status}
+                          />
+                        )
+                      }) : <p className="text-sm text-gray-500">No lessons scheduled for today.</p>}
                     </div>
                   </div>
                 </div>
@@ -469,9 +512,14 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="p-5">
                     <div className="space-y-3">
-                      <SubmissionItem title="Algebra Set 5" className="Grade 10 Physics" count="23 / 32 submitted" />
-                      <SubmissionItem title="Lab Report" className="Grade 11 Physics" count="28 / 30 submitted" />
-                      <SubmissionItem title="Physics Quiz 2" className="Grade 9 Science" count="35 / 35 submitted" />
+                      {recentSubmissions.length ? recentSubmissions.map(({ exam, submission }) => (
+                        <SubmissionItem
+                          key={submission.id}
+                          title={exam.title}
+                          className={teacherClasses.find((classItem) => classItem.id === exam.classId)?.name ?? 'Class'}
+                          count={submission.status === 'GRADED' ? `Score: ${submission.score}` : 'Awaiting grade'}
+                        />
+                      )) : <p className="text-sm text-gray-500">No exam submissions yet.</p>}
                     </div>
                   </div>
                 </div>
@@ -508,19 +556,40 @@ export default function TeacherDashboard() {
                     </h3>
                   </div>
                   <div className="p-5">
-                    <div className="h-64 flex items-end justify-between gap-4">
-                      <PerformanceBar label="Physics" percentage={85} />
-                      <PerformanceBar label="Math" percentage={78} />
-                      <PerformanceBar label="Chemistry" percentage={82} />
-                      <PerformanceBar label="Biology" percentage={88} />
-                      <PerformanceBar label="English" percentage={75} />
-                    </div>
+                    {performanceBars.length ? (
+                      <div className="h-64 flex items-end justify-between gap-4">
+                        {performanceBars.map((bar) => (
+                          <PerformanceBar key={bar.label} label={bar.label} percentage={bar.percentage} />
+                        ))}
+                      </div>
+                    ) : <p className="text-sm text-gray-500">Class performance will appear after exam submissions are graded.</p>}
                   </div>
                 </div>
               </div>
 
               {/* Right Column - 1/3 */}
               <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                  <div className="p-5 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Award className="w-5 h-5" style={{ color: '#003087' }} />
+                      Exams and grading
+                    </h3>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    {exams.length ? exams.map((exam) => (
+                      <ExamItem
+                        key={exam.id}
+                        exam={exam}
+                        onGrade={(examId: string) => {
+                          setGradingExamId(examId)
+                          setShowGradeSubmission(true)
+                        }}
+                      />
+                    )) : <p className="text-sm text-gray-500">No exams have been created for your classes.</p>}
+                  </div>
+                </div>
+
                 {/* Quick Actions */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                   <div className="p-5 border-b border-gray-100">
@@ -569,9 +638,14 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="p-5">
                     <div className="space-y-3">
-                      <AnnouncementItem title="Midterm Exams Schedule" date="May 15, 2025" icon={Calendar} />
-                      <AnnouncementItem title="New Lesson Materials" date="May 12, 2025" icon={FileText} />
-                      <AnnouncementItem title="Staff Meeting" date="May 10, 2025" icon={Users} />
+                      {notifications.length ? notifications.slice(0, 3).map((notification) => (
+                        <AnnouncementItem
+                          key={notification.id}
+                          title={notification.title}
+                          date={new Date(notification.date).toLocaleDateString()}
+                          icon={notification.type === 'ANNOUNCEMENT' ? Bell : FileText}
+                        />
+                      )) : <p className="text-sm text-gray-500">No announcements yet.</p>}
                     </div>
                     <Link 
                       href="/teacher/announcements"
@@ -644,7 +718,7 @@ export default function TeacherDashboard() {
 
       {showGradeSubmission && (
         <GradeSubmissionModal 
-          examId={gradingExamId}
+          exam={exams.find((exam) => exam.id === gradingExamId) ?? null}
           onClose={() => setShowGradeSubmission(false)}
           onGrade={(submission) => {
             setShowGradeSubmission(false)
@@ -1022,6 +1096,8 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
   })
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
   const [assignAllStudents, setAssignAllStudents] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const selectedClassData = classes.find((cls: TeacherClass) => cls.id === formData.classId)
 
   useEffect(() => {
@@ -1168,6 +1244,7 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
+          {error && <p role="alert" className="mb-3 text-sm text-rose-700">{error}</p>}
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -1176,7 +1253,10 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
               Cancel
             </button>
             <button
+              disabled={saving || !formData.title.trim() || !formData.classId}
               onClick={async () => {
+                setSaving(true)
+                setError(null)
                 try {
                   const res = await fetch('/api/teacher/lessons', {
                     method: 'POST',
@@ -1188,15 +1268,18 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
                     })
                   })
                   const data = await res.json()
+                  if (!res.ok) throw new Error(data?.error || 'Unable to create lesson')
                   onCreate(data)
                 } catch (err) {
-                  onCreate({ ...formData, id: Date.now().toString(), status: 'DRAFT', createdAt: new Date() })
+                  setError(err instanceof Error ? err.message : 'Unable to create lesson')
+                } finally {
+                  setSaving(false)
                 }
               }}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium hover:bg-opacity-90"
               style={{ backgroundColor: '#003087' }}
             >
-              Create Lesson
+              {saving ? 'Creating…' : 'Create Lesson'}
             </button>
           </div>
         </div>
@@ -1293,6 +1376,8 @@ function CreateExamModal({ classes, selectedClass, onClose, onCreate }: any) {
   const [questions, setQuestions] = useState([
     { id: 1, text: '', type: 'MCQ', marks: 1, options: ['', '', '', ''], correctAnswer: '' }
   ])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1489,8 +1574,12 @@ function CreateExamModal({ classes, selectedClass, onClose, onCreate }: any) {
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
+          {error && <p role="alert" className="mb-3 text-sm text-rose-700">{error}</p>}
           <button
+            disabled={saving || !formData.title.trim() || !formData.classId}
             onClick={async () => {
+              setSaving(true)
+              setError(null)
               try {
                 const res = await fetch('/api/teacher/exams', {
                   method: 'POST',
@@ -1498,15 +1587,18 @@ function CreateExamModal({ classes, selectedClass, onClose, onCreate }: any) {
                   body: JSON.stringify({ ...formData, questions })
                 })
                 const data = await res.json()
+                if (!res.ok) throw new Error(data?.error || 'Unable to create exam')
                 onCreate(data)
               } catch (err) {
-                onCreate({ ...formData, id: Date.now().toString(), questions, submissions: [] })
+                setError(err instanceof Error ? err.message : 'Unable to create exam')
+              } finally {
+                setSaving(false)
               }
             }}
             className="w-full py-3 rounded-lg text-white font-medium hover:bg-opacity-90"
             style={{ backgroundColor: '#003087' }}
           >
-            Create Exam
+            {saving ? 'Creating…' : 'Create Exam'}
           </button>
         </div>
       </div>
@@ -1717,9 +1809,23 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
   )
 }
 
-function GradeSubmissionModal({ onClose, onGrade, examId, studentId, studentName }: any) {
+function GradeSubmissionModal({ onClose, onGrade, exam }: {
+  onClose: () => void
+  onGrade: (submission: unknown) => void
+  exam: Exam | null
+}) {
   const [grade, setGrade] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [studentId, setStudentId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const pendingSubmissions = exam?.submissions?.filter((submission) => submission.status !== 'GRADED') ?? []
+
+  useEffect(() => {
+    if (!pendingSubmissions.some((submission) => submission.studentId === studentId)) {
+      setStudentId(pendingSubmissions[0]?.studentId ?? '')
+    }
+  }, [exam?.id, pendingSubmissions.map((submission) => submission.studentId).join(','), studentId])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1735,15 +1841,30 @@ function GradeSubmissionModal({ onClose, onGrade, examId, studentId, studentName
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Student: John Doe</label>
+              <label htmlFor="grade-student" className="block text-sm font-medium text-gray-700 mb-1">Student</label>
+              <select
+                id="grade-student"
+                value={studentId}
+                onChange={(event) => setStudentId(event.target.value)}
+                disabled={!pendingSubmissions.length}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                {pendingSubmissions.map((submission) => (
+                  <option key={submission.studentId} value={submission.studentId}>{submission.studentName}</option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Score (out of 100)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Score (out of {exam?.totalMarks ?? 100})</label>
               <input
                 type="number"
+                min="0"
+                max={exam?.totalMarks ?? 100}
+                required
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
+                disabled={!pendingSubmissions.length}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 placeholder="Enter score"
               />
@@ -1755,10 +1876,13 @@ function GradeSubmissionModal({ onClose, onGrade, examId, studentId, studentName
                 rows={4}
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
+                disabled={!pendingSubmissions.length}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 placeholder="Provide feedback to the student..."
               />
             </div>
+            {!pendingSubmissions.length && <p className="text-sm text-amber-700">There are no pending submissions to grade for this exam.</p>}
+            {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
           </div>
 
           <div className="flex gap-3 mt-6">
@@ -1769,24 +1893,34 @@ function GradeSubmissionModal({ onClose, onGrade, examId, studentId, studentName
               Cancel
             </button>
             <button
+              disabled={saving || !studentId || !grade || !exam}
               onClick={async () => {
+                setSaving(true)
+                setError(null)
                 try {
-                  const payload = { examId, studentId, score: parseInt(grade), feedback }
+                  const score = Number(grade)
+                  if (!Number.isFinite(score) || score < 0 || score > (exam?.totalMarks ?? 100)) {
+                    throw new Error(`Score must be between 0 and ${exam?.totalMarks ?? 100}`)
+                  }
+                  const payload = { examId: exam?.id, studentId, score, feedback }
                   const res = await fetch('/api/teacher/exams/grade', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                   })
                   const data = await res.json()
+                  if (!res.ok) throw new Error(data.error || 'Unable to submit grade')
                   onGrade(data)
                 } catch (err) {
-                  onGrade({ score: parseInt(grade), feedback })
+                  setError(err instanceof Error ? err.message : 'Unable to submit grade')
+                } finally {
+                  setSaving(false)
                 }
               }}
               className="flex-1 px-4 py-2 rounded-lg text-white font-medium"
               style={{ backgroundColor: '#003087' }}
             >
-              Submit Grade
+              {saving ? 'Submitting…' : 'Submit Grade'}
             </button>
           </div>
         </div>

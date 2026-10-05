@@ -2,6 +2,25 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
+
+function getDocumentEntries(value: unknown): Array<{ label: string; name: string }> {
+  if (typeof value !== 'string' || !value) return []
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string').map((name) => ({ label: 'Document', name }))
+    }
+    if (typeof parsed === 'object' && parsed !== null) {
+      return Object.entries(parsed)
+        .filter(([key, name]) => key !== 'studentEmail' && typeof name === 'string' && name.length > 0)
+        .map(([label, name]) => ({ label, name: String(name) }))
+    }
+  } catch {
+    return value.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({ label: 'Document', name }))
+  }
+  return []
+}
 
 export default function AdmissionDetail({ params }: { params: { id: string } }) {
   const { id } = params
@@ -9,7 +28,9 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
   const [comments, setComments] = useState<any[]>([])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLDivElement | null>(null)
+  const documentEntries = getDocumentEntries(admission?.documentsMediaIds)
 
   async function load() {
     const [resA, resC] = await Promise.all([
@@ -20,6 +41,8 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
     if (resC.ok) setComments(await resC.json())
   }
 
+  useRealtimeRefresh(load)
+
   useEffect(() => { load() }, [id])
 
   async function postComment() {
@@ -29,6 +52,21 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
     if (res.ok) { setText(''); await load() }
     else alert('Failed to post')
     setLoading(false)
+  }
+
+  async function updateStatus(status: 'APPROVED' | 'REJECTED') {
+    setError(null)
+    const response = await fetch(`/api/admissions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      setError(result.error || 'Failed to update application status')
+      return
+    }
+    await load()
   }
 
   return (
@@ -53,16 +91,11 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
               <div className="bg-white rounded shadow p-4">
                 <h3 className="font-semibold">Documents</h3>
                 <div ref={fileRef} className="mt-3 space-y-3">
-                  {(admission.documentsUrl || []).map((u: string, i: number) => (
-                    <div key={i} className="border rounded p-2">
-                      {u.endsWith('.pdf') ? (
-                        <iframe src={u} className="w-full h-96" title={`doc-${i}`} />
-                      ) : (
-                        <img src={u} alt={`doc-${i}`} className="max-h-96 object-contain w-full" />
-                      )}
-                      <a href={u} target="_blank" rel="noreferrer" className="text-xs text-blue-600 mt-2 inline-block">Open in new tab</a>
+                  {documentEntries.length ? documentEntries.map(({ label, name }, index) => (
+                    <div key={`${label}-${index}`} className="border rounded p-2 text-sm">
+                      <span className="font-medium">{label}: </span>{name}
                     </div>
-                  ))}
+                  )) : <p className="text-sm text-gray-500">No document details were submitted.</p>}
                 </div>
               </div>
             </div>
@@ -72,9 +105,10 @@ export default function AdmissionDetail({ params }: { params: { id: string } }) 
                 <h4 className="font-semibold">Status</h4>
                 <p className="mt-2">{admission.status}</p>
                 <div className="mt-4 flex gap-2">
-                  <button onClick={() => fetch(`/api/admissions/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'APPROVED' }) }).then(load)} className="px-3 py-2 bg-green-100 rounded">Approve</button>
-                  <button onClick={() => fetch(`/api/admissions/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'REJECTED' }) }).then(load)} className="px-3 py-2 bg-red-100 rounded">Reject</button>
+                  <button onClick={() => void updateStatus('APPROVED')} className="px-3 py-2 bg-green-100 rounded">Approve</button>
+                  <button onClick={() => void updateStatus('REJECTED')} className="px-3 py-2 bg-red-100 rounded">Reject</button>
                 </div>
+                {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
               </div>
 
               <div className="bg-white rounded shadow p-4">

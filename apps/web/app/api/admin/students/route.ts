@@ -96,6 +96,7 @@ export async function POST(req: Request) {
       phone,
       password: hashedPassword,
       role: 'STUDENT',
+      emailVerified: new Date(),
       studentProfile: {
         create: {
           grade: Number(grade),

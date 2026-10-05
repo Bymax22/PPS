@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type ParentOption = {
   id: string
@@ -168,6 +169,8 @@ export default function AdminStudentsPage() {
       setAssigningStudent(false)
     }
   }
+
+  useRealtimeRefresh(load)
 
   useEffect(() => {
     void load()

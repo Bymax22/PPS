@@ -100,6 +100,9 @@ export async function GET(req: NextRequest) {
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher not found' }, { status: 404 })
     }
+    if (teacher.role !== 'TEACHER' && teacher.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Teacher account required' }, { status: 403 })
+    }
 
     const classRecords = (teacher.teachingClasses ?? []).map((link) => link.class)
 

@@ -29,7 +29,7 @@ export async function GET() {
       phone: parent.phone,
       childrenCount: parent.children.length,
       lastUpdated: parent.updatedAt.toISOString(),
-      subscription: parent.subscriptions?.[0]?.isActive ? parent.subscriptions[0].plan.name : 'Inactive'
+      subscription: parent.subscriptions?.[0]?.status === 'ACTIVE' ? parent.subscriptions[0].plan.name : 'Inactive'
     }))
   })
 }
@@ -61,7 +61,8 @@ export async function POST(req: Request) {
       email,
       phone,
       password: hashedPassword,
-      role: 'PARENT'
+      role: 'PARENT',
+      emailVerified: new Date()
     }
   })
 

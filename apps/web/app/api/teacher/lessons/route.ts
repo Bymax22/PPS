@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendNotificationHooks } from '@/lib/notifications'
+import { getTeacherClassScope, teacherCanAccessClass } from '@/lib/teacherAccess'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,10 @@ export async function POST(req: NextRequest) {
 
     if (!title || !classId) {
       return NextResponse.json({ error: 'Lesson title and class are required' }, { status: 400 })
+    }
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope || !teacherCanAccessClass(classScope, classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
     }
 
     const lesson = await prisma.lesson.create({
@@ -88,9 +93,17 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const classId = searchParams.get('classId')
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope) return NextResponse.json({ error: 'Teacher account required' }, { status: 403 })
+    if (classId && !teacherCanAccessClass(classScope, classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
+    }
+    const classFilter = classScope.role === 'ADMIN'
+      ? classId ?? undefined
+      : classId ?? { in: classScope.classIds ?? [] }
 
     const lessons = await prisma.lesson.findMany({
-      where: { classId: classId ?? undefined, isDeleted: false },
+      where: { classId: classFilter, isDeleted: false },
       include: {
         class: true,
         attendees: true,
@@ -122,6 +135,10 @@ export async function PATCH(req: NextRequest) {
     const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } })
     if (!lesson) {
       return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    }
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope || !teacherCanAccessClass(classScope, lesson.classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
     }
 
     const updatedLesson = await prisma.lesson.update({
@@ -179,6 +196,10 @@ export async function DELETE(req: NextRequest) {
     const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } })
     if (!lesson) {
       return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    }
+    const classScope = await getTeacherClassScope(session.user.id)
+    if (!classScope || !teacherCanAccessClass(classScope, lesson.classId)) {
+      return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
     }
 
     const updatedLesson = await prisma.lesson.update({

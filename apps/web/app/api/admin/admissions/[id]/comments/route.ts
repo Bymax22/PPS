@@ -14,12 +14,19 @@ export async function GET(
 
   const { prisma } = await import('@/lib/prisma')
 
-  const comments = await prisma.communication.findMany({
-    where: { admissionId: id },
+  const comments = await prisma.contentRevision.findMany({
+    where: { entity: 'AdmissionForm', entityId: id },
     orderBy: { createdAt: 'desc' }
   })
 
-  return NextResponse.json(comments)
+  return NextResponse.json(comments.map((comment) => ({
+    id: comment.id,
+    text: typeof comment.data === 'object' && comment.data !== null && 'text' in comment.data
+      ? comment.data.text
+      : comment.note,
+    authorId: comment.authorId,
+    createdAt: comment.createdAt,
+  })))
 }
 
 export async function POST(
@@ -47,15 +54,20 @@ export async function POST(
 
   const { prisma } = await import('@/lib/prisma')
 
-  const comment = await prisma.communication.create({
+  const comment = await prisma.contentRevision.create({
     data: {
-      senderId: admin.id,
-      receiverId: admin.id,
-      body: text,
-      subject: 'Admission update',
-      type: 'DIRECT_MESSAGE'
+      entity: 'AdmissionForm',
+      entityId: id,
+      data: { text },
+      authorId: admin.id,
+      note: 'Admission comment',
     }
   })
 
-  return NextResponse.json(comment)
+  return NextResponse.json({
+    id: comment.id,
+    text,
+    authorId: comment.authorId,
+    createdAt: comment.createdAt,
+  }, { status: 201 })
 }

@@ -120,14 +120,19 @@ export default function AdminDashboardClient() {
     void refresh()
     const interval = window.setInterval(() => {
       void refresh()
-    }, 5000)
+    }, 30000)
+    const onDataChange = () => {
+      void refresh()
+    }
     const onFocus = () => {
       void refresh()
     }
 
+    window.addEventListener('pps:data-changed', onDataChange)
     window.addEventListener('focus', onFocus)
     return () => {
       window.clearInterval(interval)
+      window.removeEventListener('pps:data-changed', onDataChange)
       window.removeEventListener('focus', onFocus)
     }
   }, [])

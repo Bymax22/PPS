@@ -65,7 +65,7 @@ describe('admin validation helpers', () => {
       classId: 'clz1234567890abcdef123456',
       capacity: '25',
       grade: '4',
-      teacherIds: ['tch1234567890abcdef123456']
+      teacherIds: ['ctc1234567890abcdef123456']
     })
 
     expect(result.ok).toBe(true)
@@ -77,7 +77,7 @@ describe('admin validation helpers', () => {
 
   it('validates teacher update payloads', () => {
     const result = parseValidation(adminTeacherUpdatePayloadSchema, {
-      teacherId: 'tch1234567890abcdef123456',
+      teacherId: 'ctc1234567890abcdef123456',
       classIds: ['clz1234567890abcdef123456']
     })
 
@@ -86,7 +86,7 @@ describe('admin validation helpers', () => {
 
   it('validates student update payloads', () => {
     const result = parseValidation(adminStudentUpdatePayloadSchema, {
-      studentId: 'std1234567890abcdef123456',
+      studentId: 'cst1234567890abcdef123456',
       classIds: ['clz1234567890abcdef123456']
     })
 
@@ -95,7 +95,7 @@ describe('admin validation helpers', () => {
 
   it('validates session reassign payloads', () => {
     const result = parseValidation(adminSessionReassignPayloadSchema, {
-      lessonId: 'les1234567890abcdef123456',
+      lessonId: 'cls1234567890abcdef123456',
       classId: 'clz1234567890abcdef123456'
     })
 

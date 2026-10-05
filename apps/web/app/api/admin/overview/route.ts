@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     prisma.user.count({ where: { role: 'PARENT' } }),
     prisma.user.count({ where: { role: 'STUDENT' } }),
     prisma.enrollment.count(),
-    prisma.admissionForm.count({ where: { status: 'PENDING' } }).catch(() => 0),
+    prisma.admissionForm.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } } }),
     prisma.payment.findMany({ orderBy: { createdAt: 'desc' }, take: 10 })
   ])
 
