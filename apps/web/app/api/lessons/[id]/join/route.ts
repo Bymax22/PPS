@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function POST(
   req: NextRequest,
@@ -18,36 +19,14 @@ export async function POST(
     const body = await req.json()
     const { deviceInfo } = body
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      include: { studentProfile: true }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Get lesson
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: { class: true, session: true }
-    })
-
-    if (!lesson) {
-      return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
-    }
-
-    // Check if student is enrolled in the class
-    const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        userId: user.id,
-        classId: lesson.classId
-      }
-    })
-
-    if (!enrollment && user.role !== 'TEACHER' && user.role !== 'ADMIN') {
+    const access = await getLessonAccess(session.user.id, lessonId)
+    if (!access) return NextResponse.json({ error: 'Lesson or user not found' }, { status: 404 })
+    const { user, lesson } = access
+    if (!access.canAccess) {
       return NextResponse.json({ error: 'Not enrolled in this class' }, { status: 403 })
+    }
+    if (lesson.status !== 'LIVE' || lesson.session?.status !== 'LIVE') {
+      return NextResponse.json({ error: 'This lesson is not live yet' }, { status: 409 })
     }
 
     // Check if already joined
@@ -55,7 +34,8 @@ export async function POST(
       where: {
         lessonId,
         userId: user.id,
-        leftAt: null
+        leftAt: null,
+        sessionId: lesson.session.id,
       }
     })
 
@@ -67,16 +47,37 @@ export async function POST(
       })
     }
 
-    // Create session attendee record
-    attendee = await prisma.sessionAttendee.create({
-      data: {
-        lessonId,
-        userId: user.id,
-        sessionId: lesson.session?.id,
-        joinedAt: new Date(),
-        attended: true
+    // Attendee rows represent actual joins, not the lesson's enrollment roster.
+    const joinedAt = new Date()
+    const joined = await prisma.$transaction(async (tx) => {
+      const newAttendee = await tx.sessionAttendee.create({
+        data: {
+          lessonId,
+          userId: user.id,
+          sessionId: lesson.session?.id,
+          joinedAt,
+          attended: true
+        }
+      })
+      const existingAttendance = await tx.attendance.findFirst({
+        where: { userId: user.id, lessonId },
+        select: { id: true },
+      })
+      if (!existingAttendance) {
+        await tx.attendance.create({
+          data: {
+            userId: user.id,
+            lessonId,
+            classId: lesson.classId,
+            date: joinedAt,
+            status: 'ONLINE',
+            remarks: 'Joined live online lesson',
+          },
+        })
       }
+      return newAttendee
     })
+    attendee = joined
 
     // Track activity
     await prisma.studentActivity.create({

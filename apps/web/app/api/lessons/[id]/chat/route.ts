@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function POST(
   req: NextRequest,
@@ -18,24 +19,20 @@ export async function POST(
     const body = await req.json()
     const { message } = body
 
-    if (!message || message.trim().length === 0) {
+    if (typeof message !== 'string' || message.trim().length === 0) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
     }
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const access = await getLessonAccess(session.user.id, lessonId)
+    if (!access) return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    if (!access.canAccess) return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
 
     // Verify user is in the lesson
     const attendee = await prisma.sessionAttendee.findFirst({
       where: {
         lessonId,
-        userId: user.id
+        userId: session.user.id,
+        ...(access.lesson.session ? { sessionId: access.lesson.session.id } : {}),
       }
     })
 
@@ -47,7 +44,7 @@ export async function POST(
     const chatMessage = await prisma.chatMessage.create({
       data: {
         lessonId,
-        userId: user.id,
+        userId: session.user.id,
         message: message.substring(0, 1000),
         isSystem: false
       },
@@ -88,20 +85,16 @@ export async function GET(
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const access = await getLessonAccess(session.user.id, lessonId)
+    if (!access) return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    if (!access.canAccess) return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
 
     // Verify user is in the lesson
     const attendee = await prisma.sessionAttendee.findFirst({
       where: {
         lessonId,
-        userId: user.id
+        userId: session.user.id,
+        ...(access.lesson.session ? { sessionId: access.lesson.session.id } : {}),
       }
     })
 

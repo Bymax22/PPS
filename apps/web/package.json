@@ -10,6 +10,7 @@
     "lint": "next lint --max-warnings 0",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
+    "db:seed": "node prisma/seed.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

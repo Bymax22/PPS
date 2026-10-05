@@ -28,41 +28,50 @@ export default function StudentLessonPage() {
 
   const { participants, exercises, polls, refetch } = useLesson(lessonId)
 
-  // Join lesson
-  useEffect(() => {
-    if (!joined && session) {
-      handleJoinLesson()
-    }
-  }, [session, joined, lessonId])
-
   const handleJoinLesson = useCallback(async () => {
     try {
       setLoading(true)
+      setError('')
       const res = await fetch(`/api/lessons/${lessonId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceInfo: {} }),
       })
 
-      if (!res.ok) throw new Error('Failed to join lesson')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Failed to join lesson')
       setJoined(true)
     } catch (err) {
-      setError(String(err))
+      setError(err instanceof Error ? err.message : 'Unable to join lesson')
     } finally {
       setLoading(false)
     }
   }, [lessonId])
 
+  useEffect(() => {
+    if (!session || joined) return
+    void handleJoinLesson()
+    const retry = window.setInterval(() => {
+      void handleJoinLesson()
+    }, 10000)
+    return () => window.clearInterval(retry)
+  }, [session, joined, handleJoinLesson])
+
   // Leave lesson
   const handleLeaveLesson = useCallback(async () => {
     try {
       setLoading(true)
-      await fetch(`/api/lessons/${lessonId}/leave`, {
+      const response = await fetch(`/api/lessons/${lessonId}/leave`, {
         method: 'POST',
       })
-      router.push(`/student/lessons/${lessonId}/summary`)
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.error || 'Unable to leave lesson')
+      }
+      setJoined(false)
+      router.push('/student')
     } catch (err) {
-      setError(String(err))
+      setError(err instanceof Error ? err.message : 'Unable to leave lesson')
     } finally {
       setLoading(false)
     }
@@ -138,8 +147,9 @@ export default function StudentLessonPage() {
     return (
       <div className="h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg mb-4">Joining lesson...</p>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <p className="text-lg mb-4">{loading ? 'Joining lesson…' : 'Waiting for the teacher to start the session'}</p>
+          {error && <p className="mb-4 text-sm text-slate-600">{error}</p>}
+          {!loading && <button onClick={() => void handleJoinLesson()} className="rounded-lg bg-[#003087] px-4 py-2 text-white">Try again</button>}
         </div>
       </div>
     )

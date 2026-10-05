@@ -91,7 +91,7 @@ export default function StudentDashboardClient({
     }
   }
 
-  const hasActiveSubscription = subscriptions?.some((s: any) => s.isActive === true) ?? false
+  const hasActiveSubscription = subscriptions?.some((subscription: any) => subscription.status === 'ACTIVE') ?? false
   const unreadCount = notifications?.filter((n: any) => !n.read).length ?? 0
 
   return (

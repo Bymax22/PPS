@@ -14,6 +14,13 @@ export async function GET(
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const parent = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
+    })
+    if (!parent || parent.role !== 'PARENT') {
+      return NextResponse.json({ error: 'Parent account required' }, { status: 403 })
+    }
 
     // Get student user ID from student profile
     const student = await prisma.student.findUnique({
@@ -21,7 +28,7 @@ export async function GET(
       include: { user: true }
     })
 
-    if (!student) {
+    if (!student || student.parentId !== parent.id) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 

@@ -80,13 +80,6 @@ interface Activity {
   status: string
 }
 
-interface PaymentMethod {
-  id: string
-  type: string
-  last4?: string
-  isDefault: boolean
-}
-
 export default function ParentDashboard() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -104,7 +97,6 @@ export default function ParentDashboard() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [messages, setMessages] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
-  const [savedCards, setSavedCards] = useState<PaymentMethod[]>([])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -153,7 +145,6 @@ export default function ParentDashboard() {
         if (data.notifications) setNotifications(data.notifications)
         if (data.messages) setMessages(data.messages)
         if (data.payments) setPayments(data.payments)
-        if (data.savedCards) setSavedCards(data.savedCards)
       } catch (err) {
         console.error('Parent dashboard fetch error', err)
       }
@@ -427,32 +418,29 @@ export default function ParentDashboard() {
         <PaymentModal 
           children={children}
           selectedChild={selectedChild}
-          savedCards={savedCards}
           onClose={() => setShowMakePayment(false)}
           onPay={async (data: any) => {
-            try {
-              const res = await fetch('/api/parent/payments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-              })
-              if (!res.ok) throw new Error('Payment API error')
-              const payment = await res.json()
-              setPayments(prev => [{
-                id: payment.id || `mock-${Date.now()}`,
-                childId: data.childId,
-                amount: Number(data.amount),
-                status: payment.status || 'PENDING',
-                date: new Date(),
-                description: data.description || 'Manual Payment',
-                method: data.paymentMethod || data.method,
-                currency: 'ZMW'
-              }, ...prev])
-            } catch (err) {
-              console.error('Payment failed', err)
-            } finally {
-              setShowMakePayment(false)
+            const response = await fetch('/api/parent/payments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+            })
+            const result = await response.json()
+            if (!response.ok) {
+              throw new Error(result.error || 'Payment checkout could not be started.')
             }
+
+            setPayments(previous => [{
+              id: result.payment.id,
+              childId: data.childId,
+              amount: result.payment.amount,
+              status: result.payment.status,
+              date: new Date(),
+              description: data.planName,
+              method: result.payment.paymentMethod,
+              currency: result.payment.currency,
+            }, ...previous])
+            return { checkoutUrl: result.checkoutUrl }
           }}
         />
       )}
@@ -794,16 +782,40 @@ function AddChildModal({ onClose, onAdd }: any) {
   )
 }
 
-function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: any) {
-  const [amount, setAmount] = useState('')
-  const [selectedChildId, setSelectedChildId] = useState(selectedChild || children[0]?.id)
-  const [selectedCard, setSelectedCard] = useState(savedCards.find(c => c.isDefault)?.id)
-  const [useNewCard, setUseNewCard] = useState(false)
-  const [newCard, setNewCard] = useState({ number: '', expiry: '', cvc: '', name: '' })
-  const [method, setMethod] = useState<'saved_card'|'new_card'|'mobile_money'|'bank_transfer'>(selectedCard ? 'saved_card' : 'mobile_money')
-  const [mobileProvider, setMobileProvider] = useState('MTN')
+function PaymentModal({ children, selectedChild, onClose, onPay }: any) {
+  const [plans, setPlans] = useState<any[]>([])
+  const [plansLoading, setPlansLoading] = useState(true)
+  const [plansError, setPlansError] = useState('')
+  const [selectedChildId, setSelectedChildId] = useState(selectedChild || children[0]?.id || '')
+  const [planId, setPlanId] = useState('')
+  const [gateway, setGateway] = useState<'BROADPAY' | 'DPO'>('BROADPAY')
+  const [mobileProvider, setMobileProvider] = useState<'MTN' | 'AIRTEL'>('MTN')
   const [mobileNumber, setMobileNumber] = useState('')
-  const [bankReference, setBankReference] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const payablePlans = plans.filter(plan => plan.currency === 'ZMW' && Number.isFinite(plan.price) && plan.price > 0)
+  const selectedPlan = payablePlans.find(plan => plan.id === planId)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/subscriptions?view=plans')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Subscription plans could not be loaded.')
+        if (!Array.isArray(data)) throw new Error('Subscription plan response was invalid.')
+        if (active) {
+          setPlans(data)
+          setPlanId(data.find(plan => plan.currency === 'ZMW')?.id || '')
+        }
+      })
+      .catch(loadError => {
+        if (active) setPlansError(loadError instanceof Error ? loadError.message : 'Subscription plans could not be loaded.')
+      })
+      .finally(() => {
+        if (active) setPlansLoading(false)
+      })
+    return () => { active = false }
+  }, [])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -811,7 +823,7 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
       <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-900">Make Payment</h2>
+            <h2 className="text-xl font-bold text-gray-900">Subscribe with Mobile Money</h2>
             <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -834,174 +846,95 @@ function PaymentModal({ children, selectedChild, savedCards, onClose, onPay }: a
             </select>
           </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (ZMW)</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="radio" name="method" checked={method === 'saved_card'} onChange={() => { setMethod('saved_card'); setUseNewCard(false) }} />
-                  <span className="text-gray-700">Saved Card</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="radio" name="method" checked={method === 'new_card'} onChange={() => { setMethod('new_card'); setUseNewCard(true) }} />
-                  <span className="text-gray-700">New Card</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="radio" name="method" checked={method === 'mobile_money'} onChange={() => setMethod('mobile_money')} />
-                  <span className="text-gray-700">Mobile Money</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input type="radio" name="method" checked={method === 'bank_transfer'} onChange={() => setMethod('bank_transfer')} />
-                  <span className="text-gray-700">Bank Transfer</span>
-                </label>
-              </div>
-            </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-            <div className="space-y-2">
-              {!useNewCard && savedCards.map((card: PaymentMethod) => (
-                <label key={card.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="card"
-                    value={card.id}
-                    checked={selectedCard === card.id}
-                    onChange={() => setSelectedCard(card.id)}
-                    className="text-[#003087]"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">
-                      {card.type.toUpperCase()} •••• {card.last4}
-                    </p>
-                    {card.isDefault && <span className="text-xs text-green-600">Default</span>}
-                  </div>
-                </label>
-              ))}
-              
-              <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="card"
-                  checked={useNewCard}
-                  onChange={() => setUseNewCard(true)}
-                  className="text-[#003087]"
-                />
-                <span className="text-gray-700">Use New Card</span>
-              </label>
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Subscription plan</label>
+            {plansLoading ? (
+              <p className="text-sm text-gray-500">Loading available plans…</p>
+            ) : payablePlans.length ? (
+              <select value={planId} onChange={event => setPlanId(event.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                {payablePlans.map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.program?.name ? `${plan.program.name} — ` : ''}{plan.name} — {formatZMW(plan.price)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                {plansError || 'The school has not published any subscription plans with ZMW pricing yet.'}
+              </p>
+            )}
           </div>
 
-          {method === 'new_card' && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-                <input
-                  type="text"
-                  placeholder="1234 5678 9012 3456"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                  <input
-                    type="text"
-                    placeholder="MM/YY"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
-                  <input
-                    type="text"
-                    placeholder="123"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cardholder Name</label>
-                <input
-                  type="text"
-                  placeholder="Name on card"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
-                />
-              </div>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Payment gateway</label>
+            <select value={gateway} onChange={event => setGateway(event.target.value as 'BROADPAY' | 'DPO')} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="BROADPAY">BroadPay</option>
+              <option value="DPO">DPO Pay</option>
+            </select>
+          </div>
 
-          {method === 'mobile_money' && (
+          {gateway === 'DPO' && (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
-                <select value={mobileProvider} onChange={(e) => setMobileProvider(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile money network</label>
+                <select value={mobileProvider} onChange={(e) => setMobileProvider(e.target.value as 'MTN' | 'AIRTEL')} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]">
                   <option value="MTN">MTN Mobile Money</option>
                   <option value="AIRTEL">Airtel Money</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="e.g. 0974123456" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]" />
-              </div>
-              <p className="text-xs text-gray-500">You'll be prompted to approve the mobile money payment on your phone.</p>
             </div>
           )}
 
-          {method === 'bank_transfer' && (
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reference / Transaction ID</label>
-                <input type="text" value={bankReference} onChange={(e) => setBankReference(e.target.value)} placeholder="Enter bank transaction reference" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]" />
+          {gateway === 'BROADPAY' && (
+            <p className="text-xs text-gray-500">Select MTN or Airtel on BroadPay’s hosted checkout page.</p>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile money number</label>
+            <input type="tel" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} placeholder="e.g. 0971234567" autoComplete="tel" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]" />
+            <p className="mt-1 text-xs text-gray-500">Use a Zambian MTN or Airtel number. You’ll approve the payment on your phone.</p>
+          </div>
+
+          {selectedPlan && (
+            <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+              <div className="flex justify-between">
+                <span>{selectedPlan.name}</span>
+                <span className="font-semibold">{formatZMW(selectedPlan.price)}</span>
               </div>
-              <p className="text-xs text-gray-500">Use the following bank details: PPS School Ltd — Zambia National Bank — A/C 1234567890</p>
+              <p className="mt-1 text-xs text-slate-500">Subscription duration: {selectedPlan.durationDays} days</p>
             </div>
           )}
+
+          {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-gray-100 p-6">
           <button
-            onClick={() => {
-              const payload: any = {
-                childId: selectedChildId,
-                amount: Number(amount) || 0,
-                currency: 'ZMW'
+            disabled={submitting || plansLoading || !selectedPlan || !selectedChildId || !mobileNumber.trim()}
+            onClick={async () => {
+              if (!selectedPlan) return
+              setError('')
+              setSubmitting(true)
+              try {
+                const result = await onPay({
+                  childId: selectedChildId,
+                  planId,
+                  planName: selectedPlan.name,
+                  gateway,
+                  mobileProvider,
+                  mobileNumber,
+                })
+                if (typeof result?.checkoutUrl !== 'string') throw new Error('The payment gateway did not return a checkout URL.')
+                window.location.assign(result.checkoutUrl)
+              } catch (payError) {
+                setError(payError instanceof Error ? payError.message : 'Payment checkout could not be started.')
+                setSubmitting(false)
               }
-
-              if (method === 'saved_card') {
-                payload.paymentMethod = 'card'
-                payload.cardId = selectedCard
-              } else if (method === 'new_card') {
-                payload.paymentMethod = 'card'
-                payload.card = newCard
-              } else if (method === 'mobile_money') {
-                payload.paymentMethod = 'mobile_money'
-                payload.mobileProvider = mobileProvider
-                payload.mobileNumber = mobileNumber
-              } else if (method === 'bank_transfer') {
-                payload.paymentMethod = 'bank_transfer'
-                payload.bankReference = bankReference
-              }
-
-              onPay(payload)
             }}
-            className="w-full py-3 rounded-lg text-white font-medium transition-colors hover:bg-opacity-90"
+            className="w-full py-3 rounded-lg text-white font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: '#003087' }}
           >
-            Pay {formatZMW(Number(amount) || 0)}
+            {submitting ? 'Connecting to payment gateway…' : selectedPlan ? `Continue to pay ${formatZMW(selectedPlan.price)}` : 'No ZMW plan available'}
           </button>
         </div>
       </div>

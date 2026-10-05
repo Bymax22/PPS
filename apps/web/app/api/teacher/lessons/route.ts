@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { title, description, type, classId, scheduledAt, duration, content, studentIds = [], assignToClass = false, status } = body
+    const { title, description, type, classId, scheduledAt, duration, subject, status } = body
 
     if (!title || !classId) {
       return NextResponse.json({ error: 'Lesson title and class are required' }, { status: 400 })
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         description,
         type,
         classId,
+        subject: typeof subject === 'string' && subject.trim() ? subject.trim() : undefined,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         duration: duration ? Number(duration) : undefined,
         status: status || (scheduledAt ? 'SCHEDULED' : 'DRAFT'),
@@ -38,31 +39,9 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    const selectedStudentIds = Array.isArray(studentIds) && studentIds.length > 0
-      ? studentIds
-      : assignToClass
-        ? (await prisma.enrollment.findMany({ where: { classId, status: 'ACTIVE' }, select: { userId: true } })).map((item) => item.userId)
-        : []
-
-    for (const userId of selectedStudentIds) {
-      const existingAttendance = await prisma.sessionAttendee.findFirst({
-        where: { lessonId: lesson.id, userId },
-      })
-
-      if (!existingAttendance) {
-        await prisma.sessionAttendee.create({
-          data: {
-            lessonId: lesson.id,
-            userId,
-            attended: true,
-          },
-        })
-      }
-    }
-
     const enrollments = await prisma.enrollment.findMany({
-      where: { classId },
-      include: { user: true }
+      where: { classId, status: 'ACTIVE' },
+      select: { userId: true }
     })
 
     await Promise.allSettled(
@@ -77,7 +56,7 @@ export async function POST(req: NextRequest) {
       )
     )
 
-    return NextResponse.json({ ...lesson, assignedStudentCount: selectedStudentIds.length })
+    return NextResponse.json({ ...lesson, assignedStudentCount: enrollments.length })
   } catch (error) {
     console.error('Create lesson error', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

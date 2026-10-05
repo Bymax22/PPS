@@ -41,6 +41,7 @@ export default function LiveRoom({
 
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const roster = useRef<Map<string, Participant>>(new Map())
+  const roomRef = useRef<Room | null>(null)
 
   // Initialize room connection
   useEffect(() => {
@@ -51,7 +52,8 @@ export default function LiveRoom({
         setError('')
         setIsConnecting(true)
 
-        const { token, displayName, isHost } = await fetchLiveKitToken(roomName, isTeacher)
+        const { token, displayName, isHost, serverUrl } = await fetchLiveKitToken(roomName, isTeacher)
+        if (!serverUrl) throw new Error('LiveKit server URL is not configured')
 
         const r = new Room({
           audioCaptureDefaults: {
@@ -60,7 +62,7 @@ export default function LiveRoom({
             autoGainControl: true,
           },
         })
-        await r.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || 'ws://localhost:7880', token, {
+        await r.connect(serverUrl, token, {
           autoSubscribe: true,
         })
 
@@ -70,6 +72,7 @@ export default function LiveRoom({
         }
 
         setRoom(r)
+        roomRef.current = r
 
         // Publish local tracks if teacher
         if (isTeacher) {
@@ -139,7 +142,8 @@ export default function LiveRoom({
 
     return () => {
       mounted = false
-      room?.disconnect()
+      roomRef.current?.disconnect()
+      roomRef.current = null
     }
   }, [roomName, isTeacher, onParticipantCountChange])
 

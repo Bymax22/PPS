@@ -2,7 +2,7 @@
 import { CreditCard, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function SubscriptionStatus({ subscriptions }: any) {
-  const activeSubscription = subscriptions[0]
+  const activeSubscription = subscriptions.find((subscription: any) => subscription.status === 'ACTIVE')
   
   if (!activeSubscription) {
     return (
@@ -25,7 +25,10 @@ export default function SubscriptionStatus({ subscriptions }: any) {
     )
   }
   
-  const daysLeft = Math.ceil((new Date(activeSubscription.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+  const endDate = activeSubscription.endDate ? new Date(activeSubscription.endDate) : null
+  const daysLeft = endDate
+    ? Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
@@ -39,16 +42,16 @@ export default function SubscriptionStatus({ subscriptions }: any) {
           <p className="font-semibold text-gray-900">{activeSubscription.plan.name}</p>
           <p className="text-sm text-gray-600">{activeSubscription.plan.program.name}</p>
         </div>
-        <div>
+        {daysLeft !== null && <div>
           <p className="text-xs text-gray-500">Days Remaining</p>
           <p className="text-2xl font-bold" style={{ color: daysLeft < 7 ? '#dc2626' : '#003087' }}>
             {daysLeft}
           </p>
-        </div>
+        </div>}
         <div>
           <p className="text-xs text-gray-500">Expires On</p>
           <p className="text-sm text-gray-900">
-            {new Date(activeSubscription.expiryDate).toLocaleDateString()}
+            {endDate ? endDate.toLocaleDateString() : 'No expiry date'}
           </p>
         </div>
         <button 

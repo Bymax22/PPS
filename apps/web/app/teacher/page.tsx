@@ -58,6 +58,7 @@ interface TeacherClass {
   name: string
   grade: number
   subject: string
+  subjects?: string[]
   program: {
     name: string
     type: string
@@ -214,6 +215,7 @@ export default function TeacherDashboard() {
             grade: c.grade ?? 0,
             subject: c.subject ?? 'General',
             program: c.program ?? { name: 'General', type: 'ONLINE_FULL_TIME' },
+            subjects: Array.isArray(c.subjects) ? c.subjects : [],
             schedule: c.schedule || [],
             students: c.students || []
           })))
@@ -1085,28 +1087,20 @@ function MobileNavItem({ href, icon: Icon, label, active }: any) {
 // Modal Components
 
 function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
+  const initialClass = classes.find((cls: TeacherClass) => cls.id === selectedClass) ?? classes[0]
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'RECORDED',
-    classId: selectedClass || classes[0]?.id || '',
+    classId: initialClass?.id || '',
+    subject: initialClass?.subjects?.[0] || '',
     scheduledAt: '',
     duration: 45,
     content: ''
   })
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
-  const [assignAllStudents, setAssignAllStudents] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const selectedClassData = classes.find((cls: TeacherClass) => cls.id === formData.classId)
-
-  useEffect(() => {
-    if (assignAllStudents && selectedClassData?.students?.length) {
-      setSelectedStudentIds(selectedClassData.students.map((student: Student) => student.id))
-    } else if (!assignAllStudents) {
-      setSelectedStudentIds([])
-    }
-  }, [assignAllStudents, selectedClassData])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1126,7 +1120,10 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
             <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
             <select
               value={formData.classId}
-              onChange={(e) => setFormData({...formData, classId: e.target.value})}
+              onChange={(e) => {
+                const nextClass = classes.find((cls: TeacherClass) => cls.id === e.target.value)
+                setFormData({ ...formData, classId: e.target.value, subject: nextClass?.subjects?.[0] || '' })
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003087]"
             >
               {classes.map((cls: TeacherClass) => (
@@ -1134,6 +1131,19 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
               ))}
             </select>
           </div>
+
+          {selectedClassData?.subjects?.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <select
+                value={formData.subject}
+                onChange={(event) => setFormData({ ...formData, subject: event.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                {selectedClassData.subjects.map((subject: string) => <option key={subject}>{subject}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Lesson Title</label>
@@ -1193,43 +1203,9 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
             </div>
           )}
 
-          <div className="rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-700">Assign pupils</label>
-              <label className="flex items-center gap-2 text-sm text-gray-600">
-                <input
-                  type="checkbox"
-                  checked={assignAllStudents}
-                  onChange={(e) => setAssignAllStudents(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#003087] focus:ring-[#003087]"
-                />
-                All class pupils
-              </label>
-            </div>
-            {!assignAllStudents && selectedClassData?.students?.length ? (
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {selectedClassData.students.map((student: Student) => (
-                  <label key={student.id} className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudentIds.includes(student.id)}
-                      onChange={() => {
-                        setSelectedStudentIds((prev) =>
-                          prev.includes(student.id) ? prev.filter((id) => id !== student.id) : [...prev, student.id]
-                        )
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-[#003087] focus:ring-[#003087]"
-                    />
-                    {student.firstName} {student.lastName}
-                  </label>
-                ))}
-              </div>
-            ) : !assignAllStudents ? (
-              <p className="text-sm text-gray-500">No pupils available for this class yet.</p>
-            ) : (
-              <p className="text-sm text-gray-500">All active pupils in this class will be assigned to the lesson.</p>
-            )}
-          </div>
+          <p className="rounded-lg border border-gray-200 p-4 text-sm text-gray-600">
+            The lesson is available to all students with an active enrollment in this class. Attendance is recorded when they join.
+          </p>
 
           {formData.type === 'RECORDED' && (
             <div>
@@ -1261,11 +1237,7 @@ function CreateLessonModal({ classes, selectedClass, onClose, onCreate }: any) {
                   const res = await fetch('/api/teacher/lessons', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      ...formData,
-                      studentIds: assignAllStudents ? [] : selectedStudentIds,
-                      assignToClass: assignAllStudents,
-                    })
+                    body: JSON.stringify(formData)
                   })
                   const data = await res.json()
                   if (!res.ok) throw new Error(data?.error || 'Unable to create lesson')
@@ -1607,11 +1579,13 @@ function CreateExamModal({ classes, selectedClass, onClose, onCreate }: any) {
 }
 
 function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any) {
+  const initialClass = classes.find((cls: TeacherClass) => cls.id === selectedClass) ?? classes[0]
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'PDF_NOTE',
-    classId: selectedClass || classes[0]?.id || '',
+    classId: initialClass?.id || '',
+    subject: initialClass?.subjects?.[0] || '',
     file: null as File | null,
   })
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -1636,7 +1610,10 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
               <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
               <select
                 value={formData.classId}
-                onChange={(e) => setFormData({...formData, classId: e.target.value})}
+                onChange={(e) => {
+                  const nextClass = classes.find((cls: TeacherClass) => cls.id === e.target.value)
+                  setFormData({ ...formData, classId: e.target.value, subject: nextClass?.subjects?.[0] || '' })
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 {classes.map((cls: TeacherClass) => (
@@ -1644,6 +1621,21 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                 ))}
               </select>
             </div>
+
+            {classes.find((cls: TeacherClass) => cls.id === formData.classId)?.subjects?.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <select
+                  value={formData.subject}
+                  onChange={(event) => setFormData({ ...formData, subject: event.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {classes.find((cls: TeacherClass) => cls.id === formData.classId).subjects.map((subject: string) => (
+                    <option key={subject}>{subject}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Resource Title</label>
@@ -1737,9 +1729,7 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                 try {
                   const uploadPayload = new FormData()
                   uploadPayload.append('file', formData.file)
-                  if (formData.type === 'VIDEO_TUTORIAL') {
-                    uploadPayload.append('resourceType', 'video')
-                  }
+                  uploadPayload.append('classId', formData.classId)
 
                   const uploadRes = await fetch('/api/cloudinary/upload', {
                     method: 'POST',
@@ -1755,9 +1745,12 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                     description: formData.description.trim(),
                     type: formData.type,
                     classId: formData.classId,
+                    subject: formData.subject,
                     cloudinaryUrl: uploadData.url,
                     cloudinaryPublicId: uploadData.public_id,
                     fileSize: uploadData.bytes || formData.file.size,
+                    fileName: uploadData.filename || formData.file.name,
+                    mimeType: uploadData.mimeType || formData.file.type,
                   }
 
                   const res = await fetch('/api/teacher/resources', {
@@ -1771,24 +1764,6 @@ function UploadResourceModal({ classes, selectedClass, onClose, onUpload }: any)
                   }
 
                   onUpload(data)
-
-                  if (formData.type === 'VIDEO_TUTORIAL' && data?.id) {
-                    const transcodeRes = await fetch('/api/videos/transcode', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        videoUrl: uploadData.url,
-                        title: formData.title.trim(),
-                        description: formData.description.trim(),
-                        lessonId: formData.classId,
-                        resourceId: data.id,
-                      }),
-                    })
-                    const transcodeData = await transcodeRes.json()
-                    if (!transcodeRes.ok) {
-                      console.warn('Video transcoding start failed', transcodeData)
-                    }
-                  }
                 } catch (err: any) {
                   console.error('Upload error', err)
                   setUploadError(err?.message || 'Unable to upload file')

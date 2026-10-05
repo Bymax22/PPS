@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
 
       const attendanceSummary = childAttendanceRecords.reduce(
         (summary, attendance) => {
-          if (attendance.status === 'PRESENT') summary.present += 1
+          if (attendance.status === 'PRESENT' || attendance.status === 'ONLINE') summary.present += 1
           if (attendance.status === 'ABSENT') summary.absent += 1
           if (attendance.status === 'LATE') summary.late += 1
           if (attendance.status === 'EXCUSED') summary.excused += 1

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function POST(
   req: NextRequest,
@@ -23,6 +24,10 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    const access = await getLessonAccess(user.id, lessonId)
+    if (!access?.canAccess) {
+      return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
     }
 
     // Get and update attendee

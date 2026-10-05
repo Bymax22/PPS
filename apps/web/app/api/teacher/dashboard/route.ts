@@ -105,12 +105,35 @@ export async function GET(req: NextRequest) {
     }
 
     const classRecords = (teacher.teachingClasses ?? []).map((link) => link.class)
+    const curriculumSubjects = await prisma.subject.findMany({
+      where: { isDeleted: false },
+      select: { name: true, metadata: true },
+    })
 
     const classes = classRecords.map((cls) => ({
       id: cls.id,
       name: cls.name,
       grade: cls.grade ?? 0,
       subject: cls.subject ?? 'General',
+      subjects: curriculumSubjects
+        .filter((subject) => {
+          const programMetadata = cls.program?.metadata
+          const classMetadata = cls.metadata
+          const subjectMetadata = subject.metadata
+          if (
+            typeof programMetadata !== 'object' || programMetadata === null || Array.isArray(programMetadata) ||
+            typeof classMetadata !== 'object' || classMetadata === null || Array.isArray(classMetadata) ||
+            typeof subjectMetadata !== 'object' || subjectMetadata === null || Array.isArray(subjectMetadata)
+          ) return false
+          const curriculumKey = 'curriculumKey' in programMetadata ? programMetadata.curriculumKey : null
+          const stage = 'stage' in classMetadata ? classMetadata.stage : null
+          const curricula = 'curricula' in subjectMetadata ? subjectMetadata.curricula : null
+          const stages = 'stages' in subjectMetadata ? subjectMetadata.stages : null
+          return typeof curriculumKey === 'string' && typeof stage === 'string' &&
+            Array.isArray(curricula) && curricula.includes(curriculumKey) &&
+            Array.isArray(stages) && stages.includes(stage)
+        })
+        .map((subject) => subject.name),
       program: cls.program ? { name: cls.program.name, type: cls.program.type } : { name: 'General', type: 'ONLINE_FULL_TIME' },
       students: cls.enrollments.map((enrollment) => ({
         id: enrollment.user.id,

@@ -156,8 +156,8 @@ model SubscriptionPlan {
   name         String
   slug         String?  @unique
   description  String?
-  priceUsd     Float
-  currency     String   @default("USD")
+  price        Float   @map("priceUsd")
+  currency     String   @default("ZMW")
   durationDays Int
   billingCycle String?
   billingInterval SubscriptionBillingInterval @default(PER_MONTH)
@@ -176,6 +176,7 @@ model SubscriptionPlan {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   subscriptions Subscription[]
+  payments     Payment[]
 }
 
 model Subscription {
@@ -239,7 +240,7 @@ model Invoice {
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
   amount         Float
-  currency       String   @default("USD")
+  currency       String   @default("ZMW")
   url            String?
   issuedAt       DateTime @default(now())
   dueAt          DateTime?
@@ -272,8 +273,10 @@ model Payment {
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptionId        String?
   subscription          Subscription? @relation(fields: [subscriptionId], references: [id])
+  planId                String?
+  plan                  SubscriptionPlan? @relation(fields: [planId], references: [id])
   amount                Float
-  currency              String   @default("USD")
+  currency              String   @default("ZMW")
   paymentMethod         PaymentMethod
   stripePaymentIntentId String?  @unique
   pesapalOrderId        String?  @unique
@@ -295,6 +298,8 @@ model Payment {
 enum PaymentMethod {
   STRIPE
   PESAPAL
+  BROADPAY
+  DPO
   BANK_TRANSFER
   MTN_MONEY
   AIRTEL_MONEY

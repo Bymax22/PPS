@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { submitExerciseResponse, getExerciseResponses } from '@/lib/services/exercise'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function POST(
   req: NextRequest,
@@ -24,6 +25,10 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    const access = await getLessonAccess(user.id, lessonId)
+    if (!access?.enrolled || user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Only enrolled students can submit exercise responses' }, { status: 403 })
     }
 
     // Verify exercise exists
@@ -66,6 +71,8 @@ export async function GET(
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
+    const access = await getLessonAccess(user.id, lessonId)
+    if (!access?.canAccess) return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
 
     // Verify exercise
     const exercise = await prisma.classExercise.findUnique({

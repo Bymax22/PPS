@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function GET(
   req: NextRequest,
@@ -16,43 +17,14 @@ export async function GET(
 
     const { id: lessonId } = await params
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Verify user has access to this lesson (enrolled or teacher)
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId },
-      include: {
-        class: true,
-        session: true
-      }
-    })
-
-    if (!lesson) {
-      return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
-    }
-
-    const isTeacher = lesson.createdBy === user.id
-    const isEnrolled = await prisma.enrollment.findFirst({
-      where: {
-        classId: lesson.classId,
-        userId: user.id
-      }
-    })
-
-    if (!isTeacher && !isEnrolled && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
-    }
+    const access = await getLessonAccess(session.user.id, lessonId)
+    if (!access) return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    if (!access.canAccess) return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
+    const { lesson } = access
 
     // Get current and past attendees
     const attendees = await prisma.sessionAttendee.findMany({
-      where: { lessonId },
+      where: { lessonId, sessionId: lesson.session?.id ?? '__no_live_session__' },
       include: {
         user: {
           select: {

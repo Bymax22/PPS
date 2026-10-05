@@ -30,7 +30,7 @@ export default async function StudentResourcesPage() {
     where: { email: session.user.email },
     include: {
       studentProfile: true,
-      enrollments: { include: { class: true } },
+      enrollments: { where: { status: 'ACTIVE' }, include: { class: true } },
       examAttempts: { include: { exam: true }, orderBy: { createdAt: 'desc' }, take: 5 },
       subscriptions: { where: { status: 'ACTIVE' }, include: { plan: true, payments: { orderBy: { createdAt: 'desc' }, take: 1 } } },
       payments: { orderBy: { createdAt: 'desc' }, take: 3 },
@@ -38,7 +38,7 @@ export default async function StudentResourcesPage() {
     }
   })
 
-  if (!user?.studentProfile) {
+  if (user?.role !== 'STUDENT' || !user.studentProfile) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full text-center">

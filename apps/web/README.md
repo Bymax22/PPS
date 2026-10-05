@@ -1,6 +1,7 @@
 # apps/web — Quick start
 
-1. Copy `.env.example` to `.env` and fill values (DATABASE_URL, NEXTAUTH_SECRET, STRIPE keys, CLOUDINARY_URL).
+1. Copy the repository `.env.example` to `apps/web/.env` and configure the
+   database, NextAuth, Ably, LiveKit, Cloudinary, and payment gateways.
 
 2. Install and generate Prisma client:
 
@@ -22,7 +23,49 @@ npx prisma migrate dev --name init --schema=prisma/schema.prisma
 npm run dev
 ```
 
-API stubs are available under `app/api/*`. Portal pages (student/parent/teacher/admin) are present as UI stubs.
+## Seed curriculum records
+
+The additive curriculum seed ensures the Zambian and Cambridge programs, grade-level
+classes from Nursery through secondary school, and curriculum subject metadata:
+
+```bash
+npm run db:seed -- --dry-run
+npm run db:seed
+```
+
+The seed refuses to write to non-local database hosts by default. Only after
+confirming that the configured remote database is the intended target, explicitly
+allow remote writes with `SEED_ALLOW_REMOTE=true npm run db:seed` (PowerShell:
+`$env:SEED_ALLOW_REMOTE='true'; npm run db:seed`). It does not create sample users,
+teachers, student enrollments, lessons, resources, or subscription plans.
+
+See [README-LIVEKIT.md](./README-LIVEKIT.md) for LiveKit deployment and service configuration.
+
+## Mobile money subscriptions
+
+Parent checkout accepts only published subscription plans priced in ZMW; the
+amount is always loaded and verified server-side. Parents can choose BroadPay or
+DPO Pay. BroadPay's hosted checkout presents the supported MTN/Airtel options;
+DPO is configured with the selected Zambia mobile network.
+
+Configure the BroadPay public and secret keys in the server environment. In
+DPO's merchant account, obtain the company token, service type, hosted-checkout
+URL, Zambia payment-country value, and exact MTN/Airtel MNO values. Set these
+as `DPO_COMPANY_TOKEN`, `DPO_SERVICE_TYPE`, `DPO_CHECKOUT_URL`,
+`DPO_DEFAULT_PAYMENT_COUNTRY`, `DPO_MTN_MNO`, and `DPO_AIRTEL_MNO`. DPO's
+hosted-checkout URL and Zambia routing values vary by account; the app does not
+guess them. `APP_URL` must be the HTTPS origin configured for provider
+callbacks. Configure `https://<APP_URL>/api/payments/dpo/webhook` as DPO's
+server-to-server push notification URL in the merchant account. BroadPay
+callbacks are signature-checked; DPO callbacks and browser returns are confirmed
+by a server-to-server transaction verification before a subscription is
+activated.
+
+Create subscription plans with an explicit ZMW amount and duration before
+opening checkout to parents. Plans in other currencies are not offered and no
+currency conversion is performed. Deploy the Prisma schema changes before
+enabling checkout.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
 
 ## Getting Started

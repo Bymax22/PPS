@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { AccessToken } from 'livekit-server-sdk'
 import { prisma } from '@/lib/prisma'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,32 +21,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Room name required' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const access = await getLessonAccess(session.user.id, room)
+    if (!access) return NextResponse.json({ error: 'Lesson not found' }, { status: 404 })
+    if (!access.canAccess) return NextResponse.json({ error: 'No access to this live session' }, { status: 403 })
+    if (access.lesson.status !== 'LIVE' || access.lesson.session?.status !== 'LIVE') {
+      return NextResponse.json({ error: 'This live session is not active' }, { status: 409 })
     }
-
-    // Only teachers and admins can request host tokens
-    if (isHost && user.role !== 'TEACHER' && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Only teachers can start live sessions' }, { status: 403 })
+    if (isHost && !access.canTeach) {
+      return NextResponse.json({ error: 'Only the assigned teacher or an admin can host this lesson' }, { status: 403 })
+    }
+    if (!isHost && access.user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Only enrolled students can join as learners' }, { status: 403 })
     }
 
     const apiKey = process.env.LIVEKIT_API_KEY
     const apiSecret = process.env.LIVEKIT_API_SECRET
+    const serverUrl = process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL
 
-    if (!apiKey || !apiSecret) {
-      return NextResponse.json({ error: 'LiveKit credentials not configured' }, { status: 500 })
+    if (!apiKey || !apiSecret || !serverUrl) {
+      return NextResponse.json({ error: 'LiveKit credentials and server URL are not configured' }, { status: 503 })
     }
 
-    const displayName = `${user.firstName} ${user.lastName}`.trim()
-    const identity = `${user.id}-${Date.now()}`
+    const displayName = `${session.user.name || 'User'}`.trim()
+    const identity = `${session.user.id}-${Date.now()}`
 
     const at = new AccessToken(apiKey, apiSecret, { identity, name: displayName })
 
-    // Host tokens get publish/subscribe permissions; students only subscribe
+    // Students receive subscribe-only access; lesson chat is authorized separately.
     const grant = isHost
       ? { room, canPublish: true, canPublishData: true, canSubscribe: true }
       : { room, canPublish: false, canPublishData: true, canSubscribe: true }
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
     at.addGrant(grant)
 
     const token = await at.toJwt()
-    return NextResponse.json({ token, identity, displayName, isHost, role: user.role })
+    return NextResponse.json({ token, identity, displayName, isHost, role: access.user.role, serverUrl })
   } catch (err) {
     console.error('Error generating LiveKit token', err)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

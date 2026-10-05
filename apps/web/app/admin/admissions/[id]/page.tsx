@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { use, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
@@ -22,8 +22,8 @@ function getDocumentEntries(value: unknown): Array<{ label: string; name: string
   return []
 }
 
-export default function AdmissionDetail({ params }: { params: { id: string } }) {
-  const { id } = params
+export default function AdmissionDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [admission, setAdmission] = useState<any | null>(null)
   const [comments, setComments] = useState<any[]>([])
   const [text, setText] = useState('')

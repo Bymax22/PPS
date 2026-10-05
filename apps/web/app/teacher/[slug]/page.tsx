@@ -5,7 +5,7 @@ import { use, useEffect, useState, type ReactNode } from 'react'
 import { BookOpen, Video, Monitor } from 'lucide-react'
 
 interface TeacherSubpageProps {
-  params: Promise<{ slug: string }> | { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 interface TeacherClass {
@@ -28,9 +28,7 @@ interface Lesson {
 }
 
 export default function TeacherSubpage({ params }: TeacherSubpageProps) {
-  const resolvedParams = use(
-    params instanceof Promise ? params : Promise.resolve(params)
-  ) as { slug?: string }
+  const resolvedParams = use(params)
 
   const slug = resolvedParams?.slug ?? ''
   const [payload, setPayload] = useState<any>(null)

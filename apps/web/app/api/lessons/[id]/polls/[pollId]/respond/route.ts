@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { getAuthOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { submitPollResponse, getPollResults } from '@/lib/services/poll'
+import { getLessonAccess } from '@/lib/lessonAccess'
 
 export async function POST(
   req: NextRequest,
@@ -24,6 +25,10 @@ export async function POST(
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    const access = await getLessonAccess(user.id, lessonId)
+    if (!access?.canAccess || user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'Only enrolled students can respond to polls' }, { status: 403 })
     }
 
     // Verify poll exists
@@ -56,7 +61,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string; pollId: string }> }
 ) {
   try {
+    const session = await getServerSession(await getAuthOptions())
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { id: lessonId, pollId } = await params
+    const access = await getLessonAccess(session.user.id, lessonId)
+    if (!access?.canAccess) return NextResponse.json({ error: 'No access to this lesson' }, { status: 403 })
 
     const poll = await prisma.livePoll.findUnique({
       where: { id: pollId },
@@ -66,6 +75,9 @@ export async function GET(
       return NextResponse.json({ error: 'Poll not found' }, { status: 404 })
     }
 
+    if (!access.canTeach && access.user.role !== 'STUDENT') {
+      return NextResponse.json({ error: 'No access to poll results' }, { status: 403 })
+    }
     const results = await getPollResults(pollId)
 
     return NextResponse.json(results)

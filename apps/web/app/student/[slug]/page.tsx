@@ -2,13 +2,11 @@ import Link from 'next/link'
 import { use } from 'react'
 
 interface StudentSubpageProps {
-  params: Promise<{ slug: string }> | { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export default function StudentSubpage({ params }: StudentSubpageProps) {
-  const resolvedParams = use(
-    params instanceof Promise ? params : Promise.resolve(params)
-  ) as { slug?: string }
+  const resolvedParams = use(params)
 
   const title = (resolvedParams?.slug || 'dashboard')
     .split('-')

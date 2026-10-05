@@ -23,6 +23,13 @@ export async function GET(
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
+    const parent = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
+    })
+    if (!parent || parent.role !== 'PARENT' || student.parentId !== parent.id) {
+      return NextResponse.json({ error: 'Child not found for this parent' }, { status: 404 })
+    }
 
     // Get attendance records
     const attendance = await prisma.attendance.findMany({
