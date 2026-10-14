@@ -5,6 +5,7 @@ import {
   adminTeacherPayloadSchema,
   adminNotificationPayloadSchema,
   adminSessionPayloadSchema,
+  adminClassPayloadSchema,
   adminClassUpdatePayloadSchema,
   adminTeacherUpdatePayloadSchema,
   adminStudentUpdatePayloadSchema,
@@ -60,6 +61,22 @@ describe('admin validation helpers', () => {
     expect(result.ok).toBe(true)
   })
 
+  it('validates class creation details and positive grades', () => {
+    expect(parseValidation(adminClassPayloadSchema, {
+      name: 'Grade 4 Math',
+      programId: 'clz1234567890abcdef123456',
+      grade: 4,
+      subject: 'Math',
+      capacity: 25
+    }).ok).toBe(true)
+
+    expect(parseValidation(adminClassPayloadSchema, {
+      name: 'Grade 4 Math',
+      programId: 'clz1234567890abcdef123456',
+      grade: 0
+    }).ok).toBe(false)
+  })
+
   it('validates class update payloads', () => {
     const result = parseValidation(adminClassUpdatePayloadSchema, {
       classId: 'clz1234567890abcdef123456',
@@ -73,6 +90,25 @@ describe('admin validation helpers', () => {
       expect(result.data.grade).toBe(4)
       expect(result.data.capacity).toBe(25)
     }
+  })
+
+  it('allows clearing a class grade and rejects invalid or duplicate teacher assignments', () => {
+    expect(parseValidation(adminClassUpdatePayloadSchema, {
+      classId: 'clz1234567890abcdef123456',
+      grade: null,
+      subject: '',
+      teacherIds: []
+    }).ok).toBe(true)
+
+    expect(parseValidation(adminClassUpdatePayloadSchema, {
+      classId: 'clz1234567890abcdef123456',
+      grade: '0'
+    }).ok).toBe(false)
+
+    expect(parseValidation(adminClassUpdatePayloadSchema, {
+      classId: 'clz1234567890abcdef123456',
+      teacherIds: ['ctc1234567890abcdef123456', 'ctc1234567890abcdef123456']
+    }).ok).toBe(false)
   })
 
   it('validates teacher update payloads', () => {

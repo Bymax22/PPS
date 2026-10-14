@@ -61,6 +61,14 @@ const subjects = [
   { code: 'PHYSICAL_EDUCATION', name: 'Physical Education', curricula: ['zambian', 'cambridge'], stages: ['EARLY_YEARS', 'PRIMARY', 'SECONDARY'] },
 ]
 
+const subscriptionPeriods = [
+  { key: 'daily', label: 'Daily', price: 80, durationDays: 1, billingInterval: 'PER_DAY' },
+  { key: 'weekly', label: 'Weekly', price: 300, durationDays: 7, billingInterval: 'PER_WEEK' },
+  { key: 'monthly', label: 'Monthly', price: 900, durationDays: 30, billingInterval: 'PER_MONTH' },
+  { key: 'termly', label: 'Termly', price: 2400, durationDays: 90, billingInterval: 'PER_TERM' },
+]
+
+const plannedSubscriptionPlanCount = curricula.length * subscriptionPeriods.length
 const dryRun = process.argv.includes('--dry-run')
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) throw new Error('DATABASE_URL is required to seed curriculum records.')
@@ -73,7 +81,12 @@ if (!dryRun && !localHosts.has(databaseHost) && process.env.SEED_ALLOW_REMOTE !=
 
 const plannedClassCount = curricula.reduce((sum, curriculum) => sum + curriculum.stages.length, 0)
 if (dryRun) {
-  console.log(`Seed plan: ${curricula.length} curricula, ${subjects.length} subjects, ${plannedClassCount} grade classes.`)
+  console.log(`Seed plan: ${curricula.length} curricula, ${subjects.length} subjects, ${plannedClassCount} grade classes, ${plannedSubscriptionPlanCount} ZMW subscription plans.`)
+  for (const curriculum of curricula) {
+    for (const period of subscriptionPeriods) {
+      console.log(`  ${curriculum.name} — ${period.label}: ZMW ${period.price} (${period.durationDays} days)`)
+    }
+  }
   console.log('Dry run: no database connection or writes were made.')
   process.exit(0)
 }
@@ -137,6 +150,44 @@ try {
         })
       }
     }
+
+    for (const period of subscriptionPeriods) {
+      const slug = `${curriculum.key}-curriculum-${period.key}`
+      await prisma.subscriptionPlan.upsert({
+        where: { slug },
+        create: {
+          programId: program.id,
+          name: `${curriculum.name} — ${period.label} Access`,
+          slug,
+          description: `One-student ${curriculum.name} subscription with curriculum-wide access for ${period.durationDays} day${period.durationDays === 1 ? '' : 's'}. Price: ZMW ${period.price}.`,
+          price: period.price,
+          currency: 'ZMW',
+          durationDays: period.durationDays,
+          billingCycle: period.label,
+          billingInterval: period.billingInterval,
+          intervalCount: 1,
+          targetType: 'GENERAL',
+          targetMetadata: { accessScope: 'CURRICULUM', curriculumKey: curriculum.key },
+          metadata: { seededBy: 'prisma/seed.mjs', pricingSchedule: 'approved-pilot-2026-10-05' },
+        },
+        update: {
+          programId: program.id,
+          name: `${curriculum.name} — ${period.label} Access`,
+          description: `One-student ${curriculum.name} subscription with curriculum-wide access for ${period.durationDays} day${period.durationDays === 1 ? '' : 's'}. Price: ZMW ${period.price}.`,
+          price: period.price,
+          currency: 'ZMW',
+          durationDays: period.durationDays,
+          billingCycle: period.label,
+          billingInterval: period.billingInterval,
+          intervalCount: 1,
+          targetType: 'GENERAL',
+          targetMetadata: { accessScope: 'CURRICULUM', curriculumKey: curriculum.key },
+          metadata: { seededBy: 'prisma/seed.mjs', pricingSchedule: 'approved-pilot-2026-10-05' },
+          isDeleted: false,
+          deletedAt: null,
+        },
+      })
+    }
   }
 
   for (const subject of subjects) {
@@ -160,8 +211,8 @@ try {
     }
   }
 
-  console.log(`Seed complete: ${curricula.length} curricula, ${subjects.length} subjects, ${plannedClassCount} grade classes ensured.`)
-  console.log('No user accounts, teachers, enrollments, lessons, resources, or payment plans were fabricated.')
+  console.log(`Seed complete: ${curricula.length} curricula, ${subjects.length} subjects, ${plannedClassCount} grade classes, ${plannedSubscriptionPlanCount} ZMW subscription plans ensured.`)
+  console.log('No user accounts, teachers, enrollments, lessons, or resources were fabricated.')
 } finally {
   await prisma.$disconnect()
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
 type ClassRow = {
@@ -12,6 +12,7 @@ type ClassRow = {
   programName: string
   enrolledCount: number
   teachers: string[]
+  teacherIds: string[]
 }
 
 type ProgramOption = {
@@ -62,10 +63,10 @@ export default function AdminClassesPage() {
   const [assignTeacherIds, setAssignTeacherIds] = useState<string[]>([])
   const [assignGrade, setAssignGrade] = useState('')
   const [assignSubject, setAssignSubject] = useState('')
-  const [assignCapacity, setAssignCapacity] = useState('30')
+  const [assignCapacity, setAssignCapacity] = useState('')
   const [assigningClass, setAssigningClass] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -76,13 +77,13 @@ export default function AdminClassesPage() {
       setPrograms(json.programs ?? [])
       setSubjects(json.subjects ?? [])
       setTeachers(json.teachers ?? [])
-      if (!programId && json.programs?.[0]?.id) setProgramId(json.programs[0].id)
+      setProgramId((current) => current || json.programs?.[0]?.id || '')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Load failed')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const filteredRows = useMemo(
     () => classes.filter((row) => {
@@ -180,9 +181,9 @@ export default function AdminClassesPage() {
         body: JSON.stringify({
           classId: assignClassId,
           teacherIds: assignTeacherIds,
-          grade: assignGrade ? Number(assignGrade) : undefined,
-          subject: assignSubject || undefined,
-          capacity: assignCapacity ? Number(assignCapacity) : undefined
+          grade: assignGrade ? Number(assignGrade) : null,
+          subject: assignSubject,
+          capacity: Number(assignCapacity)
         })
       })
       const json = await res.json()
@@ -192,7 +193,7 @@ export default function AdminClassesPage() {
       setAssignTeacherIds([])
       setAssignGrade('')
       setAssignSubject('')
-      setAssignCapacity('30')
+      setAssignCapacity('')
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Assignment failed')
@@ -205,7 +206,7 @@ export default function AdminClassesPage() {
 
   useEffect(() => {
     void load()
-  }, [])
+  }, [load])
 
   return (
     <div className="space-y-8 py-10">
@@ -244,11 +245,12 @@ export default function AdminClassesPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-700">
                 Class name
-                <input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+                <input required minLength={3} value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
               </label>
               <label className="space-y-2 text-sm text-slate-700">
                 Program
-                <select value={programId} onChange={(event) => setProgramId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+                <select required value={programId} onChange={(event) => setProgramId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+                  <option value="" disabled>Select program</option>
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>{program.name}</option>
                   ))}
@@ -266,7 +268,7 @@ export default function AdminClassesPage() {
               </label>
               <label className="space-y-2 text-sm text-slate-700">
                 Capacity
-                <input value={capacity} onChange={(event) => setCapacity(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
+                <input required value={capacity} onChange={(event) => setCapacity(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900" />
               </label>
             </div>
             {subjects.length ? (
@@ -309,25 +311,44 @@ export default function AdminClassesPage() {
         <form onSubmit={handleAssignClass} className="grid gap-4 lg:grid-cols-[1.1fr_1fr_auto]">
           <label className="space-y-2 text-sm text-slate-700">
             Class
-            <select value={assignClassId} onChange={(event) => setAssignClassId(event.target.value)} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
+            <select value={assignClassId} onChange={(event) => {
+              const selectedClass = classes.find((classItem) => classItem.id === event.target.value)
+              setAssignClassId(event.target.value)
+              setAssignTeacherIds(selectedClass?.teacherIds ?? [])
+              setAssignGrade(selectedClass?.grade?.toString() ?? '')
+              setAssignSubject(selectedClass?.subject ?? '')
+              setAssignCapacity(selectedClass?.capacity.toString() ?? '')
+            }} className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
               <option value="">Select class</option>
               {classes.map((classItem) => (
                 <option key={classItem.id} value={classItem.id}>{classItem.name}</option>
               ))}
             </select>
           </label>
-          <label className="space-y-2 text-sm text-slate-700">
-            Teachers
-            <select multiple value={assignTeacherIds} onChange={(event) => setAssignTeacherIds(Array.from(event.target.selectedOptions, (option) => option.value))} className="min-h-[120px] w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900">
-              {teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>{teacher.name} • {teacher.email}</option>
-              ))}
-            </select>
-          </label>
+          <fieldset className="space-y-2 text-sm text-slate-700">
+            <legend>Teachers (select all that apply)</legend>
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-3">
+              {teachers.length ? teachers.map((teacher) => (
+                <label key={teacher.id} className="flex cursor-pointer items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={assignTeacherIds.includes(teacher.id)}
+                    onChange={(event) => setAssignTeacherIds((current) => (
+                      event.target.checked
+                        ? [...current, teacher.id]
+                        : current.filter((id) => id !== teacher.id)
+                    ))}
+                    className="mt-1"
+                  />
+                  <span>{teacher.name} <span className="text-slate-500">({teacher.email})</span></span>
+                </label>
+              )) : <p className="text-slate-500">No teacher accounts are available to assign.</p>}
+            </div>
+          </fieldset>
           <div className="flex flex-col gap-3">
             <label className="space-y-2 text-sm text-slate-700">
               Grade
-              <input value={assignGrade} onChange={(event) => setAssignGrade(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+              <input value={assignGrade} onChange={(event) => setAssignGrade(event.target.value)} type="number" min="1" placeholder="No grade" className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
             </label>
             <label className="space-y-2 text-sm text-slate-700">
               Subject
@@ -335,7 +356,7 @@ export default function AdminClassesPage() {
             </label>
             <label className="space-y-2 text-sm text-slate-700">
               Capacity
-              <input value={assignCapacity} onChange={(event) => setAssignCapacity(event.target.value)} type="number" min="1" className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
+              <input value={assignCapacity} onChange={(event) => setAssignCapacity(event.target.value)} type="number" min="1" required className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900" />
             </label>
             <button type="submit" disabled={assigningClass || !assignClassId} className="rounded-3xl bg-[#003087] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#00256e] disabled:cursor-not-allowed disabled:opacity-60">
               {assigningClass ? 'Saving…' : 'Save class'}

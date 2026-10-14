@@ -37,7 +37,14 @@ The seed refuses to write to non-local database hosts by default. Only after
 confirming that the configured remote database is the intended target, explicitly
 allow remote writes with `SEED_ALLOW_REMOTE=true npm run db:seed` (PowerShell:
 `$env:SEED_ALLOW_REMOTE='true'; npm run db:seed`). It does not create sample users,
-teachers, student enrollments, lessons, resources, or subscription plans.
+teachers, student enrollments, lessons, or resources.
+
+It also ensures eight one-student curriculum-wide subscription plans in ZMW:
+for each curriculum (Zambian and Cambridge), daily (K80/1 day), weekly
+(K300/7 days), monthly (K900/30 days), and termly (K2,400/90 days). These are
+the approved pilot prices; rerunning the seed updates these seeded plans back
+to the listed prices and durations. Topic, lesson, and per-session plans are
+not included.
 
 See [README-LIVEKIT.md](./README-LIVEKIT.md) for LiveKit deployment and service configuration.
 

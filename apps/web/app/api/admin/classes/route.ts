@@ -59,7 +59,8 @@ export async function GET() {
           const fullName = `${link.teacher?.firstName ?? ''} ${link.teacher?.lastName ?? ''}`.trim()
           return fullName || null
         })
-        .filter((value): value is string => Boolean(value))
+        .filter((value): value is string => Boolean(value)),
+      teacherIds: classItem.teachers.map((link) => link.teacherId)
     }))
   })
 }
@@ -72,7 +73,12 @@ export async function POST(req: Request) {
 
   const { admin } = context
 
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
+  }
   const validation = parseValidation(adminClassPayloadSchema, body)
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error }, { status: 400 })
@@ -80,40 +86,57 @@ export async function POST(req: Request) {
 
   const { name, programId, grade, subject, capacity, teacherIds } = validation.data
 
-  const program = await prisma.program.findUnique({ where: { id: programId } })
+  const program = await prisma.program.findFirst({ where: { id: programId, isDeleted: false } })
   if (!program) {
     return NextResponse.json({ error: 'Invalid program' }, { status: 400 })
   }
 
-  const resolvedTeacherIds = Array.isArray(teacherIds)
-    ? teacherIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
+  const resolvedTeacherIds = teacherIds ?? []
+  const validTeachers = resolvedTeacherIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: resolvedTeacherIds }, role: 'TEACHER' },
+        select: { id: true }
+      })
     : []
+  if (validTeachers.length !== resolvedTeacherIds.length) {
+    return NextResponse.json({ error: 'One or more selected teachers are invalid' }, { status: 400 })
+  }
 
-  const created = await prisma.class.create({
-    data: {
-      name,
-      program: { connect: { id: program.id } },
-      grade: grade !== undefined ? Number(grade) : undefined,
-      subject: subject || undefined,
-      capacity: Number(capacity ?? 30),
-      teachers: resolvedTeacherIds.length
-        ? {
-            create: resolvedTeacherIds.map((teacherId) => ({
-              teacher: { connect: { id: teacherId } }
-            }))
-          }
-        : undefined
-    }
-  })
+  let created
+  try {
+    created = await prisma.class.create({
+      data: {
+        name,
+        program: { connect: { id: program.id } },
+        grade,
+        subject: subject || undefined,
+        capacity: capacity ?? 30,
+        teachers: resolvedTeacherIds.length
+          ? {
+              create: resolvedTeacherIds.map((teacherId) => ({
+                teacher: { connect: { id: teacherId } }
+              }))
+            }
+          : undefined
+      }
+    })
+  } catch (error) {
+    console.error('Failed to create admin class', error)
+    return NextResponse.json({ error: 'Unable to create class' }, { status: 500 })
+  }
 
   if (resolvedTeacherIds.length) {
-    await createNotificationsForUsers(resolvedTeacherIds, {
-      title: 'New class assignment',
-      body: `You have been assigned to class ${created.name}.`,
-      type: 'ANNOUNCEMENT',
-      link: '/teacher',
-      metadata: { classId: created.id }
-    })
+    try {
+      await createNotificationsForUsers(resolvedTeacherIds, {
+        title: 'New class assignment',
+        body: `You have been assigned to class ${created.name}.`,
+        type: 'ANNOUNCEMENT',
+        link: '/teacher',
+        metadata: { classId: created.id }
+      })
+    } catch (error) {
+      console.error('Failed to notify teachers about new class assignment', error)
+    }
   }
 
   logProductionEvent('class_created', { adminId: admin.id, classId: created.id }, 'info')
@@ -126,7 +149,12 @@ export async function PATCH(req: Request) {
     return context.error
   }
 
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Request body must be valid JSON' }, { status: 400 })
+  }
   const validation = parseValidation(adminClassUpdatePayloadSchema, body)
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error }, { status: 400 })
@@ -134,34 +162,62 @@ export async function PATCH(req: Request) {
 
   const { classId, teacherIds, grade, subject, capacity } = validation.data
 
-  const targetClass = await prisma.class.findUnique({ where: { id: classId } })
+  const targetClass = await prisma.class.findFirst({ where: { id: classId, isDeleted: false } })
   if (!targetClass) {
-    return NextResponse.json({ error: 'Class not found' }, { status: 400 })
+    return NextResponse.json({ error: 'Class not found' }, { status: 404 })
   }
 
-  const updatePayload: Record<string, unknown> = {}
-  if (grade !== undefined) updatePayload.grade = Number(grade)
-  if (subject !== undefined) updatePayload.subject = subject || null
-  if (capacity !== undefined) updatePayload.capacity = Number(capacity)
-
-  if (Object.keys(updatePayload).length) {
-    await prisma.class.update({ where: { id: classId }, data: updatePayload })
-  }
-
-  const resolvedTeacherIds = Array.isArray(teacherIds)
-    ? teacherIds.filter((value: unknown): value is string => typeof value === 'string' && Boolean(value))
-    : []
-
-  if (resolvedTeacherIds.length || teacherIds !== undefined) {
-    await prisma.teacherClass.deleteMany({ where: { classId: targetClass.id } })
-
-    if (resolvedTeacherIds.length) {
-      await prisma.teacherClass.createMany({
-        data: resolvedTeacherIds.map((teacherId) => ({ teacherId, classId: targetClass.id, isPrimary: true })),
-        skipDuplicates: true
+  const resolvedTeacherIds = teacherIds ?? []
+  const validTeachers = resolvedTeacherIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: resolvedTeacherIds }, role: 'TEACHER' },
+        select: { id: true }
       })
-    }
+    : []
+  if (validTeachers.length !== resolvedTeacherIds.length) {
+    return NextResponse.json({ error: 'One or more selected teachers are invalid' }, { status: 400 })
   }
 
-  return NextResponse.json({ ok: true })
+  try {
+    const updated = await prisma.$transaction(async (transaction) => {
+      const result = await transaction.class.update({
+        where: { id: targetClass.id },
+        data: {
+          ...(grade !== undefined ? { grade } : {}),
+          ...(subject !== undefined ? { subject: subject || null } : {}),
+          ...(capacity !== undefined ? { capacity } : {})
+        }
+      })
+
+      if (teacherIds !== undefined) {
+        await transaction.teacherClass.deleteMany({ where: { classId: targetClass.id } })
+        if (resolvedTeacherIds.length) {
+          await transaction.teacherClass.createMany({
+            data: resolvedTeacherIds.map((teacherId) => ({ teacherId, classId: targetClass.id, isPrimary: true })),
+            skipDuplicates: true
+          })
+        }
+      }
+
+      return result
+    })
+
+    if (teacherIds !== undefined && resolvedTeacherIds.length) {
+      try {
+        await createNotificationsForUsers(resolvedTeacherIds, {
+          title: 'Class assignment updated',
+          body: `You have been assigned to class ${updated.name}.`,
+          type: 'ANNOUNCEMENT',
+          link: '/teacher',
+          metadata: { classId: updated.id }
+        })
+      } catch (error) {
+        console.error('Failed to notify teachers about class assignment update', error)
+      }
+    }
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Failed to update admin class', error)
+    return NextResponse.json({ error: 'Unable to update class' }, { status: 500 })
+  }
 }

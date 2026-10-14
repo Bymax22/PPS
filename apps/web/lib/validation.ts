@@ -39,10 +39,10 @@ export const adminNotificationPayloadSchema = z.object({
 export const adminClassPayloadSchema = z.object({
   name: z.string().trim().min(3, 'Class name is required'),
   programId: z.string().cuid('Valid program id is required'),
-  grade: z.union([z.number().int().nonnegative(), z.string().regex(/\d+/)]).optional().transform((value) => value === undefined ? undefined : Number(value)),
+  grade: z.union([z.number().int().positive(), z.string().regex(/[1-9]\d*/)]).optional().transform((value) => value === undefined ? undefined : Number(value)),
   subject: z.string().trim().optional(),
   capacity: z.union([z.number().int().positive(), z.string().regex(/\d+/)]).optional().transform((value) => value === undefined ? undefined : Number(value)),
-  teacherIds: z.array(z.string().cuid()).optional()
+  teacherIds: z.array(z.string().cuid()).optional().refine((ids) => !ids || new Set(ids).size === ids.length, 'Teachers must not be duplicated')
 })
 
 export const adminSubjectPayloadSchema = z.object({
@@ -72,9 +72,9 @@ export const adminSessionPayloadSchema = z.object({
 
 export const adminClassUpdatePayloadSchema = z.object({
   classId: z.string().cuid('Valid class id is required'),
-  teacherIds: z.array(z.string().cuid()).optional(),
-  grade: z.union([z.number().int().nonnegative(), z.string().regex(/\d+/)]).optional().transform((value) => value === undefined ? undefined : Number(value)),
-  subject: z.string().trim().optional(),
+  teacherIds: z.array(z.string().cuid()).optional().refine((ids) => !ids || new Set(ids).size === ids.length, 'Teachers must not be duplicated'),
+  grade: z.union([z.number().int().positive(), z.string().regex(/[1-9]\d*/)]).nullable().optional().transform((value) => value == null ? value : Number(value)),
+  subject: z.string().trim().nullable().optional(),
   capacity: z.union([z.number().int().positive(), z.string().regex(/\d+/)]).optional().transform((value) => value === undefined ? undefined : Number(value))
 })
 
