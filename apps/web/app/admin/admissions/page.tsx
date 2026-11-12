@@ -53,6 +53,7 @@ export default function AdminAdmissionsPage() {
   const [items, setItems] = useState<AdmissionItem[]>([])
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<AdmissionItem | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const stats = useMemo(() => {
     const counts = items.reduce<Record<string, number>>((acc, item) => {
@@ -72,13 +73,19 @@ export default function AdminAdmissionsPage() {
     try {
       setLoading(true)
       const res = await fetch('/api/admin/admissions?take=50', { credentials: 'include' })
-      if (!res.ok) return
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setLoadError(data.error || 'Unable to load applications. Check your admin access and try again.')
+        return
+      }
+      setLoadError(null)
       const nextItems = (data.items || []) as AdmissionItem[]
       setItems(nextItems)
+      if (nextItems.length === 0) setSelected(null)
       if (!selected && nextItems[0]) setSelected(nextItems[0])
     } catch (e) {
       console.error(e)
+      setLoadError('Unable to load applications. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -116,6 +123,8 @@ export default function AdminAdmissionsPage() {
           <Link href="/admin" className="rounded border border-gray-200 bg-white px-3 py-2 text-sm">Back</Link>
         </header>
 
+        {loadError && <p role="alert" className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadError}</p>}
+
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -147,6 +156,7 @@ export default function AdminAdmissionsPage() {
                       <td className="p-3">{application.status}</td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-2">
+                          <Link href={`/admin/admissions/${application.id}`} onClick={(e) => e.stopPropagation()} className="rounded border border-gray-200 px-2 py-1 text-sm">Open</Link>
                           <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'UNDER_REVIEW') }} disabled={loading} className="rounded bg-yellow-100 px-2 py-1 text-sm">Review</button>
                           <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'APPROVED') }} disabled={loading} className="rounded bg-green-100 px-2 py-1 text-sm">Approve</button>
                           <button onClick={(e) => { e.stopPropagation(); void changeStatus(application.id, 'REJECTED') }} disabled={loading} className="rounded bg-red-100 px-2 py-1 text-sm">Reject</button>

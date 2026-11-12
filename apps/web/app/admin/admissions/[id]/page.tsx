@@ -4,7 +4,9 @@ import { use, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
-function getDocumentEntries(value: unknown): Array<{ label: string; name: string; url?: string }> {
+type AdmissionDocument = { label: string; name: string; url?: string; mimeType?: string }
+
+function getDocumentEntries(value: unknown): AdmissionDocument[] {
   if (typeof value !== 'string' || !value) return []
   try {
     const parsed: unknown = JSON.parse(value)
@@ -13,6 +15,7 @@ function getDocumentEntries(value: unknown): Array<{ label: string; name: string
         label: 'Document',
         name: name.startsWith('https://') ? name.split('/').pop() || name : name,
         url: name.startsWith('https://') ? name : undefined,
+        mimeType: undefined,
       }))
     }
     if (typeof parsed === 'object' && parsed !== null) {
@@ -23,8 +26,9 @@ function getDocumentEntries(value: unknown): Array<{ label: string; name: string
               label,
               name: 'name' in document && typeof document.name === 'string' ? document.name : label,
               url: 'url' in document && typeof document.url === 'string' ? document.url : undefined,
+              mimeType: 'mimeType' in document && typeof document.mimeType === 'string' ? document.mimeType : undefined,
             }
-          : { label, name: String(document) })
+          : { label, name: String(document), mimeType: undefined })
     }
   } catch {
     return value.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({ label: 'Document', name }))
@@ -39,6 +43,7 @@ export default function AdmissionDetail({ params }: { params: Promise<{ id: stri
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [previewDocument, setPreviewDocument] = useState<AdmissionDocument | null>(null)
   const fileRef = useRef<HTMLDivElement | null>(null)
   const documentEntries = getDocumentEntries(admission?.documentsMediaIds)
 
@@ -101,12 +106,17 @@ export default function AdmissionDetail({ params }: { params: Promise<{ id: stri
               <div className="bg-white rounded shadow p-4">
                 <h3 className="font-semibold">Documents</h3>
                 <div ref={fileRef} className="mt-3 space-y-3">
-                  {documentEntries.length ? documentEntries.map(({ label, name }, index) => (
-                    <div key={`${label}-${index}`} className="border rounded p-2 text-sm">
-                      <span className="font-medium">{label}: </span>
-                      {documentEntries[index].url
-                        ? <a href={documentEntries[index].url} target="_blank" rel="noreferrer" className="text-blue-600 underline">{name}</a>
-                        : <span>{name} (filename only)</span>}
+                  {documentEntries.length ? documentEntries.map((document, index) => (
+                    <div key={`${document.label}-${index}`} className="border rounded p-2 text-sm">
+                      <span className="font-medium">{document.label}: </span>
+                      {document.url ? (
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {document.mimeType === 'application/pdf' || document.mimeType?.startsWith('image/') ? (
+                            <button type="button" onClick={() => setPreviewDocument(document)} className="text-blue-600 underline">Preview</button>
+                          ) : null}
+                          <a href={document.url} target="_blank" rel="noreferrer" className="text-blue-600 underline">Open / download</a>
+                        </div>
+                      ) : <span>{document.name} (filename only)</span>}
                     </div>
                   )) : <p className="text-sm text-gray-500">No document details were submitted.</p>}
                 </div>
@@ -146,6 +156,23 @@ export default function AdmissionDetail({ params }: { params: Promise<{ id: stri
           </div>
         )}
       </div>
+      {previewDocument?.url && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label={`${previewDocument.label} preview`}>
+          <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white">
+            <div className="flex items-center justify-between border-b p-4">
+              <h2 className="font-semibold">{previewDocument.name}</h2>
+              <button type="button" onClick={() => setPreviewDocument(null)} className="rounded border px-3 py-1 text-sm">Close</button>
+            </div>
+            <div className="min-h-0 flex-1 bg-gray-100">
+              {previewDocument.mimeType?.startsWith('image/') ? (
+                <img src={previewDocument.url} alt={previewDocument.name} className="h-full w-full object-contain" />
+              ) : (
+                <iframe src={previewDocument.url} title={previewDocument.name} className="h-full w-full" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

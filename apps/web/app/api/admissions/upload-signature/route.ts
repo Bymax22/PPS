@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createCloudinaryUploadSignature } from '@/lib/cloudinary'
 
-const allowedFormats = 'pdf,jpg,jpeg,png'
+const allowedFormats = 'pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,ppt,pptx,txt,csv,rtf,odt,ods,odp'
 
 export async function POST() {
   try {

@@ -14,9 +14,19 @@ const admissionSchema = z.object({
   parentEmail: z.string().trim().email(),
   parentPhone: z.string().trim().min(1),
   parentOccupation: z.string().optional(),
+  parentRelationship: z.string().optional(),
+  studentNationality: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  province: z.string().optional(),
   previousSchool: z.string().optional(),
   previousGrade: z.union([z.string(), z.number()]).optional(),
   studentGrade: z.union([z.string(), z.number()]),
+  programType: z.string().optional(),
+  preferredStartDate: z.string().optional(),
+  preferredSchedule: z.string().optional(),
+  specialNeeds: z.string().optional(),
+  howHeard: z.string().optional(),
   preferredSubjects: z.unknown().optional(),
   uploadFolder: z.string().regex(/^pps_admissions\/[0-9a-f-]{36}$/i).optional(),
   documents: z.object({
@@ -26,6 +36,7 @@ const admissionSchema = z.object({
     immunizations: z.object({ name: z.string(), url: z.string().url(), publicId: z.string(), mimeType: z.string() }).optional(),
   }).optional(),
   agreeTerms: z.boolean().optional(),
+  agreePhotos: z.boolean().optional(),
 })
 
 export async function POST(req: Request) {
@@ -86,6 +97,19 @@ export async function POST(req: Request) {
 
     const documents = {
       studentEmail: body.studentEmail || null,
+      applicationDetails: {
+        programType: body.programType || null,
+        studentNationality: body.studentNationality || null,
+        parentRelationship: body.parentRelationship || null,
+        address: body.address || null,
+        city: body.city || null,
+        province: body.province || null,
+        preferredStartDate: body.preferredStartDate || null,
+        preferredSchedule: body.preferredSchedule || null,
+        specialNeeds: body.specialNeeds || null,
+        howHeard: body.howHeard || null,
+        agreePhotos: body.agreePhotos ?? false,
+      },
       ...(body.documents ?? {}),
     }
 

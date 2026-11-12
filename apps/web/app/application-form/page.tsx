@@ -7,6 +7,26 @@ import { ArrowLeft, Home, Laptop, Users, Calendar, FileText, CheckCircle, AlertC
 import { Suspense, useEffect, useState } from 'react'
 import { getApplicationSelectionFromSearchParams, type ApplicationProgramType } from '@/lib/applicationFormState'
 
+const admissionDocumentAccept = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp'
+const admissionDocumentMimeTypes = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
+  'text/csv',
+  'application/rtf',
+  'application/vnd.oasis.opendocument.text',
+  'application/vnd.oasis.opendocument.spreadsheet',
+  'application/vnd.oasis.opendocument.presentation',
+])
+
 function ApplicationFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -115,8 +135,8 @@ function ApplicationFormContent() {
 
           for (const [field, file] of selectedFiles) {
             if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name} must be 10 MB or smaller`)
-            if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
-              throw new Error(`${file.name} must be a PDF, JPG, or PNG file`)
+            if (!admissionDocumentMimeTypes.has(file.type)) {
+              throw new Error(`${file.name} is not a supported document format`)
             }
             const uploadData = new FormData()
             uploadData.append('file', file)
@@ -139,7 +159,7 @@ function ApplicationFormContent() {
         const res = await fetch('/api/admissions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...applicationData, documents, uploadFolder }),
+          body: JSON.stringify({ ...applicationData, documents, uploadFolder, programType }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Submission failed')
@@ -601,7 +621,7 @@ function ApplicationFormContent() {
                       <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-[var(--campus-gold)] transition-colors">
                         <input
                           type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
+                          accept={admissionDocumentAccept}
                           onChange={(e) => handleFileChange(e, 'schoolReport')}
                           className="hidden"
                           id="schoolReport"
@@ -612,7 +632,7 @@ function ApplicationFormContent() {
                             Click to upload or drag and drop
                           </span>
                           <span className="text-xs text-gray-400 block mt-1">
-                            PDF, PNG, JPG up to 10MB
+                            PDF, office documents, text files, and images up to 10MB
                           </span>
                         </label>
                       </div>
@@ -712,7 +732,7 @@ function ApplicationFormContent() {
                           </label>
                           <input
                             type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
+                            accept={admissionDocumentAccept}
                             onChange={(e) => handleFileChange(e, 'birthCertificate')}
                             required
                             className="w-full"
@@ -725,7 +745,7 @@ function ApplicationFormContent() {
                           </label>
                           <input
                             type="file"
-                            accept=".jpg,.jpeg,.png"
+                            accept=".jpg,.jpeg,.png,.webp"
                             onChange={(e) => handleFileChange(e, 'passportPhoto')}
                             required
                             className="w-full"
@@ -738,7 +758,7 @@ function ApplicationFormContent() {
                           </label>
                           <input
                             type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
+                            accept={admissionDocumentAccept}
                             onChange={(e) => handleFileChange(e, 'immunizations')}
                             className="w-full"
                           />

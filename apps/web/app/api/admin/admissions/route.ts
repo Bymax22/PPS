@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (status) where.status = status
 
   const [items, total] = await Promise.all([
-    prisma.admissionForm.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+    prisma.admissionForm.findMany({ where, orderBy: { submittedAt: 'desc' }, skip, take }),
     prisma.admissionForm.count({ where })
   ])
 
