@@ -4,17 +4,27 @@ import { use, useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRealtimeRefresh } from '@/lib/hooks/useRealtimeRefresh'
 
-function getDocumentEntries(value: unknown): Array<{ label: string; name: string }> {
+function getDocumentEntries(value: unknown): Array<{ label: string; name: string; url?: string }> {
   if (typeof value !== 'string' || !value) return []
   try {
     const parsed: unknown = JSON.parse(value)
     if (Array.isArray(parsed)) {
-      return parsed.filter((item): item is string => typeof item === 'string').map((name) => ({ label: 'Document', name }))
+      return parsed.filter((item): item is string => typeof item === 'string').map((name) => ({
+        label: 'Document',
+        name: name.startsWith('https://') ? name.split('/').pop() || name : name,
+        url: name.startsWith('https://') ? name : undefined,
+      }))
     }
     if (typeof parsed === 'object' && parsed !== null) {
       return Object.entries(parsed)
-        .filter(([key, name]) => key !== 'studentEmail' && typeof name === 'string' && name.length > 0)
-        .map(([label, name]) => ({ label, name: String(name) }))
+        .filter(([key, document]) => key !== 'studentEmail' && Boolean(document))
+        .map(([label, document]) => typeof document === 'object' && document !== null
+          ? {
+              label,
+              name: 'name' in document && typeof document.name === 'string' ? document.name : label,
+              url: 'url' in document && typeof document.url === 'string' ? document.url : undefined,
+            }
+          : { label, name: String(document) })
     }
   } catch {
     return value.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({ label: 'Document', name }))
@@ -93,7 +103,10 @@ export default function AdmissionDetail({ params }: { params: Promise<{ id: stri
                 <div ref={fileRef} className="mt-3 space-y-3">
                   {documentEntries.length ? documentEntries.map(({ label, name }, index) => (
                     <div key={`${label}-${index}`} className="border rounded p-2 text-sm">
-                      <span className="font-medium">{label}: </span>{name}
+                      <span className="font-medium">{label}: </span>
+                      {documentEntries[index].url
+                        ? <a href={documentEntries[index].url} target="_blank" rel="noreferrer" className="text-blue-600 underline">{name}</a>
+                        : <span>{name} (filename only)</span>}
                     </div>
                   )) : <p className="text-sm text-gray-500">No document details were submitted.</p>}
                 </div>

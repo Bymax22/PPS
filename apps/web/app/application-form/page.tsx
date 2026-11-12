@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Home, Laptop, Users, Calendar, FileText, CheckCircle, AlertCircle, Upload, CreditCard, User, Mail, Phone, MapPin, BookOpen, GraduationCap, Globe, Award } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { getApplicationSelectionFromSearchParams, type ApplicationProgramType } from '@/lib/applicationFormState'
 
-export default function ApplicationFormPage() {
+function ApplicationFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialSelection = getApplicationSelectionFromSearchParams(searchParams)
@@ -97,14 +97,50 @@ export default function ApplicationFormPage() {
     e.preventDefault()
     ;(async () => {
       try {
-        const payload: any = { ...formData }
-        // include file names if uploaded
-        if (formData.schoolReport) payload.schoolReportName = (formData.schoolReport as File).name
-        if (formData.birthCertificate) payload.birthCertificateName = (formData.birthCertificate as File).name
-        if (formData.passportPhoto) payload.passportPhotoName = (formData.passportPhoto as File).name
-        if (formData.immunizations) payload.immunizationsName = (formData.immunizations as File).name
+        const files: Array<[string, File | null]> = [
+          ['schoolReport', formData.schoolReport],
+          ['birthCertificate', formData.birthCertificate],
+          ['passportPhoto', formData.passportPhoto],
+          ['immunizations', formData.immunizations],
+        ]
+        const selectedFiles = files.filter((entry): entry is [string, File] => entry[1] instanceof File)
+        const documents: Record<string, { name: string; url: string; publicId: string; mimeType: string }> = {}
+        let uploadFolder: string | undefined
 
-        const res = await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        if (selectedFiles.length) {
+          const signatureResponse = await fetch('/api/admissions/upload-signature', { method: 'POST' })
+          const signature = await signatureResponse.json()
+          if (!signatureResponse.ok) throw new Error(signature.error || 'Unable to prepare document uploads')
+          uploadFolder = signature.folder
+
+          for (const [field, file] of selectedFiles) {
+            if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name} must be 10 MB or smaller`)
+            if (!['application/pdf', 'image/jpeg', 'image/png'].includes(file.type)) {
+              throw new Error(`${file.name} must be a PDF, JPG, or PNG file`)
+            }
+            const uploadData = new FormData()
+            uploadData.append('file', file)
+            uploadData.append('api_key', signature.apiKey)
+            uploadData.append('timestamp', String(signature.timestamp))
+            uploadData.append('signature', signature.signature)
+            uploadData.append('folder', signature.folder)
+            uploadData.append('allowed_formats', signature.allowedFormats)
+            const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signature.cloudName}/auto/upload`, {
+              method: 'POST',
+              body: uploadData,
+            })
+            const uploaded = await uploadResponse.json()
+            if (!uploadResponse.ok) throw new Error(uploaded.error?.message || `Unable to upload ${file.name}`)
+            documents[field] = { name: file.name, url: uploaded.secure_url, publicId: uploaded.public_id, mimeType: file.type }
+          }
+        }
+
+        const { schoolReport, birthCertificate, passportPhoto, immunizations, ...applicationData } = formData
+        const res = await fetch('/api/admissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...applicationData, documents, uploadFolder }),
+        })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Submission failed')
         router.push(`/application-success?id=${data.id}&emailSent=${data.emailSent ? '1' : '0'}`)
@@ -576,7 +612,7 @@ export default function ApplicationFormPage() {
                             Click to upload or drag and drop
                           </span>
                           <span className="text-xs text-gray-400 block mt-1">
-                            PDF, PNG, JPG up to 5MB
+                            PDF, PNG, JPG up to 10MB
                           </span>
                         </label>
                       </div>
@@ -792,5 +828,13 @@ export default function ApplicationFormPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function ApplicationFormPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-white" />}>
+      <ApplicationFormContent />
+    </Suspense>
   )
 }

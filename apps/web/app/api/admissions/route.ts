@@ -18,10 +18,13 @@ const admissionSchema = z.object({
   previousGrade: z.union([z.string(), z.number()]).optional(),
   studentGrade: z.union([z.string(), z.number()]),
   preferredSubjects: z.unknown().optional(),
-  schoolReportName: z.string().optional(),
-  birthCertificateName: z.string().optional(),
-  passportPhotoName: z.string().optional(),
-  immunizationsName: z.string().optional(),
+  uploadFolder: z.string().regex(/^pps_admissions\/[0-9a-f-]{36}$/i).optional(),
+  documents: z.object({
+    schoolReport: z.object({ name: z.string(), url: z.string().url(), publicId: z.string(), mimeType: z.string() }).optional(),
+    birthCertificate: z.object({ name: z.string(), url: z.string().url(), publicId: z.string(), mimeType: z.string() }).optional(),
+    passportPhoto: z.object({ name: z.string(), url: z.string().url(), publicId: z.string(), mimeType: z.string() }).optional(),
+    immunizations: z.object({ name: z.string(), url: z.string().url(), publicId: z.string(), mimeType: z.string() }).optional(),
+  }).optional(),
   agreeTerms: z.boolean().optional(),
 })
 
@@ -32,6 +35,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid application details' }, { status: 400 })
     }
     const body = parsed.data
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    for (const document of Object.values(body.documents ?? {})) {
+      if (!document) continue
+      const documentUrl = new URL(document.url)
+      if (
+        !cloudName ||
+        documentUrl.hostname !== 'res.cloudinary.com' ||
+        !documentUrl.pathname.startsWith(`/${cloudName}/`) ||
+        !body.uploadFolder ||
+        !document.publicId.startsWith(`${body.uploadFolder}/`)
+      ) {
+        return NextResponse.json({ error: 'Invalid uploaded document reference' }, { status: 400 })
+      }
+    }
     const dateOfBirth = new Date(body.studentDob)
     const parseGrade = (value: string | number) => {
       if (typeof value === 'number') return value
@@ -69,10 +86,7 @@ export async function POST(req: Request) {
 
     const documents = {
       studentEmail: body.studentEmail || null,
-      schoolReport: body.schoolReportName || null,
-      birthCertificate: body.birthCertificateName || null,
-      passportPhoto: body.passportPhotoName || null,
-      immunizations: body.immunizationsName || null
+      ...(body.documents ?? {}),
     }
 
     const admission = await prisma.admissionForm.create({

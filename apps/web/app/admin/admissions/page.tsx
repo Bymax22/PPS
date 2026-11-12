@@ -19,15 +19,34 @@ type AdmissionItem = {
   submittedAt?: string
 }
 
-function parseDocuments(value?: string | null) {
+type AdmissionDocument = { label: string; name: string; url?: string }
+
+function parseDocuments(value?: string | null): AdmissionDocument[] {
   if (!value) return []
   try {
     const parsed = JSON.parse(value)
-    if (Array.isArray(parsed)) return parsed.filter(Boolean)
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string').map((item) => ({
+        label: 'Document',
+        name: item.startsWith('https://') ? item.split('/').pop() || item : item,
+        url: item.startsWith('https://') ? item : undefined,
+      }))
+    }
+    if (typeof parsed === 'object' && parsed !== null) {
+      return Object.entries(parsed)
+        .filter(([label, document]) => label !== 'studentEmail' && Boolean(document))
+        .map(([label, document]) => typeof document === 'object' && document !== null
+          ? {
+              label,
+              name: 'name' in document && typeof document.name === 'string' ? document.name : label,
+              url: 'url' in document && typeof document.url === 'string' ? document.url : undefined,
+            }
+          : { label, name: String(document) })
+    }
   } catch {
     // fall back to comma-separated values
   }
-  return value.split(',').map((item) => item.trim()).filter(Boolean)
+  return value.split(',').map((item) => item.trim()).filter(Boolean).map((item) => ({ label: 'Document', name: item }))
 }
 
 export default function AdminAdmissionsPage() {
@@ -161,8 +180,11 @@ export default function AdminAdmissionsPage() {
                       {(() => {
                         const documents = parseDocuments(selected.documentsMediaIds || (selected.documentsUrl ? JSON.stringify(selected.documentsUrl) : null))
                         return documents.length ? documents.map((document, index) => (
-                          <li key={`${document}-${index}`}>
-                            <a target="_blank" rel="noreferrer" href={document} className="text-sm text-blue-600 underline">{document.split('/').pop() || document}</a>
+                          <li key={`${document.label}-${document.name}-${index}`}>
+                            <span className="mr-1 text-gray-500">{document.label}:</span>
+                            {document.url
+                              ? <a target="_blank" rel="noreferrer" href={document.url} className="text-sm text-blue-600 underline">{document.name}</a>
+                              : <span className="text-sm text-gray-600">{document.name} (filename only)</span>}
                           </li>
                         )) : <li className="text-sm text-gray-500">No documents attached yet.</li>
                       })()}

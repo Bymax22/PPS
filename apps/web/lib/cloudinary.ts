@@ -71,3 +71,16 @@ export async function uploadToCloudinary(file: Blob, options?: { folder?: string
 
   return json
 }
+
+export function createCloudinaryUploadSignature(folder: string, allowedFormats: string) {
+  const { cloudName, apiKey, apiSecret } = getCloudinaryConfig()
+  const timestamp = Math.floor(Date.now() / 1000)
+  const params = { allowed_formats: allowedFormats, folder, timestamp: timestamp.toString() }
+  const signatureString = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key as keyof typeof params]}`)
+    .join('&') + apiSecret
+  const signature = crypto.createHash('sha1').update(signatureString).digest('hex')
+
+  return { cloudName, apiKey, timestamp, signature, folder, allowedFormats }
+}
