@@ -65,9 +65,11 @@ export async function POST(
   } catch {
     studentEmail = null
   }
-  if (!studentEmail) studentEmail = `admission-${admission.id}@students.pps.invalid`
-  if (studentEmail.toLowerCase() === admission.parentEmail.toLowerCase()) {
-    return NextResponse.json({ error: 'The student email must be different from the guardian email' }, { status: 400 })
+  if (
+    !studentEmail ||
+    studentEmail.trim().toLowerCase() === admission.parentEmail.trim().toLowerCase()
+  ) {
+    studentEmail = `admission-${admission.id}@students.pps.invalid`
   }
 
   const existingStudent = await prisma.user.findUnique({
