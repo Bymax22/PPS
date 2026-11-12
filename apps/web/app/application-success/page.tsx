@@ -16,6 +16,8 @@ import {
 function ApplicationSuccessContent() {
   const params = useSearchParams()
   const id = params.get('id')
+  const emailSentParam = params.get('emailSent')
+  const emailStatus = emailSentParam === '1' ? true : emailSentParam === '0' ? false : null
 
   const [admission, setAdmission] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -152,6 +154,20 @@ function ApplicationSuccessContent() {
             <p className="text-xs text-gray-400 mt-2">
               Please quote this number in all correspondence
             </p>
+          </div>
+
+          <div
+            className={`mb-8 rounded-xl border p-4 text-left text-sm ${
+              emailStatus === true
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : emailStatus === false
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-slate-200 bg-slate-50 text-slate-700'
+            }`}
+          >
+            {emailStatus === true && '✓ Confirmation email sent to the parent.'}
+            {emailStatus === false && '⚠ The confirmation email could not be sent. Please contact admissions for help.'}
+            {emailStatus === null && 'Checking email delivery status...'}
           </div>
 
           <div className="flex gap-3 justify-center mb-6">

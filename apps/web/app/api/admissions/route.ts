@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sendApplicationConfirmationEmail } from '@/lib/email'
 
 const admissionSchema = z.object({
   studentFirstName: z.string().trim().min(1),
@@ -94,7 +95,34 @@ export async function POST(req: Request) {
       }
     })
 
-    return NextResponse.json({ id: admission.id }, { status: 201 })
+    let emailSent = false
+    try {
+      const parentName = `${body.parentFirstName || ''} ${body.parentLastName || ''}`.trim() || body.parentEmail
+      await sendApplicationConfirmationEmail({
+        email: body.parentEmail,
+        parentName,
+        studentName,
+        applyingForGrade: body.studentGrade,
+        referenceId: admission.id,
+      })
+      emailSent = true
+
+      const admissionsInbox = process.env.ADMISSIONS_EMAIL || process.env.EMAIL_TO_ADDRESS
+      if (admissionsInbox) {
+        await sendApplicationConfirmationEmail({
+          email: admissionsInbox,
+          parentName,
+          studentName,
+          applyingForGrade: body.studentGrade,
+          referenceId: admission.id,
+        })
+      }
+    } catch (error) {
+      console.error('Unable to send application confirmation email', error)
+      emailSent = false
+    }
+
+    return NextResponse.json({ id: admission.id, emailSent }, { status: 201 })
   } catch (err) {
     console.error('admission error', err)
     return NextResponse.json({ error: 'server_error' }, { status: 500 })

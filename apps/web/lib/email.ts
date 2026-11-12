@@ -140,6 +140,50 @@ export async function sendLoginOtpEmail(email: string, fullName: string, otp: st
   })
 }
 
+export function buildAdmissionConfirmationEmail({
+  parentName,
+  studentName,
+  applyingForGrade,
+  referenceId,
+  appUrl,
+}: {
+  parentName: string
+  studentName: string
+  applyingForGrade: string | number
+  referenceId: string
+  appUrl: string
+}) {
+  const normalizedReference = String(referenceId)
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(0, 8)
+    .toUpperCase() || 'PENDING'
+  const reference = `APP-${normalizedReference}`
+  const baseUrl = appUrl.replace(/\/$/, '')
+
+  return {
+    subject: `Application received - ${reference}`,
+    textContent: [
+      `Dear ${parentName},`,
+      ``,
+      `We have received your application for ${studentName} for ${applyingForGrade}.`,
+      `Your reference number is ${reference}.`,
+      `You can keep this number for all future communication with the school.`,
+      ``,
+      `If you need to review your application, visit: ${baseUrl}/application-success?id=${encodeURIComponent(referenceId)}`,
+      ``,
+      `Thank you for choosing Progress Preparatory Schools.`,
+    ].join('\n'),
+    htmlContent: `
+      <p>Dear ${parentName},</p>
+      <p>Thank you for submitting an application for ${studentName}.</p>
+      <p>We have received your application for <strong>${applyingForGrade}</strong>.</p>
+      <p>Your reference number is <strong>${reference}</strong>. Please quote this number in all correspondence.</p>
+      <p>You can review your application here: <a href="${baseUrl}/application-success?id=${encodeURIComponent(referenceId)}" style="color:#003087;">View application</a></p>
+      <p>Thank you for choosing Progress Preparatory Schools.</p>
+    `,
+  }
+}
+
 export async function sendWelcomeEmail(email: string, fullName: string) {
   return sendBrevoEmail({
     to: email,
@@ -150,5 +194,35 @@ export async function sendWelcomeEmail(email: string, fullName: string) {
       <p>Welcome to Progress Preparatory Schools. Your account is ready, and you can sign in at <a href="${APP_URL}" style="color:#003087;">${APP_URL}</a>.</p>
       <p>If you have any questions, reply to this email.</p>
     `,
+  })
+}
+
+export async function sendApplicationConfirmationEmail({
+  email,
+  parentName,
+  studentName,
+  applyingForGrade,
+  referenceId,
+}: {
+  email: string
+  parentName: string
+  studentName: string
+  applyingForGrade: string | number
+  referenceId: string
+}) {
+  const payload = buildAdmissionConfirmationEmail({
+    parentName,
+    studentName,
+    applyingForGrade,
+    referenceId,
+    appUrl: APP_URL,
+  })
+
+  return sendBrevoEmail({
+    to: email,
+    name: parentName || email,
+    subject: payload.subject,
+    htmlContent: payload.htmlContent,
+    textContent: payload.textContent,
   })
 }

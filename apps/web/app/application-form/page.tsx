@@ -2,13 +2,17 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Home, Laptop, Users, Calendar, FileText, CheckCircle, AlertCircle, Upload, CreditCard, User, Mail, Phone, MapPin, BookOpen, GraduationCap, Globe, Award } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getApplicationSelectionFromSearchParams, type ApplicationProgramType } from '@/lib/applicationFormState'
 
 export default function ApplicationFormPage() {
   const router = useRouter()
-  const [programType, setProgramType] = useState<'campus' | 'home' | 'online' | null>(null)
+  const searchParams = useSearchParams()
+  const initialSelection = getApplicationSelectionFromSearchParams(searchParams)
+
+  const [programType, setProgramType] = useState<ApplicationProgramType | null>(initialSelection.program)
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     // Student Information
@@ -18,7 +22,7 @@ export default function ApplicationFormPage() {
     studentDob: '',
     studentGender: '',
     studentNationality: 'Zambian',
-    studentGrade: '',
+    studentGrade: initialSelection.grade,
     
     // Parent/Guardian Information
     parentFirstName: '',
@@ -65,7 +69,23 @@ export default function ApplicationFormPage() {
     }
   }
 
-  const handleProgramSelect = (type: 'campus' | 'home' | 'online') => {
+  useEffect(() => {
+    const nextProgram = getApplicationSelectionFromSearchParams(searchParams).program
+    const nextGrade = getApplicationSelectionFromSearchParams(searchParams).grade
+
+    if (nextProgram) {
+      setProgramType(nextProgram)
+    }
+
+    if (nextGrade) {
+      setFormData((previous) => ({
+        ...previous,
+        studentGrade: nextGrade,
+      }))
+    }
+  }, [searchParams])
+
+  const handleProgramSelect = (type: ApplicationProgramType) => {
     setProgramType(type)
     if (type === 'online') {
       // Redirect to portal account creation for online learning
@@ -87,7 +107,7 @@ export default function ApplicationFormPage() {
         const res = await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Submission failed')
-        router.push(`/application-success?id=${data.id}`)
+        router.push(`/application-success?id=${data.id}&emailSent=${data.emailSent ? '1' : '0'}`)
       } catch (err) {
         console.error(err)
         alert('Unable to submit application. Please try again later.')

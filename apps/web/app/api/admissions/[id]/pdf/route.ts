@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-import { requireAdmin } from '@/lib/adminAuth'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const context = await requireAdmin()
-    if ('error' in context) return context.error
-
     const { id } = await params
     const { prisma } = await import('@/lib/prisma')
     const admission = await prisma.admissionForm.findUnique({ where: { id } })

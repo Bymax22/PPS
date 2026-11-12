@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, FileText, Calendar, Users, Home, Laptop, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
+import { buildApplicationFormHref } from '@/lib/applicationFormState'
 
 export default function ApplyPage() {
   const [selectedProgram, setSelectedProgram] = useState('')
@@ -187,11 +188,21 @@ export default function ApplyPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h3 className="text-2xl font-bold mb-2">Ready to Apply?</h3>
-              <p className="text-gray-200">Complete our online application form to get started</p>
+              <p className="text-gray-200">
+                {selectedProgram && selectedGrade
+                  ? `Applying for ${selectedProgram === 'campus' ? 'On-Campus' : selectedProgram === 'home' ? 'Home One-on-One' : 'Online Sessions'} · ${selectedGrade}`
+                  : 'Complete our online application form to get started'}
+              </p>
             </div>
             <Link
-              href="/application-form"
-              className="px-8 py-3 bg-[var(--campus-gold)] text-gray-900 rounded-xl font-semibold hover:bg-yellow-400 transition-colors whitespace-nowrap"
+              href={buildApplicationFormHref(selectedProgram, selectedGrade)}
+              className="px-8 py-3 bg-[var(--campus-gold)] text-gray-900 rounded-xl font-semibold hover:bg-yellow-400 transition-colors whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+              aria-disabled={!selectedProgram || !selectedGrade}
+              onClick={(event) => {
+                if (!selectedProgram || !selectedGrade) {
+                  event.preventDefault()
+                }
+              }}
             >
               Start Application
             </Link>
